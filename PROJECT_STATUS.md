@@ -3,6 +3,7 @@
 Last updated: 2026-09-08
 Current branch: `codex/phase-0-foundation`
 Base: `origin/main` at `042c5e9`
+Pull request: https://github.com/DH-stream/TD-annialation/pull/1
 
 ## Current milestone
 
