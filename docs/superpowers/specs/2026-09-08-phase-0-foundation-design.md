@@ -1,7 +1,7 @@
 # Phase 0 Foundation Design
 
-**Date:** 2026-09-08  
-**Repository:** [DH-stream/TD-annialation](https://github.com/DH-stream/TD-annialation)  
+**Date:** 2026-09-08
+**Repository:** [DH-stream/TD-annialation](https://github.com/DH-stream/TD-annialation)
 **Branch:** `codex/phase-0-foundation`
 
 ## Goal
@@ -77,4 +77,3 @@ References:
 - [Dungeon Defenders: Awakened on Steam](https://store.steampowered.com/app/1101190)
 - [Deep Rock Galactic official FAQ](https://www.deeprockgalactic.com/faq-test-page)
 - [Steamworks documentation](https://partner.steamgames.com/doc/home)
-
