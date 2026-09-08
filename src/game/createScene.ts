@@ -1,5 +1,6 @@
 import {
   ArcRotateCamera,
+  ArcRotateCameraPointersInput,
   Color3,
   Color4,
   DirectionalLight,
@@ -10,6 +11,7 @@ import {
   PBRMaterial,
   PointLight,
   Scene,
+  TransformNode,
   Vector3,
 } from 'babylonjs';
 import { DEFAULT_SCENE_CONFIG, type SceneConfig } from './config/sceneConfig';
@@ -67,6 +69,7 @@ function addBuildPad(scene: Scene, stone: PBRMaterial, brass: PBRMaterial, posit
   }, scene);
   base.position = position;
   base.material = stone;
+  base.metadata = { interaction: 'map' };
 
   const ring = MeshBuilder.CreateTorus(`build-pad-ring-${index}`, {
     diameter: 2.75,
@@ -75,6 +78,7 @@ function addBuildPad(scene: Scene, stone: PBRMaterial, brass: PBRMaterial, posit
   }, scene);
   ring.position = position.add(new Vector3(0, 0.16, 0));
   ring.material = brass;
+  ring.metadata = { interaction: 'map' };
 }
 
 function addBarricade(scene: Scene, wood: PBRMaterial, position: Vector3, rotationY: number): void {
@@ -110,18 +114,26 @@ function addCastle(scene: Scene, stone: PBRMaterial, wood: PBRMaterial, brass: P
   }
 }
 
-function addHeroMarker(scene: Scene, wood: PBRMaterial, brass: PBRMaterial): void {
+function addHeroMarker(scene: Scene, wood: PBRMaterial, brass: PBRMaterial): TransformNode {
+  const heroRoot = new TransformNode('hero-root', scene);
+  heroRoot.position = new Vector3(0, 0, 4.2);
+
   const horse = MeshBuilder.CreateBox('hero-horse-preview', { width: 1.1, height: 0.9, depth: 1.8 }, scene);
-  horse.position = new Vector3(0, 0.7, 4.2);
+  horse.position = new Vector3(0, 0.7, 0);
   horse.material = wood;
+  horse.parent = heroRoot;
 
   const rider = MeshBuilder.CreateCylinder('hero-rider-preview', { diameter: 0.6, height: 1.3, tessellation: 8 }, scene);
-  rider.position = new Vector3(0, 1.7, 4.2);
+  rider.position = new Vector3(0, 1.7, 0);
   rider.material = brass;
+  rider.parent = heroRoot;
 
   const marker = MeshBuilder.CreateTorus('hero-marker', { diameter: 2.3, thickness: 0.08, tessellation: 28 }, scene);
-  marker.position = new Vector3(0, 0.08, 4.2);
+  marker.position = new Vector3(0, 0.08, 0);
   marker.material = brass;
+
+  marker.parent = heroRoot;
+  return heroRoot;
 }
 
 function addLantern(scene: Scene, brass: PBRMaterial, position: Vector3): void {
@@ -137,7 +149,7 @@ function addLantern(scene: Scene, brass: PBRMaterial, position: Vector3): void {
 export function createGameScene(
   canvas: HTMLCanvasElement,
   config: SceneConfig = DEFAULT_SCENE_CONFIG,
-): { engine: Engine; scene: Scene } {
+): { engine: Engine; scene: Scene; heroRoot: TransformNode; destinationMarker: Mesh } {
   const engine = new Engine(canvas, true, { stencil: true, preserveDrawingBuffer: true });
   const scene = new Scene(engine);
   scene.clearColor = new Color4(0.055, 0.09, 0.1, 1);
@@ -163,6 +175,10 @@ export function createGameScene(
   camera.wheelPrecision = 32;
   camera.panningSensibility = 0;
   camera.attachControl(canvas, true);
+  const pointerInput = camera.inputs.attached.pointers as ArcRotateCameraPointersInput | undefined;
+  if (pointerInput) {
+    pointerInput.buttons = [0, 1];
+  }
 
   const ambient = new HemisphericLight('ambient-light', new Vector3(0, 1, 0), scene);
   ambient.intensity = 0.72;
@@ -183,6 +199,7 @@ export function createGameScene(
 
   const battlefield = MeshBuilder.CreateGround('battlefield-ground', { width: 42, height: 30, subdivisions: 2 }, scene);
   battlefield.material = ground;
+  battlefield.metadata = { interaction: 'map' };
 
   const pathSegments = [
     { position: new Vector3(-11, 0.04, 8.7), rotation: 0.12, width: 4.1, depth: 8 },
@@ -192,11 +209,12 @@ export function createGameScene(
     { position: new Vector3(10.8, 0.04, -7.7), rotation: 0.04, width: 4.1, depth: 7.5 },
   ];
   pathSegments.forEach((segment, index) => {
-    addBlock(scene, path, `enemy-path-${index}`, segment.position, {
+    const pathSegment = addBlock(scene, path, `enemy-path-${index}`, segment.position, {
       width: segment.width,
       height: 0.08,
       depth: segment.depth,
     }, segment.rotation);
+    pathSegment.metadata = { interaction: 'map' };
   });
 
   [new Vector3(-8, 0.12, 1.9), new Vector3(3.8, 0.12, 5.2), new Vector3(6.8, 0.12, 0.3), new Vector3(-3.7, 0.12, -4.1)].forEach((position, index) => {
@@ -211,7 +229,14 @@ export function createGameScene(
   shrineGlow.material = magic;
 
   addCastle(scene, stone, wood, brass);
-  addHeroMarker(scene, wood, brass);
+  const heroRoot = addHeroMarker(scene, wood, brass);
+  const destinationMarker = MeshBuilder.CreateTorus('hero-destination-marker', {
+    diameter: 1.5,
+    thickness: 0.06,
+    tessellation: 24,
+  }, scene);
+  destinationMarker.material = magic;
+  destinationMarker.isVisible = false;
   addBarricade(scene, wood, new Vector3(-8.7, 0, 7.2), 0.15);
   addBarricade(scene, wood, new Vector3(7.7, 0, -1.6), -0.65);
   addBarricade(scene, wood, new Vector3(2.2, 0, 8.1), 0.05);
@@ -228,5 +253,5 @@ export function createGameScene(
   addLantern(scene, brass, new Vector3(-3.7, 2.4, -10.4));
   addLantern(scene, brass, new Vector3(3.7, 2.4, -10.4));
 
-  return { engine, scene };
+  return { engine, scene, heroRoot, destinationMarker };
 }
