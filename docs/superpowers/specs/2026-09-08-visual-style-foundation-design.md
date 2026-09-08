@@ -6,7 +6,7 @@ This document turns the visual feedback on the Phase 0 scene into an explicit ta
 
 ## North star
 
-The battlefield should feel like a warm, stylized fantasy board that could belong beside Dungeon Defenders, while borrowing the approachable low-poly discipline of Synty POLYGON, Kenney packs and Quaternius. A Short Hike is a reference for the softer lighting, painterly horizon and limited scene palette.
+The battlefield should feel like a warm, stylized fantasy board that could belong beside Dungeon Defenders, while borrowing the approachable low-poly discipline of Synty POLYGON, Kenney packs and Quaternius. A Short Hike is a reference for the softer lighting, painterly horizon and limited scene palette. The tone is more medieval and magical than goofy: Kingdom Rush and Orcs Must Die are closer genre-tone references for architecture, banners, runes and readable spell effects.
 
 References:
 
@@ -15,6 +15,9 @@ References:
 - [Quaternius](https://quaternius.com/)
 - [A Short Hike](https://ashorthike.com/)
 - [Dungeon Defenders](https://store.steampowered.com/app/65800/Dungeon_Defenders/)
+- [Kingdom Rush](https://store.steampowered.com/app/246420/Kingdom_Rush__Tower_Defense/)
+- [Orcs Must Die!](https://store.steampowered.com/app/102600/Orcs_Must_Die/)
+- [World of Warcraft](https://worldofwarcraft.blizzard.com/)
 
 ## Locked direction for the Greenward map
 
@@ -49,6 +52,15 @@ Every visual pass is checked against these rules:
 The current battlefield is a foundation-scale test board and is too small for the intended action tower-defense view. The next scene pass scales the playable board and composition together, increases the default camera framing, and leaves room for future waves, tower clusters and hero traversal. Scaling must not be a cosmetic zoom-only change: walkable space, landmark spacing and click-to-move bounds must grow with it.
 
 The dark rectangular object near the shrine is not allowed to remain ambiguous. The hero preview must read as a deliberate chunky character silhouette; any remaining unowned plane is removed and covered by a browser screenshot check.
+
+The medieval/magical layer is reusable rather than decorative one-offs: torch-lit stone, banners, rune rings on build pads and restrained emissive magic glow near shrines and future towers. Surface depth should move toward hand-painted light/shadow warmth using controlled vertex gradients or authored textures rather than relying only on real-time light.
+
+## Creature, gore and co-op constraints
+
+- Future enemies are chunky stylized low-poly creatures with the same toon/cel shading ramp as the environment; do not use literal voxel cubes or cinematic creature fidelity as the contrast hook.
+- Persistent blood uses projected decals from a small stylized atlas, capped at roughly 150–300 active decals per stage with oldest-first eviction.
+- Dismemberment uses pre-split enemy segments, rare attack-dependent detachments and short-lived physics impulses; gore and dismemberment are independently toggleable.
+- Online co-op must derive gore outcomes from a host-agreed death/event id so clients see the same result.
 
 ## Runtime and quality constraints
 

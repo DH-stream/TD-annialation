@@ -5,6 +5,7 @@ import {
   Color4,
   DirectionalLight,
   Engine,
+  GlowLayer,
   HemisphericLight,
   Mesh,
   MeshBuilder,
@@ -43,9 +44,19 @@ function addSubtleVertexVariation(mesh: Mesh): void {
     return;
   }
 
+  let minY = Number.POSITIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  for (let index = 1; index < positions.length; index += 3) {
+    minY = Math.min(minY, positions[index]);
+    maxY = Math.max(maxY, positions[index]);
+  }
+
+  const heightRange = Math.max(0.001, maxY - minY);
   const colors: number[] = [];
   for (let index = 0; index < positions.length; index += 3) {
-    const lightness = 0.97 + ((index / 3) % 5) * 0.015;
+    const heightLightness = (positions[index + 1] - minY) / heightRange;
+    const facetVariation = ((index / 3) % 5) * 0.008;
+    const lightness = 0.92 + heightLightness * 0.1 + facetVariation;
     colors.push(lightness, lightness, lightness, 1);
   }
   mesh.setVerticesData(VertexBuffer.ColorKind, colors, true, 4);
@@ -89,7 +100,14 @@ function addTree(scene: Scene, wood: StandardMaterial, ground: StandardMaterial,
   crown.material = ground;
 }
 
-function addBuildPad(scene: Scene, stone: StandardMaterial, brass: StandardMaterial, position: Vector3, index: number): void {
+function addBuildPad(
+  scene: Scene,
+  stone: StandardMaterial,
+  brass: StandardMaterial,
+  magic: StandardMaterial,
+  position: Vector3,
+  index: number,
+): void {
   const base = MeshBuilder.CreateCylinder(`build-pad-${index}`, {
     diameter: 3.2,
     height: 0.18,
@@ -107,6 +125,15 @@ function addBuildPad(scene: Scene, stone: StandardMaterial, brass: StandardMater
   ring.position = position.add(new Vector3(0, 0.16, 0));
   ring.material = brass;
   ring.metadata = { interaction: 'map' };
+
+  const rune = MeshBuilder.CreateTorus(`build-pad-rune-${index}`, {
+    diameter: 1.85,
+    thickness: 0.035,
+    tessellation: 16,
+  }, scene);
+  rune.position = position.add(new Vector3(0, 0.21, 0));
+  rune.material = magic;
+  rune.metadata = { interaction: 'map' };
 }
 
 function addBarricade(scene: Scene, wood: StandardMaterial, position: Vector3, rotationY: number): void {
@@ -169,10 +196,27 @@ function addHeroMarker(scene: Scene, wood: StandardMaterial, brass: StandardMate
   return heroRoot;
 }
 
-function addLantern(scene: Scene, brass: StandardMaterial, position: Vector3): void {
+function addLantern(
+  scene: Scene,
+  wood: StandardMaterial,
+  brass: StandardMaterial,
+  magic: StandardMaterial,
+  position: Vector3,
+): void {
+  const post = MeshBuilder.CreateCylinder(`lantern-post-${position.x}-${position.z}`, {
+    diameter: 0.16,
+    height: 2.2,
+    tessellation: 8,
+  }, scene);
+  post.position = position.add(new Vector3(0, -1.1, 0));
+  post.material = wood;
+
   const lantern = MeshBuilder.CreateSphere(`lantern-${position.x}-${position.z}`, { diameter: 0.35, segments: 8 }, scene);
   lantern.position = position;
   lantern.material = brass;
+  const flame = MeshBuilder.CreateSphere(`lantern-flame-${position.x}-${position.z}`, { diameter: 0.18, segments: 8 }, scene);
+  flame.position = position.add(new Vector3(0, 0.25, 0));
+  flame.material = magic;
   const light = new PointLight(`lantern-light-${position.x}-${position.z}`, position, scene);
   light.diffuse = new Color3(1, 0.62, 0.2);
   light.intensity = 0.8;
@@ -247,6 +291,9 @@ export function createGameScene(
   const wood = createMaterial(scene, 'wood-material', config.colors.wood, 0.86);
   const brass = createMaterial(scene, 'brass-material', config.colors.brass, 0.5);
   const magic = createMaterial(scene, 'magic-material', config.colors.magic, 0.25);
+  magic.emissiveColor = Color3.FromHexString(config.colors.magic).scale(0.3);
+  const magicGlow = new GlowLayer('greenward-magic-glow', scene);
+  magicGlow.intensity = 0.45;
 
   const battlefield = MeshBuilder.CreateGround('battlefield-ground', { width: 42, height: 30, subdivisions: 2 }, scene);
   battlefield.material = ground;
@@ -269,7 +316,7 @@ export function createGameScene(
   });
 
   [new Vector3(-8, 0.12, 1.9), new Vector3(3.8, 0.12, 5.2), new Vector3(6.8, 0.12, 0.3), new Vector3(-3.7, 0.12, -4.1)].forEach((position, index) => {
-    addBuildPad(scene, stone, brass, position, index);
+    addBuildPad(scene, stone, brass, magic, position, index);
   });
 
   const centralShrine = MeshBuilder.CreateCylinder('central-shrine', { diameter: 2.1, height: 2.7, tessellation: 8 }, scene);
@@ -301,8 +348,8 @@ export function createGameScene(
     [new Vector3(14, 0, 12), 0.85],
   ].forEach(([position, scale]) => addTree(scene, wood, ground, position as Vector3, scale as number));
 
-  addLantern(scene, brass, new Vector3(-3.7, 2.4, -10.4));
-  addLantern(scene, brass, new Vector3(3.7, 2.4, -10.4));
+  addLantern(scene, wood, brass, magic, new Vector3(-3.7, 2.4, -10.4));
+  addLantern(scene, wood, brass, magic, new Vector3(3.7, 2.4, -10.4));
 
   const mapRoot = new TransformNode('greenward-map-root', scene);
   mapRoot.scaling = new Vector3(1.5, 1.5, 1.5);

@@ -10,8 +10,8 @@ export type KeyboardBindings = {
 export const DEFAULT_KEYBOARD_BINDINGS: KeyboardBindings = {
   up: 'w',
   down: 's',
-  left: 'a',
-  right: 'd',
+  left: 'd',
+  right: 'a',
 };
 
 export type KeyboardInputState = {
