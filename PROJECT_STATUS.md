@@ -3,7 +3,7 @@
 Last updated: 2026-09-08
 Current branch: `codex/v1-playable-shell`
 Base: `origin/main` at `042c5e9`
-Pull request: to be opened against `main` after v1 verification
+Pull request: https://github.com/DH-stream/TD-annialation/pull/3
 
 ## Current milestone
 
