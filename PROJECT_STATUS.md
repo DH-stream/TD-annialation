@@ -264,6 +264,7 @@ This is the single current reconciliation record. It replaces the earlier histor
 - Added/reused pools for fallback enemies, Kenney enemy characters and coins.
 - Extended performance instrumentation with a live instanced-mesh count, then enabled Babylon instances for repeated Fantasy Town assets. Fresh runtime evidence is 35 instances with zero browser warnings; draw-call evidence remains open.
 - Reworked the current composition after fresh comparison: a horizon ground underlay removes the old diagonal edge; the castle is closer and correctly scaled; camera framing is tighter; shrine/lantern warmth, motes, smoke and a focal glow are visible in the final captures.
+- Post-instancing visual recheck: fresh default, alternate-orbit and mobile captures are `.playwright-cli/page-2026-09-08T18-23-42-252Z.png`, `.playwright-cli/page-2026-09-08T18-24-08-311Z.png` and `.playwright-cli/page-2026-09-08T18-24-13-290Z.png`; the current browser reported zero errors and warnings.
 
 ### Open work in required priority order
 
