@@ -1,24 +1,38 @@
-import {
-  ArcRotateCamera,
-  ArcRotateCameraPointersInput,
-  Color3,
-  DirectionalLight,
-  Engine,
-  GlowLayer,
-  HemisphericLight,
-  Mesh,
-  MeshBuilder,
-  PointLight,
-  SSAO2RenderingPipeline,
-  Scene,
-  ShadowGenerator,
-  StandardMaterial,
-  TransformNode,
-  VertexBuffer,
-  Vector3,
-} from 'babylonjs';
+/// <reference types="vite/client" />
+
+import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera';
+import { ArcRotateCameraPointersInput } from '@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput';
+import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
+import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
+import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight';
+import { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
+import '@babylonjs/core/Lights/Shadows/shadowGeneratorSceneComponent';
+import { GlowLayer } from '@babylonjs/core/Layers/glowLayer';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
+import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import { Engine } from '@babylonjs/core/Engines/engine';
+import { Scene } from '@babylonjs/core/scene';
+import { SceneInstrumentation } from '@babylonjs/core/Instrumentation/sceneInstrumentation';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import earcut from 'earcut';
 import { DEFAULT_SCENE_CONFIG, type SceneConfig } from './config/sceneConfig';
+import { GREENWARD_PATH } from './sim/stageSimulation';
+
+declare global {
+  interface Window {
+    __TD_PERF__?: () => {
+      fps: number;
+      frameMs: number;
+      renderMs: number;
+      activeMeshesMs: number;
+      activeMeshes: number;
+    };
+  }
+}
 
 export function getCameraSettings(config: SceneConfig): SceneConfig['camera'] {
   return config.camera;
@@ -290,6 +304,23 @@ export function createTowerVisual(scene: Scene, config: SceneConfig, id: string)
   return root;
 }
 
+export function createCoinVisual(scene: Scene, config: SceneConfig, id: string): TransformNode {
+  const root = new TransformNode(`coin-root-${id}`, scene);
+  const coin = MeshBuilder.CreateTorus(`coin-${id}`, {
+    diameter: 0.42,
+    thickness: 0.12,
+    tessellation: 12,
+  }, scene);
+  coin.rotation.x = Math.PI / 2;
+  coin.material = createMaterial(scene, `coin-material-${id}`, config.colors.brass, 0.32);
+  coin.parent = root;
+  const glint = MeshBuilder.CreateSphere(`coin-glint-${id}`, { diameter: 0.1, segments: 6 }, scene);
+  glint.position.y = 0.18;
+  glint.material = createMaterial(scene, `coin-glint-material-${id}`, config.colors.magic, 0.2);
+  glint.parent = root;
+  return root;
+}
+
 export function createGameScene(
   canvas: HTMLCanvasElement,
   config: SceneConfig = DEFAULT_SCENE_CONFIG,
@@ -303,6 +334,17 @@ export function createGameScene(
 } {
   const engine = new Engine(canvas, true, { stencil: true, preserveDrawingBuffer: true });
   const scene = new Scene(engine);
+  const instrumentation = new SceneInstrumentation(scene);
+  instrumentation.captureFrameTime = true;
+  instrumentation.captureRenderTime = true;
+  instrumentation.captureActiveMeshesEvaluationTime = true;
+  window.__TD_PERF__ = () => ({
+    fps: Math.round(1000 / Math.max(0.1, instrumentation.frameTimeCounter.lastSecAverage)),
+    frameMs: Number(instrumentation.frameTimeCounter.lastSecAverage.toFixed(2)),
+    renderMs: Number(instrumentation.renderTimeCounter.lastSecAverage.toFixed(2)),
+    activeMeshesMs: Number(instrumentation.activeMeshesEvaluationTimeCounter.lastSecAverage.toFixed(2)),
+    activeMeshes: scene.getActiveMeshes().length,
+  });
   const groundColor = Color3.FromHexString(config.colors.ground);
   scene.clearColor = groundColor.scale(0.35).toColor4();
   scene.fogMode = Scene.FOGMODE_EXP2;
@@ -349,17 +391,23 @@ export function createGameScene(
   shadows.bias = 0.02;
   shadows.normalBias = 0.02;
 
-  const ambientOcclusion = new SSAO2RenderingPipeline('greenward-ambient-occlusion', scene, {
-    ssaoRatio: 0.7,
-    blurRatio: 0.7,
-  });
-  ambientOcclusion.radius = 2.2;
-  ambientOcclusion.totalStrength = 0.55;
-  ambientOcclusion.base = 0.5;
-  scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline(
-    'greenward-ambient-occlusion',
-    camera,
-  );
+  void import('@babylonjs/core/PostProcesses/RenderPipeline/Pipelines/ssao2RenderingPipeline')
+    .then(({ SSAO2RenderingPipeline }) => {
+      const ambientOcclusion = new SSAO2RenderingPipeline('greenward-ambient-occlusion', scene, {
+        ssaoRatio: 0.7,
+        blurRatio: 0.7,
+      });
+      ambientOcclusion.radius = 2.2;
+      ambientOcclusion.totalStrength = 0.55;
+      ambientOcclusion.base = 0.5;
+      scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline(
+        'greenward-ambient-occlusion',
+        camera,
+      );
+    })
+    .catch(() => {
+      // AO is an optional polish pass; the scene remains playable if its chunk fails to load.
+    });
 
   const ground = createMaterial(scene, 'ground-material', config.colors.ground, 0.9);
   const path = createMaterial(scene, 'path-material', config.colors.path, 0.86);
@@ -375,19 +423,20 @@ export function createGameScene(
   battlefield.material = ground;
   battlefield.metadata = { interaction: 'map' };
 
-  const pathSegments = [
-    { position: new Vector3(-11, 0.04, 8.7), rotation: 0.12, width: 4.1, depth: 8 },
-    { position: new Vector3(-5.2, 0.04, 4.2), rotation: -0.75, width: 4.1, depth: 7.5 },
-    { position: new Vector3(0.5, 0.04, 0.7), rotation: 0.12, width: 4.1, depth: 9 },
-    { position: new Vector3(6.1, 0.04, -3.4), rotation: 0.78, width: 4.1, depth: 7.2 },
-    { position: new Vector3(10.8, 0.04, -7.7), rotation: 0.04, width: 4.1, depth: 7.5 },
-  ];
-  pathSegments.forEach((segment, index) => {
-    const pathSegment = addBlock(scene, path, `enemy-path-${index}`, segment.position, {
-      width: segment.width,
+  GREENWARD_PATH.slice(0, -1).forEach((start, index) => {
+    const end = GREENWARD_PATH[index + 1];
+    const deltaX = end.x - start.x;
+    const deltaZ = end.z - start.z;
+    const length = Math.hypot(deltaX, deltaZ) + 1.8;
+    const pathSegment = addBlock(scene, path, `enemy-path-${index}`, new Vector3(
+      (start.x + end.x) / 2,
+      0.04,
+      (start.z + end.z) / 2,
+    ), {
+      width: 4.1,
       height: 0.08,
-      depth: segment.depth,
-    }, segment.rotation);
+      depth: length,
+    }, Math.atan2(deltaX, deltaZ));
     pathSegment.metadata = { interaction: 'map' };
   });
 

@@ -1,5 +1,11 @@
 # Third-party licenses
 
+## Kenney Blocky Characters
+
+The first imported animated character assets are from [Kenney's Blocky Characters](https://kenney.nl/assets/blocky-characters), stored under `public/assets/vendor/kenney/blocky-characters/`.
+
+The pack is released under Creative Commons CC0. The original `License.txt` is kept beside the imported GLB files. No attribution is required, but Kenney is credited here for provenance.
+
 ## Metal Mania
 
 Metal Mania is bundled through [`@fontsource/metal-mania`](https://fontsource.org/fonts/metal-mania).

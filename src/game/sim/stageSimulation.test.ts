@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   advanceStage,
   createStageState,
+  GREENWARD_PATH,
   placeTower,
   startNextWave,
+  collectCoins,
   type EnemyState,
 } from './stageSimulation';
 
@@ -20,13 +22,13 @@ describe('Greenward stage simulation', () => {
     expect(afterSpawn.enemies[0].id).toBe('greenward-wave-1-enemy-1');
   });
 
-  it('lets a tower damage an enemy and rewards a kill', () => {
+  it('drops a coin on a tower kill and rewards the hero on proximity pickup', () => {
     const wave = startNextWave(createStageState('endless'));
     const placed = placeTower(wave, { x: -11, z: 8.7 });
     const enemy: EnemyState = {
       id: 'target',
-      x: -11,
-      z: 8.7,
+      x: GREENWARD_PATH[0].x,
+      z: GREENWARD_PATH[0].z,
       health: 8,
       maxHealth: 8,
       speed: 0,
@@ -36,8 +38,13 @@ describe('Greenward stage simulation', () => {
     const afterAttack = advanceStage(combatState, 0.5);
 
     expect(placed.tower).toBeDefined();
-    expect(afterAttack.gold).toBeGreaterThan(combatState.gold);
+    expect(afterAttack.gold).toBe(combatState.gold);
     expect(afterAttack.enemies).toHaveLength(0);
+    expect(afterAttack.coins).toHaveLength(1);
+    const collected = collectCoins(afterAttack, { x: GREENWARD_PATH[0].x, z: GREENWARD_PATH[0].z });
+    expect(collected.collected).toBe(10);
+    expect(collected.state.gold).toBe(combatState.gold + 10);
+    expect(collected.state.coins).toHaveLength(0);
   });
 
   it('does not stack two towers on the same build pad', () => {
@@ -54,12 +61,12 @@ describe('Greenward stage simulation', () => {
     const wave = startNextWave(createStageState('endless'));
     const enemy: EnemyState = {
       id: 'gate-runner',
-      x: 10.8,
-      z: -7.7,
+      x: GREENWARD_PATH.at(-1)!.x,
+      z: GREENWARD_PATH.at(-1)!.z,
       health: 10,
       maxHealth: 10,
       speed: 8,
-      waypointIndex: 4,
+      waypointIndex: GREENWARD_PATH.length - 1,
     };
     const afterGate = advanceStage({ ...wave, enemies: [enemy], remainingToSpawn: 0 }, 1);
 

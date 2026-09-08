@@ -21,5 +21,6 @@ export type NetworkTransport = {
   disconnect(): Promise<void>;
   sendInput(input: PlayerInput): void;
   onState(listener: (state: GameState) => void): () => void;
+  onInput(listener: (input: PlayerInput) => void): () => void;
   onError(listener: (error: Error) => void): () => void;
 };

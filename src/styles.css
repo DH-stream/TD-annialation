@@ -250,6 +250,35 @@ body {
   margin: 28px 0;
 }
 
+.friend-room-panel {
+  display: grid;
+  gap: 8px;
+  max-width: 360px;
+  margin: 6px 0 24px;
+  color: rgb(244 234 215 / 82%);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+}
+
+.friend-room-panel input {
+  width: 100%;
+  padding: 12px 14px;
+  color: #f5d89c;
+  border: 1px solid rgb(210 168 91 / 55%);
+  background: rgb(9 19 20 / 72%);
+  font: 700 16px/1.2 "Trebuchet MS", "Segoe UI", sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.friend-room-panel small {
+  color: rgb(244 234 215 / 52%);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  text-transform: none;
+}
+
 .play-mode-card {
   min-height: 120px;
   align-items: flex-start;

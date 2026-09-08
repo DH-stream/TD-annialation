@@ -16,12 +16,14 @@ import {
   type MenuState,
   type PlayMode,
 } from './menuState';
+import { createRoomCode } from '../game/network/supabaseRealtimeBridge';
 
 const BINDINGS_STORAGE_KEY = 'td-annihilation.keyboard-bindings.v1';
 
 export type GameSelection = {
   gameMode: GameMode;
   playMode: PlayMode;
+  roomCode?: string;
 };
 
 type AppShellCallbacks = {
@@ -94,6 +96,7 @@ export function createAppShell(
   let skillPoints = 5;
   let purchasedSkills = new Set<string>();
   let skillFeedback = 'Choose a node to begin your path.';
+  let friendRoomCode = createRoomCode();
 
   const stopCapture = (): void => {
     if (captureHandler) {
@@ -119,7 +122,7 @@ export function createAppShell(
         <button class="mode-card ${menuState.gameMode === 'friend' ? 'is-selected' : ''}" data-mode="friend" type="button">
           <span class="mode-card-icon" aria-hidden="true">♜♜</span>
           <span class="mode-card-title">PLAY WITH A FRIEND</span>
-          <span class="mode-card-copy">Local foundation now · online lobby prepared next.</span>
+          <span class="mode-card-copy">Share a room code and defend together. No account required.</span>
         </button>
       </div>
       <div class="menu-actions">
@@ -146,10 +149,17 @@ export function createAppShell(
           <span class="play-mode-copy">Hold the Greenward as long as your defenses survive.</span>
         </button>
       </div>
+      ${menuState.gameMode === 'friend' ? `
+        <div class="friend-room-panel">
+          <label for="friend-room-code">ROOM CODE</label>
+          <input id="friend-room-code" data-room-code value="${friendRoomCode}" maxlength="32" autocomplete="off" spellcheck="false" />
+          <small>Share this code with your friend. No account or login is required.</small>
+        </div>
+      ` : ''}
       <button class="primary-button ${menuState.playMode ? '' : 'is-disabled'}" data-start-game type="button" ${menuState.playMode ? '' : 'disabled'}>
         ENTER THE GREENWARD <span aria-hidden="true">→</span>
       </button>
-      ${menuState.gameMode === 'friend' ? '<p class="mode-disclaimer">FRIEND MODE FOUNDATION · ONLINE TWO-PC LOBBY COMES IN A LATER NETWORK PASS.</p>' : ''}
+      ${menuState.gameMode === 'friend' ? '<p class="mode-disclaimer">FRIEND MODE · SUPABASE REALTIME BRIDGE · NO LOGIN</p>' : ''}
     </section>
   `;
 
@@ -228,6 +238,9 @@ export function createAppShell(
         render();
       });
     });
+    layer.querySelector<HTMLInputElement>('[data-room-code]')?.addEventListener('input', (event) => {
+      friendRoomCode = (event.target as HTMLInputElement).value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+    });
     layer.querySelectorAll<HTMLButtonElement>('[data-screen]').forEach((button) => {
       button.addEventListener('click', () => {
         stopCapture();
@@ -239,7 +252,11 @@ export function createAppShell(
       if (menuState.gameMode && menuState.playMode) {
         stopCapture();
         layer.classList.add('is-hidden');
-        callbacks.onStartGame({ gameMode: menuState.gameMode, playMode: menuState.playMode });
+        callbacks.onStartGame({
+          gameMode: menuState.gameMode,
+          playMode: menuState.playMode,
+          roomCode: menuState.gameMode === 'friend' ? friendRoomCode : undefined,
+        });
       }
     });
     layer.querySelectorAll<HTMLButtonElement>('[data-bind]').forEach((button) => {

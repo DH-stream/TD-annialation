@@ -1,18 +1,28 @@
-import { PointerEventTypes, TransformNode } from 'babylonjs';
+import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
+import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import type { AssetContainer } from '@babylonjs/core/assetContainer';
 import './styles.css';
-import { createEnemyVisual, createGameScene, createTowerVisual } from './game/createScene';
+import { createCoinVisual, createEnemyVisual, createGameScene, createTowerVisual } from './game/createScene';
 import { DEFAULT_SCENE_CONFIG } from './game/config/sceneConfig';
 import { createKeyboardInputSource } from './game/input/keyboardInput';
 import { createAppShell, loadStoredKeyboardBindings } from './ui/appShell';
 import { advanceHeroPosition, type HeroPosition } from './game/sim/heroMovement';
 import {
   advanceStage,
+  collectCoins,
   createStageState,
   placeTower,
   startNextWave,
   type StageState,
 } from './game/sim/stageSimulation';
 import type { GameSelection } from './ui/appShell';
+import type { NetworkTransport } from './game/sim/types';
+import { createSupabaseRealtimeBridge } from './game/network/supabaseRealtimeBridge';
+import {
+  instantiateKenneyCharacter,
+  loadKenneyCharacter,
+  type CharacterInstance,
+} from './game/assets/kenneyCharacters';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game-canvas');
 const app = document.querySelector<HTMLElement>('#app');
@@ -22,10 +32,12 @@ const gameModeValue = document.querySelector<HTMLElement>('#game-mode-value');
 const waveValue = document.querySelector<HTMLElement>('#wave-value');
 const goldValue = document.querySelector<HTMLElement>('#gold-value');
 const baseHealthValue = document.querySelector<HTMLElement>('#base-health-value');
+const basicAttackValue = document.querySelector<HTMLElement>('#basic-attack-value');
+const specialAttackValue = document.querySelector<HTMLElement>('#special-attack-value');
 const gameplayMessage = document.querySelector<HTMLElement>('#gameplay-message');
 const startWaveButton = document.querySelector<HTMLButtonElement>('#start-wave-button');
 
-if (!canvas || !app || !gameHud || !gameplayPanel || !gameModeValue || !waveValue || !goldValue || !baseHealthValue || !gameplayMessage || !startWaveButton) {
+if (!canvas || !app || !gameHud || !gameplayPanel || !gameModeValue || !waveValue || !goldValue || !baseHealthValue || !basicAttackValue || !specialAttackValue || !gameplayMessage || !startWaveButton) {
   throw new Error('The game shell is missing a required root element.');
 }
 
@@ -33,7 +45,46 @@ const { engine, scene, heroRoot, destinationMarker, mapRoot, buildPads } = creat
 const keyboard = createKeyboardInputSource(window, loadStoredKeyboardBindings());
 let stageState: StageState | null = null;
 const enemyVisuals = new Map<string, TransformNode>();
+const enemyCharacterInstances = new Map<string, CharacterInstance>();
 const towerVisuals = new Map<string, TransformNode>();
+const coinVisuals = new Map<string, TransformNode>();
+let enemyCharacterContainer: AssetContainer | null = null;
+let heroCharacter: CharacterInstance | null = null;
+let networkTransport: NetworkTransport | null = null;
+let heroActionUntil = 0;
+let basicAttackCooldown = 0;
+let specialAttackCooldown = 0;
+let networkStatusMessage: string | null = null;
+
+const prepareCharacterAssets = async (): Promise<void> => {
+  try {
+    const [enemyContainer, heroContainer] = await Promise.all([
+      loadKenneyCharacter(scene, 'a'),
+      loadKenneyCharacter(scene, 'd'),
+    ]);
+    enemyCharacterContainer = enemyContainer;
+    heroCharacter = instantiateKenneyCharacter(heroContainer, 'hero-king', 1.25);
+    heroCharacter.root.parent = mapRoot;
+    heroCharacter.root.position.copyFrom(heroRoot.position);
+    heroCharacter.play('idle');
+    heroRoot.setEnabled(false);
+
+    enemyVisuals.forEach((fallback, enemyId) => {
+      const position = fallback.position.clone();
+      fallback.dispose(false, true);
+      const instance = instantiateKenneyCharacter(enemyCharacterContainer!, enemyId, 0.9);
+      instance.root.parent = mapRoot;
+      instance.root.position.copyFrom(position);
+      instance.play('walk');
+      enemyVisuals.set(enemyId, instance.root);
+      enemyCharacterInstances.set(enemyId, instance);
+    });
+  } catch {
+    // The fallback silhouettes keep the game playable when an optional asset fails to load.
+  }
+};
+
+void prepareCharacterAssets();
 
 const updateGameplayHud = (): void => {
   if (!stageState) return;
@@ -41,8 +92,12 @@ const updateGameplayHud = (): void => {
   waveValue.textContent = String(stageState.wave);
   goldValue.textContent = String(stageState.gold);
   baseHealthValue.textContent = String(stageState.baseHealth);
+  basicAttackValue.textContent = basicAttackCooldown <= 0 ? 'READY' : `${basicAttackCooldown.toFixed(1)}s`;
+  specialAttackValue.textContent = specialAttackCooldown <= 0 ? 'READY' : `${specialAttackCooldown.toFixed(1)}s`;
   startWaveButton.disabled = stageState.status !== 'build';
-  if (stageState.status === 'won') {
+  if (networkStatusMessage) {
+    gameplayMessage.textContent = networkStatusMessage;
+  } else if (stageState.status === 'won') {
     gameplayMessage.textContent = 'GREENWARD SECURED · FIRST STAGE COMPLETE.';
   } else if (stageState.status === 'lost') {
     gameplayMessage.textContent = 'THE HEART HAS FALLEN · RESTART TO TRY AGAIN.';
@@ -53,13 +108,31 @@ const updateGameplayHud = (): void => {
   }
 };
 
-const startSelection = ({ gameMode, playMode }: GameSelection): void => {
+const startSelection = ({ gameMode, playMode, roomCode }: GameSelection): void => {
   gameHud.classList.remove('is-hidden');
   gameplayPanel.classList.remove('is-hidden');
   gameHud.dataset.gameMode = gameMode;
   gameHud.dataset.playMode = playMode;
   stageState = createStageState(playMode);
   updateGameplayHud();
+  if (gameMode === 'friend' && roomCode) {
+    void connectFriendTransport(roomCode);
+  }
+};
+
+const connectFriendTransport = async (roomCode: string): Promise<void> => {
+  if (!roomCode) return;
+  networkStatusMessage = `CONNECTING TO ROOM ${roomCode} · NO LOGIN`;
+  networkTransport = createSupabaseRealtimeBridge({ roomCode, playerId: 'player-1' });
+  networkTransport.onError((error) => {
+    networkStatusMessage = `FRIEND BRIDGE OFFLINE · ${error.message}`;
+  });
+  try {
+    await networkTransport.connect();
+    networkStatusMessage = `FRIEND BRIDGE READY · ROOM ${roomCode}`;
+  } catch {
+    // The local game remains playable when the optional Friend-mode environment is not configured.
+  }
 };
 
 createAppShell(app, keyboard, { onStartGame: startSelection });
@@ -132,6 +205,11 @@ engine.runRenderLoop(() => {
   lastFrameTime = now;
 
   const input = keyboard.read('player-1', now);
+  networkTransport?.sendInput(input);
+  basicAttackCooldown = Math.max(0, basicAttackCooldown - deltaSeconds);
+  specialAttackCooldown = Math.max(0, specialAttackCooldown - deltaSeconds);
+  const basicAttackReady = input.basicAttack && basicAttackCooldown <= 0;
+  const specialAttackReady = input.specialAttack && specialAttackCooldown <= 0;
   const movement = advanceHeroPosition(
     { x: heroRoot.position.x, y: heroRoot.position.y, z: heroRoot.position.z },
     input,
@@ -140,15 +218,41 @@ engine.runRenderLoop(() => {
   );
   destination = movement.destination;
   heroRoot.position.set(movement.position.x, movement.position.y, movement.position.z);
+  if (heroCharacter) {
+    heroCharacter.root.position.copyFrom(heroRoot.position);
+    const isMoving = Math.hypot(input.moveX, input.moveZ) > 0 || movement.destination !== null;
+    if (specialAttackReady) {
+      heroCharacter.play('attack-kick-right', false);
+      heroActionUntil = now + 650;
+      specialAttackCooldown = 5;
+    } else if (basicAttackReady) {
+      heroCharacter.play('attack-melee-right', false);
+      heroActionUntil = now + 520;
+      basicAttackCooldown = 0.9;
+    } else if (now >= heroActionUntil) {
+      heroCharacter.play(isMoving ? 'walk' : 'idle');
+    }
+    if (isMoving) {
+      heroCharacter.root.rotation.y = Math.atan2(input.moveX, input.moveZ);
+    }
+  }
   destinationMarker.isVisible = destination !== null;
 
   if (stageState) {
     stageState = advanceStage(stageState, deltaSeconds);
+    stageState = collectCoins(stageState, { x: heroRoot.position.x, z: heroRoot.position.z }).state;
     const activeEnemyIds = new Set(stageState.enemies.map((enemy) => enemy.id));
     stageState.enemies.forEach((enemy) => {
       let enemyVisual = enemyVisuals.get(enemy.id);
       if (!enemyVisual) {
-        enemyVisual = createEnemyVisual(scene, DEFAULT_SCENE_CONFIG, enemy.id);
+        if (enemyCharacterContainer) {
+          const instance = instantiateKenneyCharacter(enemyCharacterContainer, enemy.id, 0.9);
+          instance.play('walk');
+          enemyCharacterInstances.set(enemy.id, instance);
+          enemyVisual = instance.root;
+        } else {
+          enemyVisual = createEnemyVisual(scene, DEFAULT_SCENE_CONFIG, enemy.id);
+        }
         enemyVisual.parent = mapRoot;
         enemyVisuals.set(enemy.id, enemyVisual);
       }
@@ -156,8 +260,31 @@ engine.runRenderLoop(() => {
     });
     enemyVisuals.forEach((enemyVisual, enemyId) => {
       if (!activeEnemyIds.has(enemyId)) {
-        enemyVisual.dispose(false, true);
+        const characterInstance = enemyCharacterInstances.get(enemyId);
+        if (characterInstance) {
+          characterInstance.dispose();
+          enemyCharacterInstances.delete(enemyId);
+        } else {
+          enemyVisual.dispose(false, true);
+        }
         enemyVisuals.delete(enemyId);
+      }
+    });
+    const activeCoinIds = new Set(stageState.coins.map((coin) => coin.id));
+    stageState.coins.forEach((coin) => {
+      let coinVisual = coinVisuals.get(coin.id);
+      if (!coinVisual) {
+        coinVisual = createCoinVisual(scene, DEFAULT_SCENE_CONFIG, coin.id);
+        coinVisual.parent = mapRoot;
+        coinVisuals.set(coin.id, coinVisual);
+      }
+      coinVisual.position.set(coin.x, 0.42, coin.z);
+      coinVisual.rotation.y += deltaSeconds * 3;
+    });
+    coinVisuals.forEach((coinVisual, coinId) => {
+      if (!activeCoinIds.has(coinId)) {
+        coinVisual.dispose(false, true);
+        coinVisuals.delete(coinId);
       }
     });
     updateGameplayHud();

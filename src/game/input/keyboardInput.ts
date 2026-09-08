@@ -22,6 +22,9 @@ export type KeyboardInputState = {
   read(playerId: string, issuedAt: number): PlayerInput;
 };
 
+export const BASIC_ATTACK_KEY = 'j';
+export const SPECIAL_ATTACK_KEY = 'k';
+
 function normalizeKey(key: string): string {
   return key.trim().toLowerCase();
 }
@@ -32,14 +35,23 @@ function axis(pressedKeys: Set<string>, positiveKey: string, negativeKey: string
 
 export function createKeyboardInputState(bindings: KeyboardBindings = DEFAULT_KEYBOARD_BINDINGS): KeyboardInputState {
   const pressedKeys = new Set<string>();
+  let basicAttackQueued = false;
+  let specialAttackQueued = false;
   let activeBindings = { ...bindings };
 
   return {
-    press: (key) => pressedKeys.add(normalizeKey(key)),
+    press: (key) => {
+      const normalizedKey = normalizeKey(key);
+      pressedKeys.add(normalizedKey);
+      if (normalizedKey === BASIC_ATTACK_KEY) basicAttackQueued = true;
+      if (normalizedKey === SPECIAL_ATTACK_KEY) specialAttackQueued = true;
+    },
     release: (key) => pressedKeys.delete(normalizeKey(key)),
     setBindings: (nextBindings) => {
       activeBindings = { ...nextBindings };
       pressedKeys.clear();
+      basicAttackQueued = false;
+      specialAttackQueued = false;
     },
     getBindings: () => ({ ...activeBindings }),
     read: (playerId, issuedAt) => {
@@ -48,14 +60,17 @@ export function createKeyboardInputState(bindings: KeyboardBindings = DEFAULT_KE
       const length = Math.hypot(rawMoveX, rawMoveZ);
       const scale = length > 1 ? 1 / length : 1;
 
-      return {
+      const input = {
         playerId,
         moveX: rawMoveX * scale,
         moveZ: rawMoveZ * scale,
-        basicAttack: false,
-        specialAttack: false,
+        basicAttack: basicAttackQueued,
+        specialAttack: specialAttackQueued,
         issuedAt,
       };
+      basicAttackQueued = false;
+      specialAttackQueued = false;
+      return input;
     },
   };
 }
@@ -65,7 +80,7 @@ export function createKeyboardInputSource(
   bindings: KeyboardBindings = DEFAULT_KEYBOARD_BINDINGS,
 ): KeyboardInputState & { dispose(): void } {
   const state = createKeyboardInputState(bindings);
-  let movementKeys = new Set(Object.values(bindings).map(normalizeKey));
+  let movementKeys = new Set([...Object.values(bindings), BASIC_ATTACK_KEY, SPECIAL_ATTACK_KEY].map(normalizeKey));
   const onKeyDown = (event: KeyboardEvent): void => {
     if (movementKeys.has(normalizeKey(event.key))) {
       event.preventDefault();
@@ -81,7 +96,7 @@ export function createKeyboardInputSource(
     ...state,
     setBindings: (nextBindings) => {
       state.setBindings(nextBindings);
-      movementKeys = new Set(Object.values(nextBindings).map(normalizeKey));
+      movementKeys = new Set([...Object.values(nextBindings), BASIC_ATTACK_KEY, SPECIAL_ATTACK_KEY].map(normalizeKey));
     },
     dispose: () => {
       target.removeEventListener('keydown', onKeyDown);

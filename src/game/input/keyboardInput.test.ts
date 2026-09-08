@@ -46,4 +46,15 @@ describe('keyboard input', () => {
     expect(input.read('player-1', 300).moveX).toBe(1);
     expect(input.getBindings()).toEqual({ up: 'i', down: 'k', left: 'j', right: 'l' });
   });
+
+  it('queues one basic or special attack per key press', () => {
+    const input = createKeyboardInputState();
+
+    input.press('j');
+    expect(input.read('player-1', 100).basicAttack).toBe(true);
+    expect(input.read('player-1', 116).basicAttack).toBe(false);
+
+    input.press('k');
+    expect(input.read('player-1', 132).specialAttack).toBe(true);
+  });
 });

@@ -23,6 +23,13 @@ export type TowerState = {
   attackTimer: number;
 };
 
+export type CoinState = {
+  id: string;
+  x: number;
+  z: number;
+  value: number;
+};
+
 export type StageState = {
   playMode: PlayMode;
   status: StageStatus;
@@ -32,6 +39,7 @@ export type StageState = {
   gold: number;
   enemies: EnemyState[];
   towers: TowerState[];
+  coins: CoinState[];
   remainingToSpawn: number;
   spawnTimer: number;
   nextTowerNumber: number;
@@ -40,11 +48,14 @@ export type StageState = {
 export type TowerPlacement = { x: number; z: number };
 
 export const GREENWARD_PATH: PathPoint[] = [
-  { x: -11, z: 8.7 },
-  { x: -5.2, z: 4.2 },
-  { x: 0.5, z: 0.7 },
-  { x: 6.1, z: -3.4 },
-  { x: 10.8, z: -7.7 },
+  { x: -15.5, z: 10.4 },
+  { x: -9.8, z: 10.4 },
+  { x: -7.3, z: 4.3 },
+  { x: -1.5, z: 4.3 },
+  { x: 0.2, z: -2.1 },
+  { x: 6.6, z: -2.1 },
+  { x: 7.8, z: -7.4 },
+  { x: 0, z: -10.1 },
 ];
 
 const ENEMY_SPAWN_INTERVAL = 0.7;
@@ -62,6 +73,7 @@ export function createStageState(playMode: PlayMode): StageState {
     gold: STARTING_GOLD,
     enemies: [],
     towers: [],
+    coins: [],
     remainingToSpawn: 0,
     spawnTimer: 0,
     nextTowerNumber: 1,
@@ -186,6 +198,7 @@ export function advanceStage(state: StageState, deltaSeconds: number): StageStat
     });
 
   let gold = state.gold;
+  const coins = [...state.coins];
   let enemies = movedEnemies;
   const towers = state.towers.map((tower) => {
     let attackTimer = Math.max(0, tower.attackTimer - deltaSeconds);
@@ -207,7 +220,7 @@ export function advanceStage(state: StageState, deltaSeconds: number): StageStat
       }
       const health = enemy.health - tower.damage;
       if (health <= 0) {
-        gold += ENEMY_REWARD;
+        coins.push({ id: `coin-${enemy.id}`, x: enemy.x, z: enemy.z, value: ENEMY_REWARD });
         return [];
       }
       return [{ ...enemy, health }];
@@ -222,9 +235,31 @@ export function advanceStage(state: StageState, deltaSeconds: number): StageStat
     gold,
     enemies,
     towers,
+    coins,
     remainingToSpawn,
     spawnTimer,
     status: baseHealth <= 0 ? 'lost' : 'wave',
   };
   return finishWave(nextState);
+}
+
+export function collectCoins(
+  state: StageState,
+  position: { x: number; z: number },
+  radius = 1.6,
+): { state: StageState; collected: number } {
+  const collectedCoins = state.coins.filter((coin) => Math.hypot(coin.x - position.x, coin.z - position.z) <= radius);
+  if (collectedCoins.length === 0) {
+    return { state, collected: 0 };
+  }
+  const collectedIds = new Set(collectedCoins.map((coin) => coin.id));
+  const collected = collectedCoins.reduce((sum, coin) => sum + coin.value, 0);
+  return {
+    collected,
+    state: {
+      ...state,
+      gold: state.gold + collected,
+      coins: state.coins.filter((coin) => !collectedIds.has(coin.id)),
+    },
+  };
 }

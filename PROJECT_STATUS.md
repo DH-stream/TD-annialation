@@ -26,6 +26,7 @@ Phase 1.0 — First playable Greenward vertical slice.
 The Phase 0 scene is a foundation slice, but it must read as intentional charming low-poly rather than raw placeholder primitives. The visual target is chunky silhouettes, rich disciplined color, soft readable light and controlled surface character, using Synty POLYGON, Kenney, Quaternius, A Short Hike and Dungeon Defenders as reference points. The binding tone refinement is more medieval and magical, drawing on Kingdom Rush, Orcs Must Die and WoW's warm hand-painted light/shadow technique.
 
 - Title/stage display font: Metal Mania, bundled locally with attribution and SIL Open Font License 1.1 in `THIRD_PARTY_LICENSES.md`.
+- Imported character assets: Kenney Blocky Characters (`character-a` for mobs and `character-d` for the royal hero), including the authored idle, walk, melee and kick animation clips. The pack is kept under `public/assets/vendor/kenney/blocky-characters/` with its CC0 license.
 - UI body font: readable system/UI stack until the final UI type system is selected.
 - Greenward palette anchors: `#142523` horizon, `#3F5D47` ground, `#B98A57` path, `#59676D` stone, `#7B4B34` wood, `#D2A85B` brass/magic highlight and `#8E2F2B` blood.
 - The board is uniformly enlarged so walkable space grows with the composition; camera framing remains strategic and bounded.
@@ -47,6 +48,42 @@ The Phase 0 scene is a foundation slice, but it must read as intentional charmin
 - [x] Dark stray plane/debug geometry is resolved before visual approval.
 
 Full target and references: `docs/superpowers/specs/2026-09-08-visual-style-foundation-design.md`.
+
+## Visual v0 implementation pass
+
+- [x] Replaced the enemy and hero placeholder silhouettes with real Kenney Blocky Characters GLB assets.
+- [x] Loaded the GLB loader lazily so Solo's initial application does not pay the loader cost before the asset request.
+- [x] Connected authored `walk`, `idle`, `attack-melee-right` and `attack-kick-right` clips; J and K are one-shot actions with visible HUD cooldowns.
+- [x] Replaced the former near-straight enemy route with a shared S-shaped Greenward waypoint path that ends at the castle gate.
+- [x] Added world-space coin drops on kills and proximity pickup by the hero; coin pickup, not the remote client, grants the gold.
+- [ ] Replace the remaining castle/trees/tower proxy geometry with a consistent environment pack and finish the shared toon/cel material ramp.
+
+## Performance — budgets and verification
+
+The following is the current v0 budget record. It is intentionally evidence-based; items that need a later soak or instance pass remain open.
+
+- **A1 — bundle loading: pass for current target.** Babylon imports now use per-module paths. SSAO2 and the GLB loader are lazy-loaded. The production entry is 1,361 kB minified / 334.84 kB gzip; its split application chunks are 670.78 kB / 163.57 kB gzip and 224.85 kB / 58.93 kB gzip. The initial transferred JavaScript remains below the 1 MB gzip target, while the minified-chunk warning is retained for future tightening.
+- **A2 — frame instrumentation: pass for instrumentation, measurement follow-up open.** `SceneInstrumentation` captures frame, render and active-mesh evaluation counters in `src/game/createScene.ts`. A repeatable desktop 60 fps / integrated 30 fps evidence run still needs to be recorded on representative hardware.
+- **A3 — pooling: open.** Enemy and coin visuals are currently disposed when removed. A pooled enemy/projectile/gore runtime is required before the endless soak target can pass.
+- **A4 — static instancing: open.** Repeated trees and barricade parts are still separate meshes. Convert them to instances and record draw-call counts before production content work.
+- **A5 — gore decal cap: open by design.** Gore is not in this v0 pass yet. Once added, the hard requirement is 150–300 active decals per stage with oldest-first eviction.
+- **A6 — budget checks: pass as documentation, not yet CI-enforced.** This section records the current bundle and runtime targets; automated bundle/frame budget assertions remain follow-up work.
+
+## Final-product gap check
+
+- **B1 — hero combat: partial.** Basic and special attack animation clips are wired to J/K with cooldown display. Damage resolution, combat VFX, screen shake and a full hero/tower combat pass remain open.
+- **B2 — coin economy: pass for the v0 loop.** A tower kill creates a coin at the death position; the hero must approach it before gold increases. Covered by `stageSimulation.test.ts` and visible as a rotating world pickup.
+- **B3 — Endless verification: partial.** Endless mode and scaling wave data exist, but a multi-wave soak capture is still required.
+- **B4 — skill persistence: open.** The current skill tree is interactive but still session-local; persistence across reload/new session is required.
+
+## Supabase bridge status
+
+- [x] Added `src/game/network/supabaseRealtimeBridge.ts` with a TD-owned Realtime Broadcast namespace: `td-annihilation:v1:room:<ROOM_CODE>`.
+- [x] Friend mode now presents a shareable room code and no-login wording; Supabase is lazy-loaded only when Friend mode starts.
+- [x] The bridge uses only the public client configuration from `.env.example`, never a service-role/secret key.
+- [x] No tables, migrations, policies or existing rows in the shared Supabase project were read or modified. The bridge is Broadcast-only and therefore isolated from the other projects in that Supabase project.
+- [x] The payload boundary is gameplay intent/state only. Blood splatter, decals and dismemberment remain local presentation and are deliberately not part of the transport contract.
+- [ ] Add host/guest authority, state snapshots and reconnection handling in the next co-op pass.
 
 ## Art compliance — Phase 0 pass
 
@@ -111,25 +148,26 @@ The closest genre benchmarks show that a premium-feeling action tower-defense ga
 - v1 browser flow — Solo → Stages → Enter the Greenward rendered the gameplay HUD; clicking a rune pad placed a visible tower and deducted 50 gold; starting a wave updated the state and disabled the wave button while enemies advanced.
 - Settings browser flow — all four movement rows rendered with the corrected A/D semantics; a live W → I remap updated immediately and persisted locally.
 - Skill tree browser flow — radial nodes rendered with inner-to-outer animation; purchasing Royal Oath consumed one point and made the inner ring available.
-- `npm test -- --run` — 19 tests passed across 7 test files after adding the v1 simulation and progression coverage.
-- `npm run build` — completed with exit code 0; TypeScript checks and Vite production build passed.
+- `npm test -- --run` — 23 tests passed across 8 test files after adding attack-input, coin pickup and bridge-boundary coverage.
+- `npm run build` — completed with exit code 0; TypeScript checks and Vite production build passed. Babylon is now split into tree-shakeable application chunks; SSAO2 and Supabase remain lazy-loaded.
+- Browser desktop QA — fresh Vite instance rendered the styled menu and playable scene after the modular Babylon shadow-component fix; Kenney hero/enemy GLBs loaded and enemies followed the new multi-turn path.
+- Browser Friend-mode QA — room-code field rendered with the explicit no-login copy; entering the Greenward preserved local play when Supabase environment variables were intentionally absent.
+- Browser HUD QA — BASIC/SPECIAL READY indicators and J/K control copy rendered in gameplay.
 
 ## Known risks
 
-- Vite reports a large Babylon bundle: approximately 7.9 MB uncompressed and 1.66 MB gzip. This is acceptable for the foundation checkpoint but should be addressed before production distribution, likely by using tree-shakeable Babylon imports or code splitting.
-- The scene still uses intentionally composed primitive geometry. Established asset-pack sourcing (Kenney, Synty POLYGON or Quaternius) and final GLB/environment/character art remain later vertical-slice work.
+- The scene still uses composed primitive environment geometry. Characters are now real licensed GLB assets, but the castle, trees and towers need an authored environment pack pass.
 - The current materials approximate hand-painted depth with vertex gradients; authored texture atlases and toon/cel creature shading are still future work.
 - The current combat is intentionally a small deterministic v1 slice: one enemy family, one tower family and a short Greenward path. It is not yet content-complete or Steam-ready.
-- No Supabase lobby, WebRTC transport, save data, Steamworks or Tauri integration exists yet; Friend mode is explicitly a preparation path.
-- The shared Supabase project has not been modified. The isolated bridge decision is documented in `docs/superpowers/specs/2026-09-08-supabase-coop-bridge.md`.
+- Supabase Broadcast is now implemented as a first transport slice, but authority, snapshots, reconnection, save data, Steamworks and Tauri integration remain open. The shared Supabase project has not been modified.
 
 ## What is next
 
-1. Source the first consistent low-poly asset pack and replace the v1 visual proxies with authored GLB/texture assets while preserving Greenward's palette and art QA rubric.
-2. Replace the current StandardMaterial creature proxy with the shared toon/cel creature shading language.
-3. Add stage-completion persistence and the requested first-clear confetti effect.
-4. Add stylized persistent gore: bounded blood decals, deterministic host event IDs and independently toggleable dismemberment.
-5. Implement the Supabase-backed two-PC Friend lobby and deterministic co-op state replication.
+1. Replace the remaining environment proxies with an authored CC0 low-poly environment pack and complete the shared toon/cel ramp.
+2. Add persistent stage completion, first-clear confetti and skill-tree persistence.
+3. Add stylized persistent gore locally: bounded blood decals, deterministic host event IDs and independently toggleable dismemberment.
+4. Complete Supabase host/guest authority, snapshots and reconnection for the two-PC Friend lobby.
+5. Finish the performance pass: pooling, instancing, multi-wave soak and automated budget assertions.
 6. Continue Steam preparation: controller support, Steamworks integration, cloud saves, achievements and Steam Deck validation.
 
 ### Binding Phase 1+ creature and gore acceptance criteria
