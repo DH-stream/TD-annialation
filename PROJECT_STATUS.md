@@ -6,7 +6,7 @@ Base: `origin/main` at `042c5e9`
 
 ## Current milestone
 
-Phase 0 — Foundation design approved; implementation not started yet.
+Phase 0 — Foundation scene implemented and verified locally.
 
 ## Confirmed direction
 
@@ -29,23 +29,31 @@ The closest genre benchmarks show that a premium-feeling action tower-defense ga
 - Created branch `codex/phase-0-foundation`.
 - Approved Phase 0 foundation design.
 - Added design specification at `docs/superpowers/specs/2026-09-08-phase-0-foundation-design.md`.
+- Created Vite + TypeScript + Babylon.js application scaffold.
+- Added strategic battlefield scene with castle, path, build pads, shrine, barricades, trees, lighting and HUD shell.
+- Added plain simulation contracts for future player input and network transport.
+- Corrected the initial camera azimuth after visual QA found the castle blocking the foreground.
+
+## Verification completed
+
+- `npm install` — completed; 56 packages audited, 0 vulnerabilities.
+- `npm test -- --run src/game/config/sceneConfig.test.ts` — 2 tests passed.
+- `npm test -- --run src/game/createScene.test.ts src/game/config/sceneConfig.test.ts` — 3 tests passed.
+- `npm run build` — completed with exit code 0; TypeScript checks and Vite production build passed.
+- `npm run dev -- --host 127.0.0.1 --port 5174` — Vite served the app at `http://127.0.0.1:5174/`.
+- Browser/IAB smoke check — page identity `TD Annihilation`, meaningful canvas/HUD rendered, no framework error overlay observed.
+- Desktop visual check — castle sits behind the battlefield; path, four build pads and scene landmarks are readable.
+- Interaction check — pointer drag changed the ArcRotateCamera orbit; wheel scrolling changed camera zoom while staying inside configured limits.
+- Mobile visual check — temporary 390×844 viewport rendered without horizontal overflow; HUD remained readable. Viewport was restored after QA.
+
+## Known risks
+
+- Vite reports a large Babylon bundle: approximately 7.9 MB uncompressed and 1.66 MB gzip. This is acceptable for the foundation checkpoint but should be addressed before production distribution, likely by using tree-shakeable Babylon imports or code splitting.
+- The scene still uses intentionally composed primitive geometry. Final GLB/environment/character art, gore VFX, audio and confetti are later vertical-slice work.
+- No gameplay, save data, Supabase, WebRTC, Steamworks or Tauri integration exists yet.
 
 ## What is next
 
-1. Review and commit this design/status baseline.
-2. Create the implementation plan for Phase 0.
-3. Scaffold the Vite/Babylon application with tests for pure scene configuration.
-4. Build and manually inspect the composed battlefield scene and camera interactions.
-5. Update this file with exact verification results and the next phase.
-
-## Verification
-
-Not run yet; no application files exist in the repository.
-
-## Known limitations
-
-- No gameplay systems exist yet.
-- No final art, audio or VFX assets exist yet.
-- Supabase and Steamworks are intentionally not connected in Phase 0.
-- The visual companion reference screens live under ignored `.superpowers/` files and are not part of the game.
-
+1. Freeze the Phase 0 baseline and open the branch for review against `main`.
+2. Plan Phase 1 core loop: data-driven enemy/tower types, fixed path, five-enemy wave, tower targeting and win/lose state.
+3. Preserve the current `GameState`/`PlayerInput` boundaries while adding the first deterministic simulation step.
