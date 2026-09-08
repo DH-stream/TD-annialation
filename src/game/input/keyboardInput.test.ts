@@ -6,7 +6,7 @@ describe('keyboard input', () => {
     const input = createKeyboardInputState();
 
     input.press('w');
-    input.press('d');
+    input.press('a');
 
     expect(input.read('player-1', 100)).toMatchObject({
       playerId: 'player-1',
@@ -16,6 +16,14 @@ describe('keyboard input', () => {
       specialAttack: false,
       issuedAt: 100,
     });
+  });
+
+  it('maps D to the negative horizontal axis after the A/D correction', () => {
+    const input = createKeyboardInputState();
+
+    input.press('d');
+
+    expect(input.read('player-1', 100).moveX).toBe(-1);
   });
 
   it('supports remappable movement keys and releases input cleanly', () => {

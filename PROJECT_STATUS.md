@@ -21,7 +21,7 @@ Phase 0.6 — Foundation scene with first visual style pass and playable hero in
 
 ## Locked Greenward art direction
 
-The Phase 0 scene is a foundation slice, but it must read as intentional charming low-poly rather than raw placeholder primitives. The visual target is chunky silhouettes, rich disciplined color, soft readable light and controlled surface character, using Synty POLYGON, Kenney, Quaternius, A Short Hike and Dungeon Defenders as reference points.
+The Phase 0 scene is a foundation slice, but it must read as intentional charming low-poly rather than raw placeholder primitives. The visual target is chunky silhouettes, rich disciplined color, soft readable light and controlled surface character, using Synty POLYGON, Kenney, Quaternius, A Short Hike and Dungeon Defenders as reference points. The binding tone refinement is more medieval and magical, drawing on Kingdom Rush, Orcs Must Die and WoW's warm hand-painted light/shadow technique.
 
 - Title/stage display font: Metal Mania, bundled locally with attribution and SIL Open Font License 1.1 in `THIRD_PARTY_LICENSES.md`.
 - UI body font: readable system/UI stack until the final UI type system is selected.
@@ -29,7 +29,9 @@ The Phase 0 scene is a foundation slice, but it must read as intentional charmin
 - The board is uniformly enlarged so walkable space grows with the composition; camera framing remains strategic and bounded.
 - Horizon fog replaces the bare void treatment; soft blurred shadows, ambient fill and ambient occlusion are enabled.
 - Primitive surfaces receive controlled vertex-color variation and visible hard edges receive a subtle edge treatment.
+- Reusable medieval/magical layer: torch poles and flames, rune rings on build pads and restrained emissive shrine/build-pad glow.
 - The hero preview uses a chunky capsule silhouette; the former ambiguous dark rectangular shape near the shrine is no longer used.
+- Future creatures must use the same stylized shading ramp as the environment rather than literal voxel cubes; gore remains optional, stylized and deterministic for co-op.
 
 ### Art QA checklist
 
@@ -39,7 +41,7 @@ The Phase 0 scene is a foundation slice, but it must read as intentional charmin
 - [x] Soft shadows, ambient fill and ambient occlusion preserve readability.
 - [x] Gameplay-important silhouettes have correct scale; trees do not overpower the castle.
 - [x] Every material has controlled surface variation.
-- [ ] Environment and blocky mobs share a consistent stylized shading language.
+- [ ] Environment and chunky stylized mobs share a consistent toon/cel shading language.
 - [x] Dark stray plane/debug geometry is resolved before visual approval.
 
 Full target and references: `docs/superpowers/specs/2026-09-08-visual-style-foundation-design.md`.
@@ -66,7 +68,9 @@ The closest genre benchmarks show that a premium-feeling action tower-defense ga
 - Bundled Metal Mania locally for offline/commercial distribution with its license recorded.
 - Enlarged the battlefield composition by a uniform map-root scale and kept click-to-move scale-aware.
 - Added palette-driven fog, softened shadows, ambient occlusion, controlled vertex-color variation and primitive edge treatment.
+- Added a reusable magical detail layer with rune rings on build pads, torch poles/flames and restrained glow treatment.
 - Replaced the boxy hero preview body with a low-tessellation capsule to remove the ambiguous shrine-area plane reading.
+- Corrected default horizontal keyboard bindings so A moves right and D moves left for the current strategic camera orientation; bindings remain remappable.
 
 ## Verification completed
 
@@ -83,16 +87,19 @@ The closest genre benchmarks show that a premium-feeling action tower-defense ga
 - Interaction check — pointer drag changed the ArcRotateCamera orbit; wheel scrolling changed camera zoom while staying inside configured limits.
 - Mobile visual check — temporary 390×844 viewport rendered without horizontal overflow; HUD remained readable. Viewport was restored after QA.
 - Art QA browser check — Metal Mania rendered locally, larger battlefield was readable, horizon was fogged rather than void-black, click-to-move remained functional, shadows/AO were visible, camera orbit remained functional and the shrine-area box/plane reading was removed.
+- Art direction follow-up — updated spec requirements for medieval/magical details, warm hand-painted-style depth, shared creature shading and deterministic optional gore are recorded as binding future constraints.
 
 ## Known risks
 
 - Vite reports a large Babylon bundle: approximately 7.9 MB uncompressed and 1.66 MB gzip. This is acceptable for the foundation checkpoint but should be addressed before production distribution, likely by using tree-shakeable Babylon imports or code splitting.
 - The scene still uses intentionally composed primitive geometry. Established asset-pack sourcing (Kenney, Synty POLYGON or Quaternius) and final GLB/environment/character art remain later vertical-slice work.
+- The current materials approximate hand-painted depth with vertex gradients; authored texture atlases and toon/cel creature shading are still future work.
 - The map is still a foundation/v0 sandbox: no combat, enemies, towers, navigation, save data, Supabase, WebRTC, Steamworks or Tauri integration exists yet.
 
 ## What is next
 
 1. Review the visual style pass and hero movement branch against `main`.
 2. Source the first consistent low-poly asset pack and create a per-map moodboard before Phase 4 art work.
-3. Plan Phase 1 core loop: data-driven enemy/tower types, fixed path, five-enemy wave, tower targeting and win/lose state.
-4. Preserve the current `GameState`/`PlayerInput` boundaries while adding the first deterministic simulation step.
+3. Add the first chunky stylized enemy with the shared shading language before implementing gore.
+4. Plan Phase 1 core loop: data-driven enemy/tower types, fixed path, five-enemy wave, tower targeting and win/lose state.
+5. Preserve the current `GameState`/`PlayerInput` boundaries while adding the first deterministic simulation step.
