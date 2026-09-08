@@ -48,14 +48,14 @@ export type StageState = {
 export type TowerPlacement = { x: number; z: number };
 
 export const GREENWARD_PATH: PathPoint[] = [
-  { x: -15.5, z: 10.4 },
-  { x: -9.8, z: 10.4 },
-  { x: -7.3, z: 4.3 },
-  { x: -1.5, z: 4.3 },
-  { x: 0.2, z: -2.1 },
-  { x: 6.6, z: -2.1 },
-  { x: 7.8, z: -7.4 },
-  { x: 0, z: -10.1 },
+  { x: -21, z: 14 },
+  { x: -13.2, z: 14 },
+  { x: -9.9, z: 5.8 },
+  { x: -2, z: 5.8 },
+  { x: 0.3, z: -2.8 },
+  { x: 8.9, z: -2.8 },
+  { x: 10.5, z: -10 },
+  { x: 0, z: -13.7 },
 ];
 
 const ENEMY_SPAWN_INTERVAL = 0.7;

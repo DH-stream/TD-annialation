@@ -1,6 +1,22 @@
 /// <reference types="vite/client" />
 
 import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera';
+import '@babylonjs/core/Culling/ray';
+import '@babylonjs/core/Shaders/glowBlurPostProcess.fragment';
+import '@babylonjs/core/Shaders/glowMapGeneration.fragment';
+import '@babylonjs/core/Shaders/glowMapGeneration.vertex';
+import '@babylonjs/core/Shaders/glowMapMerge.fragment';
+import '@babylonjs/core/Shaders/glowMapMerge.vertex';
+import '@babylonjs/core/Shaders/kernelBlur.fragment';
+import '@babylonjs/core/Shaders/kernelBlur.vertex';
+import '@babylonjs/core/Shaders/pbr.fragment';
+import '@babylonjs/core/Shaders/pbr.vertex';
+import '@babylonjs/core/Shaders/postprocess.vertex';
+import '@babylonjs/core/Shaders/rgbdDecode.fragment';
+import '@babylonjs/core/Shaders/shadowMap.fragment';
+import '@babylonjs/core/Shaders/shadowMap.vertex';
+import '@babylonjs/core/Shaders/ssao2.fragment';
+import '@babylonjs/core/Shaders/ssaoCombine.fragment';
 import { ArcRotateCameraPointersInput } from '@babylonjs/core/Cameras/Inputs/arcRotateCameraPointersInput';
 import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight';
@@ -476,8 +492,11 @@ export function createGameScene(
   shadows.bias = 0.02;
   shadows.normalBias = 0.02;
 
-  void import('@babylonjs/core/PostProcesses/RenderPipeline/Pipelines/ssao2RenderingPipeline')
-    .then(({ SSAO2RenderingPipeline }) => {
+  void Promise.all([
+    import('@babylonjs/core/Rendering/prePassRendererSceneComponent'),
+    import('@babylonjs/core/PostProcesses/RenderPipeline/Pipelines/ssao2RenderingPipeline'),
+  ])
+    .then(([, { SSAO2RenderingPipeline }]) => {
       const ambientOcclusion = new SSAO2RenderingPipeline('greenward-ambient-occlusion', scene, {
         ssaoRatio: 0.7,
         blurRatio: 0.7,
@@ -505,7 +524,11 @@ export function createGameScene(
   const magicGlow = new GlowLayer('greenward-magic-glow', scene);
   magicGlow.intensity = 0.45;
 
-  const battlefield = MeshBuilder.CreateGround('battlefield-ground', { width: 42, height: 30, subdivisions: 2 }, scene);
+  const battlefield = MeshBuilder.CreateGround('battlefield-ground', {
+    width: config.battlefield.width,
+    height: config.battlefield.height,
+    subdivisions: 2,
+  }, scene);
   battlefield.material = ground;
   battlefield.metadata = { interaction: 'map' };
 
@@ -526,16 +549,21 @@ export function createGameScene(
     pathSegment.metadata = { interaction: 'map' };
   });
 
-  const buildPadPositions = [new Vector3(-8, 0.12, 1.9), new Vector3(3.8, 0.12, 5.2), new Vector3(6.8, 0.12, 0.3), new Vector3(-3.7, 0.12, -4.1)];
+  const buildPadPositions = [
+    new Vector3(-10.8, 0.12, 2.6),
+    new Vector3(5.1, 0.12, 7),
+    new Vector3(9.2, 0.12, 0.4),
+    new Vector3(-5, 0.12, -5.5),
+  ];
   buildPadPositions.forEach((position, index) => {
     addBuildPad(scene, stone, brass, magic, position, index);
   });
 
   const centralShrine = MeshBuilder.CreateCylinder('central-shrine', { diameter: 2.1, height: 2.7, tessellation: 8 }, scene);
-  centralShrine.position = new Vector3(0, 1.4, -3.1);
+  centralShrine.position = new Vector3(0, 1.4, -4.2);
   centralShrine.material = stone;
   const shrineGlow = MeshBuilder.CreateSphere('central-shrine-glow', { diameter: 0.75, segments: 12 }, scene);
-  shrineGlow.position = new Vector3(0, 3.1, -3.1);
+  shrineGlow.position = new Vector3(0, 3.1, -4.2);
   shrineGlow.material = magic;
 
   addCastle(scene, stone, wood, brass);
@@ -547,17 +575,17 @@ export function createGameScene(
   }, scene);
   destinationMarker.material = magic;
   destinationMarker.isVisible = false;
-  addBarricade(scene, wood, new Vector3(-8.7, 0, 7.2), 0.15);
-  addBarricade(scene, wood, new Vector3(7.7, 0, -1.6), -0.65);
-  addBarricade(scene, wood, new Vector3(2.2, 0, 8.1), 0.05);
+  addBarricade(scene, wood, new Vector3(-11.7, 0, 9.7), 0.15);
+  addBarricade(scene, wood, new Vector3(10.4, 0, -2.2), -0.65);
+  addBarricade(scene, wood, new Vector3(3, 0, 10.9), 0.05);
 
   [
-    [new Vector3(-18, 0, -5), 1.1],
-    [new Vector3(-18, 0, 8), 0.8],
-    [new Vector3(17, 0, 7), 1.2],
-    [new Vector3(18, 0, -3), 0.9],
-    [new Vector3(-14, 0, 12), 0.75],
-    [new Vector3(14, 0, 12), 0.85],
+    [new Vector3(-29, 0, -8), 1.1],
+    [new Vector3(-30, 0, 12), 0.8],
+    [new Vector3(28, 0, 11), 1.2],
+    [new Vector3(30, 0, -6), 0.9],
+    [new Vector3(-23, 0, 20), 0.75],
+    [new Vector3(23, 0, 20), 0.85],
   ].forEach(([position, scale]) => addTree(scene, wood, ground, position as Vector3, scale as number));
 
   addLantern(scene, wood, brass, magic, new Vector3(-3.7, 2.4, -10.4), ambientFlames, 0.4);
