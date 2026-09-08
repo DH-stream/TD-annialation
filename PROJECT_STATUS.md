@@ -9,6 +9,7 @@ Pull request: https://github.com/DH-stream/TD-annialation/pull/3
 
 - Sync source: `git fetch --all` found the latest pushed work on `origin/codex/v1-playable-shell`; this checkout tracks that branch.
 - Starting revision: `6412934e3be0bc0ddb2a3877d523eb2c02c3b2e6`; PR #3 is open against `main`.
+- Pushed session revision: `060cde6e809190e0effc08601b9c890d71a6966c` on PR #3.
 - Baseline: `npm install` completed with no vulnerabilities; the first `npm test` found one stale coin test fixture after the route expansion. The fixture was corrected and the final fresh run is 32/32 tests plus a successful production build.
 
 ## Current milestone
