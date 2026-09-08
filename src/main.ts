@@ -10,7 +10,7 @@ if (!canvas) {
   throw new Error('Game canvas was not found.');
 }
 
-const { engine, scene, heroRoot, destinationMarker } = createGameScene(canvas);
+const { engine, scene, heroRoot, destinationMarker, mapRoot } = createGameScene(canvas);
 const keyboard = createKeyboardInputSource(window);
 let destination: HeroPosition | null = null;
 let pointerDownPosition: { x: number; y: number } | null = null;
@@ -42,7 +42,8 @@ scene.onPointerObservable.add((pointerInfo) => {
     return;
   }
 
-  destination = { x: pick.pickedPoint.x, y: 0, z: pick.pickedPoint.z };
+  const mapScale = mapRoot.scaling.x;
+  destination = { x: pick.pickedPoint.x / mapScale, y: 0, z: pick.pickedPoint.z / mapScale };
   destinationMarker.position.set(destination.x, 0.12, destination.z);
   destinationMarker.isVisible = true;
 });

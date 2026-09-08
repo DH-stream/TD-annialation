@@ -1,6 +1,9 @@
+@import "@fontsource/metal-mania";
+
 :root {
   color: #f4ead7;
   background: #0e1719;
+  --font-display: "Metal Mania", serif;
   font-family: "Trebuchet MS", "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -52,9 +55,10 @@ body {
 .hud-brand {
   gap: 11px;
   color: #f4ead7;
-  font-size: 15px;
+  font-family: var(--font-display);
+  font-size: 18px;
   font-weight: 800;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;
 }
 
 .hud-mark {
@@ -83,8 +87,9 @@ body {
 
 .hud-stage strong {
   color: #f5d89c;
-  font-size: 21px;
-  letter-spacing: 0.08em;
+  font-family: var(--font-display);
+  font-size: 27px;
+  letter-spacing: 0.04em;
 }
 
 .hud-status {
