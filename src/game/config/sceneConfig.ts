@@ -21,7 +21,7 @@ export type SceneConfig = {
 
 export const DEFAULT_SCENE_CONFIG: SceneConfig = {
   camera: {
-    alpha: -Math.PI / 2,
+    alpha: Math.PI / 2,
     beta: Math.PI / 3,
     radius: 28,
     lowerBetaLimit: Math.PI * 0.24,
