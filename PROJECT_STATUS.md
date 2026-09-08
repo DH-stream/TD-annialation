@@ -3,7 +3,7 @@
 Last updated: 2026-09-08
 Current branch: `codex/hero-movement`
 Base: `origin/main` at `042c5e9`
-Pull request: pending
+Pull request: https://github.com/DH-stream/TD-annialation/pull/2
 
 ## Current milestone
 
