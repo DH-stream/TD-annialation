@@ -151,7 +151,7 @@ const prepareFantasyEnvironment = async (): Promise<void> => {
       const root = instantiateFantasyTownAsset(container, id, position, scale, rotationY);
       root.parent = mapRoot;
       root.getChildMeshes().forEach((mesh) => {
-        mesh.receiveShadows = true;
+        if (!mesh.isAnInstance) mesh.receiveShadows = true;
         shadows.addShadowCaster(mesh, true);
       });
       if (id.startsWith('greenward-tree')) {

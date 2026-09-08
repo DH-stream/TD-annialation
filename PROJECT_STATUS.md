@@ -247,10 +247,10 @@ This is the single current reconciliation record. It replaces the earlier histor
 | Atmosphere | Warm lighting mood | Pass | Current scene raises exposure to 0.8, uses the warm key, a brighter shrine and warm lantern lights; fresh final desktop/mobile captures show the brass glow pooling around the shrine and route. |
 | Atmosphere | Signs of habitation | Pass | Castle, lanterns, chimney smoke, fencing and fountain are visible in the fresh captures; smoke continues through `createSmokePuffs()`. |
 | Atmosphere | Optional ambient audio | Not-yet-started | Deliberately omitted under the non-blocking stretch clause. |
-| Performance | A1: initial gzip JavaScript is below 1 MB | Pass | Final build: largest entry 396.39 kB gzip; supporting chunks 163.40 kB and 58.93 kB gzip. Vite’s >500 kB minified-chunk warning remains. |
-| Performance | A2: representative desktop/integrated frame budget is recorded | Fail | `window.__TD_PERF__` instrumentation exists and gave a local smoke sample, but no representative 60 fps desktop / 30 fps integrated benchmark has been recorded. |
+| Performance | A1: initial gzip JavaScript is below 1 MB | Pass | Final build: largest entry 396.44 kB gzip; supporting chunks 163.39 kB and 58.93 kB gzip. Vite’s >500 kB minified-chunk warning remains. |
+| Performance | A2: representative desktop/integrated frame budget is recorded | Fail | Fresh warmed-up local `window.__TD_PERF__()` smoke readout: 303 fps, 3.30 ms frame, 1.01 ms render and 94 active meshes. It is not a representative desktop/integrated benchmark. |
 | Performance | A3: enemy and coin visual pooling | Pass | `src/main.ts` now returns removed enemy, character and coin visuals to pools and re-enables them on spawn; a `ponytail:` ceiling comment records the required future cap. |
-| Performance | A4: static instancing is measured and verified | Fail | Repeated static content is not yet backed by an explicit instancing/draw-call measurement. |
+| Performance | A4: static instancing is measured and verified | Fail | `instantiateFantasyTownAsset()` now requests Babylon instances and fresh instrumentation reports 35 instanced meshes with zero browser warnings, but the required draw-call measurement is still absent. |
 | Performance | A5: gore decal cap and oldest-first eviction | Not-yet-started | Gore is still intentionally deferred; no decal pool/cap exists. |
 | Performance | A6: automated bundle/frame budget checks | Fail | Build size is manually verified this session; CI assertions do not exist. |
 | Co-op boundary | Realtime bridge stays TD-scoped and secret-free | Pass | `supabaseRealtimeBridge.test.ts` passes (5 tests); source remains Broadcast/Presence-only with public client configuration. |
@@ -262,6 +262,7 @@ This is the single current reconciliation record. It replaces the earlier histor
 - Added real hero damage resolution, kill coins, cooldown-backed attack effects and a visible special shockwave; the initial fresh screenshot caught the edge-on/invisible ring regression, which was fixed before acceptance.
 - Persisted purchased skill IDs and remaining points in local storage, with a focused reload test and browser reload proof.
 - Added/reused pools for fallback enemies, Kenney enemy characters and coins.
+- Extended performance instrumentation with a live instanced-mesh count, then enabled Babylon instances for repeated Fantasy Town assets. Fresh runtime evidence is 35 instances with zero browser warnings; draw-call evidence remains open.
 - Reworked the current composition after fresh comparison: a horizon ground underlay removes the old diagonal edge; the castle is closer and correctly scaled; camera framing is tighter; shrine/lantern warmth, motes, smoke and a focal glow are visible in the final captures.
 
 ### Open work in required priority order

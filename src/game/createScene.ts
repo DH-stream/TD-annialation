@@ -47,6 +47,7 @@ declare global {
       renderMs: number;
       activeMeshesMs: number;
       activeMeshes: number;
+      instancedMeshes: number;
     };
   }
 }
@@ -473,6 +474,7 @@ export function createGameScene(
     renderMs: Number(instrumentation.renderTimeCounter.lastSecAverage.toFixed(2)),
     activeMeshesMs: Number(instrumentation.activeMeshesEvaluationTimeCounter.lastSecAverage.toFixed(2)),
     activeMeshes: scene.getActiveMeshes().length,
+    instancedMeshes: scene.meshes.filter((mesh) => mesh.getClassName() === 'InstancedMesh').length,
   });
   const groundColor = Color3.FromHexString(config.colors.ground);
   scene.clearColor = groundColor.scale(0.35).toColor4();

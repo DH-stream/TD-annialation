@@ -47,7 +47,11 @@ export function instantiateFantasyTownAsset(
   scale = 1,
   rotationY = 0,
 ): TransformNode {
-  const instance = container.instantiateModelsToScene((sourceName) => `${id}-${sourceName}`, false);
+  const instance = container.instantiateModelsToScene(
+    (sourceName) => `${id}-${sourceName}`,
+    false,
+    { doNotInstantiate: false },
+  );
   const root = new TransformNode(`${id}-root`, container.scene);
   instance.rootNodes.forEach((node) => {
     node.parent = root;
