@@ -15,6 +15,8 @@ Phase 1.0 — First playable Greenward vertical slice.
 - Dungeon Defenders is the primary gameplay reference.
 - Strategic top-down camera is the default: zoomable and angleable with bounded controls.
 - Future co-op targets two different computers. Co-op is prepared through simulation/input boundaries, but is not the current focus.
+- Supabase co-op boundary is now explicit: Realtime is a transport bridge only, with no login UI and no access to unrelated project tables or services.
+- Blood splatter, dismemberment and gore presentation remain local per client in multiplayer; only deterministic gameplay/death event identifiers may cross the bridge.
 - Future presentation includes restrained stylized gore: blood remains on the current map until the stage is complete, without harming gameplay readability.
 - First completion of a stage on a map will later trigger gold confetti and a persistent first-win marker.
 - Long-term target is a polished Steam game; every phase must be a coherent, testable vertical slice.
@@ -119,6 +121,7 @@ The closest genre benchmarks show that a premium-feeling action tower-defense ga
 - The current materials approximate hand-painted depth with vertex gradients; authored texture atlases and toon/cel creature shading are still future work.
 - The current combat is intentionally a small deterministic v1 slice: one enemy family, one tower family and a short Greenward path. It is not yet content-complete or Steam-ready.
 - No Supabase lobby, WebRTC transport, save data, Steamworks or Tauri integration exists yet; Friend mode is explicitly a preparation path.
+- The shared Supabase project has not been modified. The isolated bridge decision is documented in `docs/superpowers/specs/2026-09-08-supabase-coop-bridge.md`.
 
 ## What is next
 
