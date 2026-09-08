@@ -16,8 +16,8 @@ import {
   type StageState,
 } from './game/sim/stageSimulation';
 import type { GameSelection } from './ui/appShell';
-import type { NetworkTransport } from './game/sim/types';
-import { createSupabaseRealtimeBridge } from './game/network/supabaseRealtimeBridge';
+import type { GameState, NearbyPeer, NetworkTransport } from './game/sim/types';
+import { createSupabaseLobbyPresence, createSupabaseRealtimeBridge } from './game/network/supabaseRealtimeBridge';
 import {
   instantiateKenneyCharacter,
   loadKenneyCharacter,
@@ -36,8 +36,9 @@ const basicAttackValue = document.querySelector<HTMLElement>('#basic-attack-valu
 const specialAttackValue = document.querySelector<HTMLElement>('#special-attack-value');
 const gameplayMessage = document.querySelector<HTMLElement>('#gameplay-message');
 const startWaveButton = document.querySelector<HTMLButtonElement>('#start-wave-button');
+const nearbyPlayers = document.querySelector<HTMLElement>('#nearby-players');
 
-if (!canvas || !app || !gameHud || !gameplayPanel || !gameModeValue || !waveValue || !goldValue || !baseHealthValue || !basicAttackValue || !specialAttackValue || !gameplayMessage || !startWaveButton) {
+if (!canvas || !app || !gameHud || !gameplayPanel || !gameModeValue || !waveValue || !goldValue || !baseHealthValue || !basicAttackValue || !specialAttackValue || !gameplayMessage || !startWaveButton || !nearbyPlayers) {
   throw new Error('The game shell is missing a required root element.');
 }
 
@@ -46,11 +47,15 @@ const keyboard = createKeyboardInputSource(window, loadStoredKeyboardBindings())
 let stageState: StageState | null = null;
 const enemyVisuals = new Map<string, TransformNode>();
 const enemyCharacterInstances = new Map<string, CharacterInstance>();
+const remotePlayerVisuals = new Map<string, CharacterInstance>();
+const remotePlayerStates = new Map<string, { x: number; y: number; z: number; receivedAt: number }>();
 const towerVisuals = new Map<string, TransformNode>();
 const coinVisuals = new Map<string, TransformNode>();
 let enemyCharacterContainer: AssetContainer | null = null;
 let heroCharacter: CharacterInstance | null = null;
 let networkTransport: NetworkTransport | null = null;
+const localPlayerId = `player-${globalThis.crypto?.randomUUID?.().slice(0, 8) ?? Math.random().toString(36).slice(2, 10)}`;
+let networkStateTimer = 0;
 let heroActionUntil = 0;
 let basicAttackCooldown = 0;
 let specialAttackCooldown = 0;
@@ -108,7 +113,7 @@ const updateGameplayHud = (): void => {
   }
 };
 
-const startSelection = ({ gameMode, playMode, roomCode }: GameSelection): void => {
+const startSelection = ({ gameMode, playMode, roomCode, password }: GameSelection): void => {
   gameHud.classList.remove('is-hidden');
   gameplayPanel.classList.remove('is-hidden');
   gameHud.dataset.gameMode = gameMode;
@@ -116,16 +121,68 @@ const startSelection = ({ gameMode, playMode, roomCode }: GameSelection): void =
   stageState = createStageState(playMode);
   updateGameplayHud();
   if (gameMode === 'friend' && roomCode) {
-    void connectFriendTransport(roomCode);
+    void connectFriendTransport(roomCode, password ?? '');
   }
 };
 
-const connectFriendTransport = async (roomCode: string): Promise<void> => {
+const renderNearbyPeers = (element: HTMLElement, peers: NearbyPeer[]): void => {
+  element.replaceChildren();
+  if (peers.length === 0) {
+    element.textContent = 'NO OTHER TD PLAYERS FOUND YET · KEEP THIS VIEW OPEN';
+    return;
+  }
+  const label = document.createElement('span');
+  label.textContent = `${peers.length} TD PLAYER${peers.length === 1 ? '' : 'S'} ONLINE · SELECT TO USE ROOM`;
+  element.append(label);
+  peers.forEach((peer) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'friend-peer-button';
+    button.dataset.nearbyRoom = peer.roomCode;
+    const name = document.createElement('span');
+    name.textContent = peer.displayName;
+    const room = document.createElement('span');
+    room.className = 'friend-peer-room';
+    room.textContent = peer.passwordProtected ? 'LOCKED SESSION' : `ROOM ${peer.roomCode}`;
+    button.append(name, room);
+    element.append(button);
+  });
+};
+
+const startFriendLobbyDiscovery = (element: HTMLElement, getSession: () => { roomCode: string; password: string }): (() => void) => {
+  const lobby = createSupabaseLobbyPresence({
+    playerId: localPlayerId,
+    displayName: 'Greenward Player',
+    roomCode: getSession().roomCode,
+    password: getSession().password,
+  });
+  const unsubscribePeers = lobby.onPeers((peers) => renderNearbyPeers(element, peers));
+  const unsubscribeErrors = lobby.onError((error) => { element.textContent = `FRIEND SEARCH OFFLINE · ${error.message}`; });
+  void lobby.connect().catch((error: unknown) => {
+    // Friend mode remains playable locally when the optional Supabase bridge is not configured.
+    element.textContent = `FRIEND SEARCH OFFLINE · ${error instanceof Error ? error.message : 'Supabase is not configured.'}`;
+  });
+  return () => {
+    unsubscribePeers();
+    unsubscribeErrors();
+    void lobby.disconnect();
+  };
+};
+
+const connectFriendTransport = async (roomCode: string, password: string): Promise<void> => {
   if (!roomCode) return;
   networkStatusMessage = `CONNECTING TO ROOM ${roomCode} · NO LOGIN`;
-  networkTransport = createSupabaseRealtimeBridge({ roomCode, playerId: 'player-1' });
+  nearbyPlayers.classList.remove('is-hidden');
+  networkTransport = createSupabaseRealtimeBridge({ roomCode, password, playerId: localPlayerId, displayName: 'Greenward Player' });
   networkTransport.onError((error) => {
     networkStatusMessage = `FRIEND BRIDGE OFFLINE · ${error.message}`;
+  });
+  networkTransport.onState((state) => {
+    Object.entries(state.players).forEach(([playerId, player]) => {
+      if (playerId !== localPlayerId) {
+        remotePlayerStates.set(playerId, { ...player, receivedAt: performance.now() });
+      }
+    });
   });
   try {
     await networkTransport.connect();
@@ -135,7 +192,7 @@ const connectFriendTransport = async (roomCode: string): Promise<void> => {
   }
 };
 
-createAppShell(app, keyboard, { onStartGame: startSelection });
+createAppShell(app, keyboard, { onStartGame: startSelection, onFriendLobbyReady: startFriendLobbyDiscovery });
 
 startWaveButton.addEventListener('click', () => {
   if (!stageState) return;
@@ -204,8 +261,27 @@ engine.runRenderLoop(() => {
   const deltaSeconds = Math.min((now - lastFrameTime) / 1000, 0.1);
   lastFrameTime = now;
 
-  const input = keyboard.read('player-1', now);
+  const input = keyboard.read(localPlayerId, now);
   networkTransport?.sendInput(input);
+  networkStateTimer -= deltaSeconds;
+  if (networkTransport && networkStateTimer <= 0) {
+    const phase: GameState['phase'] = !stageState
+      ? 'foundation'
+      : stageState.status === 'won'
+        ? 'victory'
+        : stageState.status === 'lost'
+          ? 'defeat'
+          : 'playing';
+    networkTransport.sendState({
+      phase,
+      stageId: 'greenward-01',
+      cameraTarget: { x: heroRoot.position.x, y: heroRoot.position.y, z: heroRoot.position.z },
+      players: {
+        [localPlayerId]: { x: heroRoot.position.x, y: heroRoot.position.y, z: heroRoot.position.z, health: 100 },
+      },
+    });
+    networkStateTimer = 1 / 15;
+  }
   basicAttackCooldown = Math.max(0, basicAttackCooldown - deltaSeconds);
   specialAttackCooldown = Math.max(0, specialAttackCooldown - deltaSeconds);
   const basicAttackReady = input.basicAttack && basicAttackCooldown <= 0;
@@ -287,6 +363,26 @@ engine.runRenderLoop(() => {
         coinVisuals.delete(coinId);
       }
     });
+    if (enemyCharacterContainer) {
+      remotePlayerStates.forEach((remote, playerId) => {
+        let visual = remotePlayerVisuals.get(playerId);
+        if (!visual) {
+          visual = instantiateKenneyCharacter(enemyCharacterContainer!, `remote-${playerId}`, 1.05);
+          visual.root.parent = mapRoot;
+          visual.play('idle');
+          remotePlayerVisuals.set(playerId, visual);
+        }
+        visual.root.position.set(remote.x, remote.y, remote.z);
+      });
+      remotePlayerVisuals.forEach((visual, playerId) => {
+        const remote = remotePlayerStates.get(playerId);
+        if (!remote || now - remote.receivedAt > 5000) {
+          visual.dispose();
+          remotePlayerVisuals.delete(playerId);
+          remotePlayerStates.delete(playerId);
+        }
+      });
+    }
     updateGameplayHud();
   }
 

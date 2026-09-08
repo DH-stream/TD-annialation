@@ -16,6 +16,8 @@ Phase 1.0 — First playable Greenward vertical slice.
 - Strategic top-down camera is the default: zoomable and angleable with bounded controls.
 - Future co-op targets two different computers. Co-op is prepared through simulation/input boundaries, but is not the current focus.
 - Supabase co-op boundary is now explicit: Realtime is a transport bridge only, with no login UI and no access to unrelated project tables or services.
+- Friend mode now has automatic TD-lobby discovery through Realtime Presence. A room can advertise a password-protected session without exposing the password; the shared room code and password are still required to enter the protected match.
+- The browser implementation intentionally discovers players in the TD lobby, not by scanning local Wi-Fi. After Tauri packaging, add a native mDNS/UDP LAN discovery layer and keep Supabase as the internet/session bridge.
 - Blood splatter, dismemberment and gore presentation remain local per client in multiplayer; only deterministic gameplay/death event identifiers may cross the bridge.
 - Future presentation includes restrained stylized gore: blood remains on the current map until the stage is complete, without harming gameplay readability.
 - First completion of a stage on a map will later trigger gold confetti and a persistent first-win marker.
@@ -79,11 +81,13 @@ The following is the current v0 budget record. It is intentionally evidence-base
 ## Supabase bridge status
 
 - [x] Added `src/game/network/supabaseRealtimeBridge.ts` with a TD-owned Realtime Broadcast namespace: `td-annihilation:v1:room:<ROOM_CODE>`.
-- [x] Friend mode now presents a shareable room code and no-login wording; Supabase is lazy-loaded only when Friend mode starts.
+- [x] Friend mode presents a shareable room code, an optional session password and no-login wording; protected match channels use a SHA-256-derived channel suffix so the password is not present in a readable channel name.
+- [x] Added a TD-owned `td-annihilation:v1:lobby` Presence channel. The Friend setup view lists other open TD clients automatically, shows whether their session is locked, and lets the player copy a discovered room code into the join field.
 - [x] The bridge uses only the public client configuration from `.env.example`, never a service-role/secret key.
-- [x] No tables, migrations, policies or existing rows in the shared Supabase project were read or modified. The bridge is Broadcast-only and therefore isolated from the other projects in that Supabase project.
+- [x] No tables, migrations, policies or existing rows in the shared Supabase project were read or modified. The bridge uses only TD-owned Realtime Broadcast/Presence channel names and is therefore isolated from the other projects in that Supabase project.
 - [x] The payload boundary is gameplay intent/state only. Blood splatter, decals and dismemberment remain local presentation and are deliberately not part of the transport contract.
-- [ ] Add host/guest authority, state snapshots and reconnection handling in the next co-op pass.
+- [ ] Add password verification/join handshake, host/guest authority, authoritative snapshots and reconnection handling in the next co-op pass. The current derived channel name prevents casual channel discovery but is not a server-enforced authentication boundary.
+- [ ] Add Tauri-only same-Wi-Fi discovery with mDNS/UDP; browser Presence cannot prove that two clients share a physical network.
 
 ## Art compliance — Phase 0 pass
 
@@ -160,6 +164,7 @@ The closest genre benchmarks show that a premium-feeling action tower-defense ga
 - The current materials approximate hand-painted depth with vertex gradients; authored texture atlases and toon/cel creature shading are still future work.
 - The current combat is intentionally a small deterministic v1 slice: one enemy family, one tower family and a short Greenward path. It is not yet content-complete or Steam-ready.
 - Supabase Broadcast is now implemented as a first transport slice, but authority, snapshots, reconnection, save data, Steamworks and Tauri integration remain open. The shared Supabase project has not been modified.
+- Browser Friend discovery is intentionally broader than same-Wi-Fi discovery: anyone with the public client configuration and the TD lobby open may appear. Passwords are not advertised, but the current browser bridge still needs a proper server-authoritative join handshake before it should be treated as a final security boundary.
 
 ## What is next
 

@@ -24,10 +24,12 @@ export type GameSelection = {
   gameMode: GameMode;
   playMode: PlayMode;
   roomCode?: string;
+  password?: string;
 };
 
 type AppShellCallbacks = {
   onStartGame(selection: GameSelection): void;
+  onFriendLobbyReady?(element: HTMLElement, getSession: () => { roomCode: string; password: string }): (() => void) | void;
 };
 
 type AppShell = {
@@ -97,6 +99,9 @@ export function createAppShell(
   let purchasedSkills = new Set<string>();
   let skillFeedback = 'Choose a node to begin your path.';
   let friendRoomCode = createRoomCode();
+  let friendPassword = '';
+  let friendLobbyCleanup: (() => void) | undefined;
+  const escapeAttribute = (value: string): string => value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 
   const stopCapture = (): void => {
     if (captureHandler) {
@@ -122,7 +127,7 @@ export function createAppShell(
         <button class="mode-card ${menuState.gameMode === 'friend' ? 'is-selected' : ''}" data-mode="friend" type="button">
           <span class="mode-card-icon" aria-hidden="true">♜♜</span>
           <span class="mode-card-title">PLAY WITH A FRIEND</span>
-          <span class="mode-card-copy">Share a room code and defend together. No account required.</span>
+          <span class="mode-card-copy">Find open TD sessions automatically, then defend together. No account required.</span>
         </button>
       </div>
       <div class="menu-actions">
@@ -153,7 +158,10 @@ export function createAppShell(
         <div class="friend-room-panel">
           <label for="friend-room-code">ROOM CODE</label>
           <input id="friend-room-code" data-room-code value="${friendRoomCode}" maxlength="32" autocomplete="off" spellcheck="false" />
-          <small>Share this code with your friend. No account or login is required.</small>
+          <label for="friend-session-password">SESSION PASSWORD <span>(OPTIONAL)</span></label>
+          <input id="friend-session-password" data-session-password type="password" value="${escapeAttribute(friendPassword)}" maxlength="64" autocomplete="new-password" />
+          <small>Nearby TD sessions appear automatically. Use the same room code and password to join. No account or login is required.</small>
+          <div class="friend-lobby" data-friend-lobby aria-live="polite">SEARCHING FOR TD FRIENDS…</div>
         </div>
       ` : ''}
       <button class="primary-button ${menuState.playMode ? '' : 'is-disabled'}" data-start-game type="button" ${menuState.playMode ? '' : 'disabled'}>
@@ -241,6 +249,21 @@ export function createAppShell(
     layer.querySelector<HTMLInputElement>('[data-room-code]')?.addEventListener('input', (event) => {
       friendRoomCode = (event.target as HTMLInputElement).value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
     });
+    layer.querySelector<HTMLInputElement>('[data-session-password]')?.addEventListener('input', (event) => {
+      friendPassword = (event.target as HTMLInputElement).value;
+    });
+    const lobbyElement = layer.querySelector<HTMLElement>('[data-friend-lobby]');
+    if (lobbyElement && callbacks.onFriendLobbyReady) {
+      friendLobbyCleanup?.();
+      friendLobbyCleanup = callbacks.onFriendLobbyReady(lobbyElement, () => ({ roomCode: friendRoomCode, password: friendPassword })) ?? undefined;
+      lobbyElement.addEventListener('click', (event) => {
+        const target = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-nearby-room]');
+        if (!target?.dataset.nearbyRoom) return;
+        friendRoomCode = target.dataset.nearbyRoom;
+        const roomInput = layer.querySelector<HTMLInputElement>('[data-room-code]');
+        if (roomInput) roomInput.value = friendRoomCode;
+      });
+    }
     layer.querySelectorAll<HTMLButtonElement>('[data-screen]').forEach((button) => {
       button.addEventListener('click', () => {
         stopCapture();
@@ -251,11 +274,14 @@ export function createAppShell(
     layer.querySelector<HTMLButtonElement>('[data-start-game]')?.addEventListener('click', () => {
       if (menuState.gameMode && menuState.playMode) {
         stopCapture();
+        friendLobbyCleanup?.();
+        friendLobbyCleanup = undefined;
         layer.classList.add('is-hidden');
         callbacks.onStartGame({
           gameMode: menuState.gameMode,
           playMode: menuState.playMode,
           roomCode: menuState.gameMode === 'friend' ? friendRoomCode : undefined,
+          password: menuState.gameMode === 'friend' ? friendPassword : undefined,
         });
       }
     });
@@ -307,6 +333,8 @@ export function createAppShell(
   };
 
   const render = (): void => {
+    friendLobbyCleanup?.();
+    friendLobbyCleanup = undefined;
     layer.innerHTML = menuState.screen === 'main'
       ? renderMain()
       : menuState.screen === 'play-mode'
