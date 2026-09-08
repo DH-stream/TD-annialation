@@ -209,6 +209,7 @@ function addBlock(
   block.position.addInPlace(position);
   block.rotation.y = rotationY;
   block.material = material;
+  block.metadata = { placementSurface: 'blocked' };
   return block;
 }
 
@@ -246,7 +247,7 @@ function addBuildPad(
   }, scene);
   base.position = position;
   base.material = stone;
-  base.metadata = { interaction: 'build-pad', buildPadId: index };
+  base.metadata = { interaction: 'build-pad', buildPadId: index, placementSurface: 'ground' };
 
   const ring = MeshBuilder.CreateTorus(`build-pad-ring-${index}`, {
     diameter: 2.75,
@@ -255,7 +256,7 @@ function addBuildPad(
   }, scene);
   ring.position = position.add(new Vector3(0, 0.16, 0));
   ring.material = brass;
-  ring.metadata = { interaction: 'build-pad', buildPadId: index };
+  ring.metadata = { interaction: 'build-pad', buildPadId: index, placementSurface: 'ground' };
 
   const rune = MeshBuilder.CreateTorus(`build-pad-rune-${index}`, {
     diameter: 1.85,
@@ -264,7 +265,7 @@ function addBuildPad(
   }, scene);
   rune.position = position.add(new Vector3(0, 0.21, 0));
   rune.material = magic;
-  rune.metadata = { interaction: 'build-pad', buildPadId: index };
+  rune.metadata = { interaction: 'build-pad', buildPadId: index, placementSurface: 'ground' };
 }
 
 function addBarricade(scene: Scene, wood: StandardMaterial, position: Vector3, rotationY: number): void {
@@ -563,14 +564,15 @@ export function createGameScene(
     subdivisions: 2,
   }, scene);
   battlefield.material = ground;
-  battlefield.metadata = { interaction: 'map' };
+  battlefield.metadata = { interaction: 'map', placementSurface: 'ground' };
   const horizonGround = MeshBuilder.CreateGround('greenward-horizon-ground', {
     width: 360,
     height: 360,
   }, scene);
   horizonGround.position.y = -0.06;
   horizonGround.material = ground;
-  horizonGround.isPickable = false;
+  horizonGround.metadata = { placementSurface: 'out-of-bounds' };
+  horizonGround.isPickable = true;
 
   GREENWARD_PATH.slice(0, -1).forEach((start, index) => {
     const end = GREENWARD_PATH[index + 1];
@@ -586,7 +588,7 @@ export function createGameScene(
       height: 0.08,
       depth: length,
     }, Math.atan2(deltaX, deltaZ));
-    pathSegment.metadata = { interaction: 'map' };
+    pathSegment.metadata = { interaction: 'map', placementSurface: 'path' };
   });
 
   const buildPadPositions = [
@@ -602,9 +604,11 @@ export function createGameScene(
   const centralShrine = MeshBuilder.CreateCylinder('central-shrine', { diameter: 2.1, height: 2.7, tessellation: 8 }, scene);
   centralShrine.position = new Vector3(0, 1.4, -4.2);
   centralShrine.material = stone;
+  centralShrine.metadata = { placementSurface: 'blocked' };
   const shrineGlow = MeshBuilder.CreateSphere('central-shrine-glow', { diameter: 1.05, segments: 12 }, scene);
   shrineGlow.position = new Vector3(0, 3.1, -4.2);
   shrineGlow.material = magic;
+  shrineGlow.metadata = { placementSurface: 'blocked' };
   const windowMaterial = createMaterial(scene, 'castle-window-material', config.colors.brass, 0.25);
   windowMaterial.emissiveColor = Color3.FromHexString(config.colors.brass).scale(0.85);
   [-4.2, 4.2].forEach((x) => {

@@ -25,7 +25,7 @@ describe('Greenward stage simulation', () => {
 
   it('drops a coin on a tower kill and rewards the hero on proximity pickup', () => {
     const wave = startNextWave(createStageState('endless'));
-    const placed = placeTower(wave, { x: -20, z: 13 });
+    const placed = placeTower(wave, { x: -18, z: 10 });
     const enemy: EnemyState = {
       id: 'target',
       x: GREENWARD_PATH[0].x,
@@ -56,6 +56,32 @@ describe('Greenward stage simulation', () => {
     expect(first.tower).toBeDefined();
     expect(second.tower).toBeUndefined();
     expect(second.state.gold).toBe(150);
+  });
+
+  it('allows freeform ground placement away from the route', () => {
+    const placed = placeTower(createStageState('stages'), { x: 15, z: 8 });
+
+    expect(placed.tower).toBeDefined();
+    expect(placed.state.gold).toBe(150);
+  });
+
+  it('rejects tower placement on the route', () => {
+    const placed = placeTower(createStageState('stages'), { x: -16, z: 14 });
+
+    expect(placed.tower).toBeUndefined();
+  });
+
+  it('rejects tower placement inside another tower spacing radius', () => {
+    const initial = placeTower(createStageState('stages'), { x: 15, z: 8 });
+    const second = placeTower(initial.state, { x: 17, z: 8 });
+
+    expect(second.tower).toBeUndefined();
+  });
+
+  it('rejects tower placement outside the playable ground bounds', () => {
+    const placed = placeTower(createStageState('stages'), { x: 31, z: 0 });
+
+    expect(placed.tower).toBeUndefined();
   });
 
   it('creates a coin when the hero basic attack defeats a nearby enemy', () => {

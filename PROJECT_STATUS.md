@@ -297,3 +297,23 @@ This pass was triggered by a real default-camera Solo → Stages → The Greenwa
 - Added and visually verified an authored crown overlay so the default hero reads as the Greenward king; horse mounting remains a later scope item.
 
 The shared toon/cel ramp, representative frame-budget measurement, measured draw-call budget, automated budget assertions, gore decal cap and optional audio remain open in their earlier rows. The later roadmap stays paused behind those items.
+
+## Freeform placement and castle rebuild — 2026-09-08
+
+This pass was verified through real Solo → Stages → Enter the Greenward sessions at the default camera, with an orbit only for the separate rock-surface check. It replaces the old rune-pad-only placement claim and records the castle silhouette comparison against `docs/superpowers/specs/greenward-moodboard.md`.
+
+| Item | Status | Fresh evidence |
+| --- | --- | --- |
+| 1. Place towers on valid ground and reject path, rocks, water/shrine, structures and out-of-bounds positions | Pass | `placementSurface` metadata distinguishes ground, path and blocked asset roots; `validateTowerPlacement()` enforces bounds and route clearance. `.playwright-cli/freeform-ghost-final-red-path.png` shows the red path preview, `.playwright-cli/freeform-preview-rock-red.png` shows the red rock preview, and `.playwright-cli/freeform-preview-water-red.png` covers the shrine pool. |
+| 2. Green/red ghost follows the cursor during build mode | Pass | `.playwright-cli/freeform-ghost-final-green.png` shows the green ghost ring on open ground and `.playwright-cli/freeform-ghost-final-red-path.png` shows the same preview switching red over the path. |
+| 3. Strategic depth is preserved | Pass | `TOWER_MIN_SPACING = 3.2`, `TOWER_MIN_PATH_CLEARANCE = 3.4`, playable bounds and `TOWER_COST = 50` are enforced by the shared simulation validator. The HUD now says “Place on open ground, keep clear of the route”; focused tests cover freeform acceptance, path rejection, spacing rejection and out-of-bounds rejection. |
+| 4. Successful placement is shown from a real play session | Pass | `.playwright-cli/freeform-ghost-final-placement.png` shows a tower placed away from the rune pads at default framing and gold reduced from 200 to 150; `.playwright-cli/freeform-mobile-placement.png` confirms the same flow at 390×844. |
+| 5. Castle reads as a coherent fortress | Pass | `.playwright-cli/castle-rebuild-final.png` shows a connected wall run, visible central gate/door, gatehouse roof and two flanking tower silhouettes assembled from the loaded Kenney Fantasy Town Kit pieces. |
+| 6. Castle silhouette compared against the moodboard | Pass | Fresh default and mobile gameplay captures were compared with the warm, medieval Greenward references in `greenward-moodboard.md`; the new gatehouse/wall/tower massing now reads as a destination fortress instead of the former row of isolated red roofs and boxes. |
+| Baseline after this pass | Pass | `npm test -- --run` = 36 tests passed; the production build exits 0; final browser console reports 0 errors and 0 warnings. |
+
+### Completed in this pass
+
+- Replaced pad-only click handling with pointer-following asset previews and freeform placement on ground surfaces.
+- Added shared spacing, path-clearance, bounds and gold safeguards so placement remains a strategic choice.
+- Rebuilt the castle composition from Kenney walls, doorway/gate pieces, roof pieces and flanking tower assemblies, with blocked-surface metadata preventing overlap.

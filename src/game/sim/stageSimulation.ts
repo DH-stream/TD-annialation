@@ -60,8 +60,49 @@ export const GREENWARD_PATH: PathPoint[] = [
 
 const ENEMY_SPAWN_INTERVAL = 0.7;
 const STARTING_GOLD = 200;
-const TOWER_COST = 50;
+export const TOWER_COST = 50;
 const ENEMY_REWARD = 10;
+export const TOWER_MIN_SPACING = 3.2;
+export const TOWER_MIN_PATH_CLEARANCE = 3.4;
+export const TOWER_PLACEMENT_BOUNDS = { minX: -30, maxX: 30, minZ: -22, maxZ: 22 };
+
+export type TowerPlacementReason = 'ok' | 'phase' | 'insufficient-gold' | 'out-of-bounds' | 'path-clearance' | 'tower-spacing';
+
+export type TowerPlacementValidation = {
+  valid: boolean;
+  reason: TowerPlacementReason;
+};
+
+function distanceToSegment(point: TowerPlacement, start: PathPoint, end: PathPoint): number {
+  const deltaX = end.x - start.x;
+  const deltaZ = end.z - start.z;
+  const lengthSquared = deltaX * deltaX + deltaZ * deltaZ;
+  if (lengthSquared === 0) return Math.hypot(point.x - start.x, point.z - start.z);
+  const projection = Math.max(0, Math.min(1, ((point.x - start.x) * deltaX + (point.z - start.z) * deltaZ) / lengthSquared));
+  return Math.hypot(point.x - (start.x + projection * deltaX), point.z - (start.z + projection * deltaZ));
+}
+
+function distanceToPath(point: TowerPlacement): number {
+  return Math.min(...GREENWARD_PATH.slice(0, -1).map((start, index) => distanceToSegment(point, start, GREENWARD_PATH[index + 1])));
+}
+
+export function validateTowerPlacement(state: StageState, position: TowerPlacement): TowerPlacementValidation {
+  if (state.status === 'won' || state.status === 'lost') return { valid: false, reason: 'phase' };
+  if (state.gold < TOWER_COST) return { valid: false, reason: 'insufficient-gold' };
+  if (
+    position.x < TOWER_PLACEMENT_BOUNDS.minX
+    || position.x > TOWER_PLACEMENT_BOUNDS.maxX
+    || position.z < TOWER_PLACEMENT_BOUNDS.minZ
+    || position.z > TOWER_PLACEMENT_BOUNDS.maxZ
+  ) {
+    return { valid: false, reason: 'out-of-bounds' };
+  }
+  if (distanceToPath(position) < TOWER_MIN_PATH_CLEARANCE) return { valid: false, reason: 'path-clearance' };
+  if (state.towers.some((tower) => Math.hypot(tower.x - position.x, tower.z - position.z) < TOWER_MIN_SPACING)) {
+    return { valid: false, reason: 'tower-spacing' };
+  }
+  return { valid: true, reason: 'ok' };
+}
 
 export function createStageState(playMode: PlayMode): StageState {
   return {
@@ -96,8 +137,7 @@ export function startNextWave(state: StageState): StageState {
 }
 
 export function placeTower(state: StageState, position: TowerPlacement): { state: StageState; tower?: TowerState } {
-  const occupied = state.towers.some((tower) => Math.hypot(tower.x - position.x, tower.z - position.z) < 0.5);
-  if (state.status === 'won' || state.status === 'lost' || state.gold < TOWER_COST || occupied) {
+  if (!validateTowerPlacement(state, position).valid) {
     return { state };
   }
 

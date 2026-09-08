@@ -1,4 +1,8 @@
 import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { AssetContainer } from '@babylonjs/core/assetContainer';
 import './styles.css';
@@ -14,6 +18,8 @@ import {
   createStageState,
   placeTower,
   startNextWave,
+  validateTowerPlacement,
+  type TowerPlacement,
   type StageState,
 } from './game/sim/stageSimulation';
 import type { GameSelection } from './ui/appShell';
@@ -54,7 +60,6 @@ const {
   heroRoot,
   destinationMarker,
   mapRoot,
-  buildPads,
   registerWindNode,
   updateAmbient,
 } = createGameScene(canvas);
@@ -75,6 +80,9 @@ let enemyCharacterContainer: AssetContainer | null = null;
 let heroCharacter: CharacterInstance | null = null;
 let towerAssets: { base: AssetContainer; roof: AssetContainer; banner: AssetContainer } | null = null;
 let createTowerVisual: ((tower: { id: string; x: number; z: number }) => void) | null = null;
+let towerPreviewRoot: TransformNode | null = null;
+let towerPreviewMaterial: StandardMaterial | null = null;
+let towerPreviewIndicator: TransformNode | null = null;
 let networkTransport: NetworkTransport | null = null;
 const localPlayerId = `player-${globalThis.crypto?.randomUUID?.().slice(0, 8) ?? Math.random().toString(36).slice(2, 10)}`;
 let networkStateTimer = 0;
@@ -115,6 +123,46 @@ const prepareCharacterAssets = async (): Promise<void> => {
 
 void prepareCharacterAssets();
 
+const toLocalPlacement = (worldPoint: Vector3): TowerPlacement => {
+  const mapScale = mapRoot.scaling.x;
+  return { x: worldPoint.x / mapScale, z: worldPoint.z / mapScale };
+};
+
+type PlacementMesh = { metadata?: { placementSurface?: string }; parent?: PlacementMesh | null };
+
+const placementSurfaceFor = (mesh: PlacementMesh | null | undefined): string | undefined => {
+  let current = mesh;
+  while (current) {
+    const surface = current.metadata?.placementSurface;
+    if (surface) return surface;
+    current = current.parent;
+  }
+  return undefined;
+};
+
+const setTowerPreview = (position: TowerPlacement, valid: boolean): void => {
+  if (!towerPreviewRoot || !towerPreviewMaterial) return;
+  towerPreviewRoot.position.set(position.x, 0, position.z);
+  const color = Color3.FromHexString(valid ? '#71C982' : '#B94A4A');
+  towerPreviewMaterial.diffuseColor = color;
+  towerPreviewMaterial.emissiveColor = towerPreviewMaterial.diffuseColor.scale(valid ? 0.35 : 0.2);
+  towerPreviewRoot.getChildMeshes().forEach((mesh) => {
+    mesh.renderOverlay = true;
+    mesh.overlayColor = color;
+    mesh.overlayAlpha = 0.72;
+  });
+  if (towerPreviewIndicator) {
+    towerPreviewIndicator.getChildMeshes().forEach((mesh) => {
+      mesh.material = towerPreviewMaterial;
+    });
+  }
+  towerPreviewRoot.setEnabled(true);
+};
+
+const hideTowerPreview = (): void => {
+  towerPreviewRoot?.setEnabled(false);
+};
+
 const prepareFantasyEnvironment = async (): Promise<void> => {
   try {
     const [wall, wallArchTop, doorwayBase, doorwaySquare, door, roof, roofGable, tree, treeHigh, rock, fence, banner, lantern, fountain, chimney] = await Promise.all([
@@ -153,8 +201,10 @@ const prepareFantasyEnvironment = async (): Promise<void> => {
     ): void => {
       const root = instantiateFantasyTownAsset(container, id, position, scale, rotationY);
       root.parent = mapRoot;
+      root.metadata = { placementSurface: 'blocked' };
       root.getChildMeshes().forEach((mesh) => {
         if (!mesh.isAnInstance) mesh.receiveShadows = true;
+        mesh.metadata = { ...(mesh.metadata ?? {}), placementSurface: 'blocked' };
         shadows.addShadowCaster(mesh, true);
       });
       if (id.startsWith('greenward-tree')) {
@@ -165,11 +215,13 @@ const prepareFantasyEnvironment = async (): Promise<void> => {
     const createTower = (tower: { id: string; x: number; z: number }): void => {
       if (!towerAssets || towerVisuals.has(tower.id)) return;
       const root = new TransformNode(`tower-root-${tower.id}`, scene);
+      root.metadata = { placementSurface: 'blocked' };
       const addPart = (container: AssetContainer, part: string, y: number, rotationY = 0): void => {
         const asset = instantiateFantasyTownAsset(container, `${tower.id}-${part}`, { x: 0, y, z: 0 }, 1, rotationY);
         asset.parent = root;
         asset.getChildMeshes().forEach((mesh) => {
           if (!mesh.isAnInstance) mesh.receiveShadows = true;
+          mesh.metadata = { ...(mesh.metadata ?? {}), placementSurface: 'blocked' };
           shadows.addShadowCaster(mesh, true);
         });
       };
@@ -182,18 +234,61 @@ const prepareFantasyEnvironment = async (): Promise<void> => {
     };
 
     towerAssets = { base: wall, roof, banner };
+    towerPreviewRoot = new TransformNode('tower-placement-preview', scene);
+    towerPreviewRoot.parent = mapRoot;
+    towerPreviewMaterial = new StandardMaterial('tower-placement-preview-material', scene);
+    towerPreviewMaterial.diffuseColor = Color3.FromHexString('#71C982');
+    towerPreviewMaterial.emissiveColor = Color3.FromHexString('#71C982').scale(0.35);
+    towerPreviewMaterial.alpha = 0.58;
+    towerPreviewMaterial.backFaceCulling = false;
+    towerPreviewIndicator = new TransformNode('tower-placement-indicator', scene);
+    towerPreviewIndicator.parent = towerPreviewRoot;
+    const indicator = MeshBuilder.CreateTorus('tower-placement-indicator-ring', {
+      diameter: 2.4,
+      thickness: 0.12,
+      tessellation: 24,
+    }, scene);
+    indicator.position.y = 0.08;
+    indicator.material = towerPreviewMaterial;
+    indicator.isPickable = false;
+    indicator.parent = towerPreviewIndicator;
+    const ghostTint = MeshBuilder.CreateCylinder('tower-placement-ghost-tint', {
+      diameterTop: 0.16,
+      diameterBottom: 1.5,
+      height: 2.2,
+      tessellation: 4,
+    }, scene);
+    ghostTint.position.y = 1.1;
+    ghostTint.material = towerPreviewMaterial;
+    ghostTint.isPickable = false;
+    ghostTint.parent = towerPreviewRoot;
+    const addPreviewPart = (container: AssetContainer, part: string, y: number, rotationY = 0): void => {
+      const asset = instantiateFantasyTownAsset(container, `tower-preview-${part}`, { x: 0, y, z: 0 }, 1, rotationY);
+      asset.parent = towerPreviewRoot;
+      asset.getChildMeshes().forEach((mesh) => {
+        mesh.isPickable = false;
+      });
+    };
+    addPreviewPart(wall, 'base', 0, Math.PI / 2);
+    addPreviewPart(roof, 'roof', 0.9, Math.PI / 2);
+    addPreviewPart(banner, 'banner', 0.75);
+    towerPreviewRoot.setEnabled(false);
 
     const castleZ = -15;
-    [-10.5, -5.25, 5.25, 10.5].forEach((x) => addAsset(wall, `castle-wall-${x}`, { x, y: 0, z: castleZ }, 1.75, Math.PI / 2));
-    addAsset(doorwayBase, 'castle-doorway-base', { x: 0, y: 0, z: castleZ + 0.05 }, 2, Math.PI / 2);
-    addAsset(doorwaySquare, 'castle-doorway-arch', { x: 0, y: 1.5, z: castleZ + 0.05 }, 2, Math.PI / 2);
-    addAsset(door, 'castle-door', { x: 0, y: 0, z: castleZ + 1.05 }, 1.45, Math.PI / 2);
-    addAsset(wallArchTop, 'castle-gate-top', { x: 0, y: 4.2, z: castleZ }, 2.15, Math.PI / 2);
-    addAsset(roofGable, 'castle-roof-center', { x: 0, y: 4.7, z: castleZ }, 2.15, Math.PI / 2);
-    [-10.5, -5.25, 5.25, 10.5].forEach((x) => addAsset(roof, `castle-roof-${x}`, { x, y: 1.55, z: castleZ }, 1.75, Math.PI / 2));
-    addAsset(banner, 'castle-banner', { x: 0, y: 3.5, z: castleZ - 0.65 }, 1.75);
-    addAsset(chimney, 'castle-chimney-left', { x: -10.5, y: 3.1, z: castleZ }, 1.2, Math.PI / 2);
-    addAsset(chimney, 'castle-chimney-right', { x: 10.5, y: 3.1, z: castleZ }, 1.2, Math.PI / 2);
+    [-9, -6, -3, 3, 6, 9].forEach((x) => addAsset(wall, `castle-wall-${x}`, { x, y: 0, z: castleZ }, 3.2, Math.PI / 2));
+    addAsset(doorwayBase, 'castle-gatehouse-base', { x: 0, y: 0, z: castleZ + 0.05 }, 2.6, Math.PI / 2);
+    addAsset(doorwaySquare, 'castle-gatehouse-arch', { x: 0, y: 1.35, z: castleZ + 0.05 }, 2.6, Math.PI / 2);
+    addAsset(door, 'castle-gatehouse-door', { x: 0, y: 0, z: castleZ + 1.15 }, 1.7, Math.PI / 2);
+    addAsset(wallArchTop, 'castle-gatehouse-top', { x: 0, y: 4, z: castleZ }, 2.45, Math.PI / 2);
+    addAsset(roofGable, 'castle-gatehouse-roof', { x: 0, y: 4.55, z: castleZ }, 2.45, Math.PI / 2);
+    [-11.5, 11.5].forEach((x) => {
+      addAsset(wall, `castle-tower-base-${x}`, { x, y: 0, z: castleZ }, 2, Math.PI / 2);
+      addAsset(doorwaySquare, `castle-tower-arch-${x}`, { x, y: 1.05, z: castleZ }, 1.5, Math.PI / 2);
+      addAsset(roofGable, `castle-tower-roof-${x}`, { x, y: 2.85, z: castleZ }, 1.9, Math.PI / 2);
+    });
+    addAsset(banner, 'castle-banner', { x: 0, y: 3.5, z: castleZ - 0.75 }, 1.9);
+    addAsset(chimney, 'castle-chimney-left', { x: -11.5, y: 3.1, z: castleZ }, 1.2, Math.PI / 2);
+    addAsset(chimney, 'castle-chimney-right', { x: 11.5, y: 3.1, z: castleZ }, 1.2, Math.PI / 2);
 
     [
       [-27, -7, 1.9], [-29, 12, 1.55], [27, 11, 2.05], [29, -5, 1.7],
@@ -228,6 +323,7 @@ const updateGameplayHud = (): void => {
   basicAttackValue.textContent = basicAttackCooldown <= 0 ? 'READY' : `${basicAttackCooldown.toFixed(1)}s`;
   specialAttackValue.textContent = specialAttackCooldown <= 0 ? 'READY' : `${specialAttackCooldown.toFixed(1)}s`;
   startWaveButton.disabled = stageState.status !== 'build';
+  if (stageState.status !== 'build') hideTowerPreview();
   if (networkStatusMessage) {
     gameplayMessage.textContent = networkStatusMessage;
   } else if (stageState.status === 'won') {
@@ -237,7 +333,7 @@ const updateGameplayHud = (): void => {
   } else if (stageState.status === 'wave') {
     gameplayMessage.textContent = `WAVE ${stageState.wave} INCOMING · DEFEND THE ROYAL HEART.`;
   } else {
-    gameplayMessage.textContent = 'Build on a rune pad, then start the next wave.';
+    gameplayMessage.textContent = 'Place on open ground, keep clear of the route, then start the next wave.';
   }
 };
 
@@ -334,6 +430,20 @@ let pointerDownPosition: { x: number; y: number } | null = null;
 scene.onPointerObservable.add((pointerInfo) => {
   const event = pointerInfo.event as PointerEvent;
 
+  if (pointerInfo.type === PointerEventTypes.POINTERMOVE) {
+    if (!stageState || stageState.status !== 'build' || !towerPreviewRoot) return;
+    const pick = scene.pick(scene.pointerX, scene.pointerY);
+    if (!pick?.hit || !pick.pickedPoint) {
+      hideTowerPreview();
+      return;
+    }
+    const position = toLocalPlacement(pick.pickedPoint);
+    const surface = placementSurfaceFor(pick.pickedMesh);
+    const validation = surface === 'ground' ? validateTowerPlacement(stageState, position) : { valid: false };
+    setTowerPreview(position, validation.valid);
+    return;
+  }
+
   if (pointerInfo.type === PointerEventTypes.POINTERDOWN && event.button === 0) {
     pointerDownPosition = { x: event.clientX, y: event.clientY };
     return;
@@ -355,14 +465,15 @@ scene.onPointerObservable.add((pointerInfo) => {
   }
 
   const interaction = pick.pickedMesh?.metadata?.interaction;
-  if (interaction === 'build-pad' && stageState) {
-    const buildPadId = pick.pickedMesh?.metadata?.buildPadId as number | undefined;
-    const pad = buildPads.find((candidate) => candidate.id === buildPadId);
-    if (!pad) return;
-    const placement = placeTower(stageState, { x: pad.position.x, z: pad.position.z });
+  const surface = placementSurfaceFor(pick.pickedMesh);
+  if (stageState?.status === 'build') {
+    if (surface !== 'ground') return;
+    const position = toLocalPlacement(pick.pickedPoint);
+    const placement = placeTower(stageState, position);
     stageState = placement.state;
     if (placement.tower) {
       createTowerVisual?.(placement.tower);
+      setTowerPreview(position, false);
     }
     updateGameplayHud();
     return;
