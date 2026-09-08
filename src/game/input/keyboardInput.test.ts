@@ -36,4 +36,14 @@ describe('keyboard input', () => {
     input.release('l');
     expect(input.read('player-1', 200)).toMatchObject({ moveX: 0, moveZ: 0 });
   });
+
+  it('updates the live bindings used by the input source', () => {
+    const input = createKeyboardInputState();
+
+    input.setBindings({ up: 'i', down: 'k', left: 'j', right: 'l' });
+    input.press('l');
+
+    expect(input.read('player-1', 300).moveX).toBe(1);
+    expect(input.getBindings()).toEqual({ up: 'i', down: 'k', left: 'j', right: 'l' });
+  });
 });

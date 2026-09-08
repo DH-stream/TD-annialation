@@ -17,6 +17,8 @@ export const DEFAULT_KEYBOARD_BINDINGS: KeyboardBindings = {
 export type KeyboardInputState = {
   press(key: string): void;
   release(key: string): void;
+  setBindings(bindings: KeyboardBindings): void;
+  getBindings(): KeyboardBindings;
   read(playerId: string, issuedAt: number): PlayerInput;
 };
 
@@ -30,13 +32,19 @@ function axis(pressedKeys: Set<string>, positiveKey: string, negativeKey: string
 
 export function createKeyboardInputState(bindings: KeyboardBindings = DEFAULT_KEYBOARD_BINDINGS): KeyboardInputState {
   const pressedKeys = new Set<string>();
+  let activeBindings = { ...bindings };
 
   return {
     press: (key) => pressedKeys.add(normalizeKey(key)),
     release: (key) => pressedKeys.delete(normalizeKey(key)),
+    setBindings: (nextBindings) => {
+      activeBindings = { ...nextBindings };
+      pressedKeys.clear();
+    },
+    getBindings: () => ({ ...activeBindings }),
     read: (playerId, issuedAt) => {
-      const rawMoveX = axis(pressedKeys, bindings.right, bindings.left);
-      const rawMoveZ = axis(pressedKeys, bindings.down, bindings.up);
+      const rawMoveX = axis(pressedKeys, activeBindings.right, activeBindings.left);
+      const rawMoveZ = axis(pressedKeys, activeBindings.down, activeBindings.up);
       const length = Math.hypot(rawMoveX, rawMoveZ);
       const scale = length > 1 ? 1 / length : 1;
 
@@ -57,7 +65,7 @@ export function createKeyboardInputSource(
   bindings: KeyboardBindings = DEFAULT_KEYBOARD_BINDINGS,
 ): KeyboardInputState & { dispose(): void } {
   const state = createKeyboardInputState(bindings);
-  const movementKeys = new Set(Object.values(bindings).map(normalizeKey));
+  let movementKeys = new Set(Object.values(bindings).map(normalizeKey));
   const onKeyDown = (event: KeyboardEvent): void => {
     if (movementKeys.has(normalizeKey(event.key))) {
       event.preventDefault();
@@ -71,6 +79,10 @@ export function createKeyboardInputSource(
 
   return {
     ...state,
+    setBindings: (nextBindings) => {
+      state.setBindings(nextBindings);
+      movementKeys = new Set(Object.values(nextBindings).map(normalizeKey));
+    },
     dispose: () => {
       target.removeEventListener('keydown', onKeyDown);
       target.removeEventListener('keyup', onKeyUp);

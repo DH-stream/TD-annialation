@@ -4,12 +4,13 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#101820" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>TD Annihilation</title>
   </head>
   <body>
     <main id="app" aria-label="TD Annihilation game">
       <canvas id="game-canvas" aria-label="3D battlefield"></canvas>
-      <section class="hud" aria-label="Game status">
+      <section id="game-hud" class="hud is-hidden" aria-label="Game status">
         <div class="hud-brand">
           <span class="hud-mark" aria-hidden="true">✦</span>
           <span>TD ANNIHILATION</span>
@@ -23,6 +24,18 @@
           <span>STRATEGIC VIEW</span>
           <span class="hud-divider" aria-hidden="true"></span>
           <span>Click to move · WASD to ride · Scroll to zoom · Middle drag to orbit</span>
+        </div>
+      </section>
+      <section id="gameplay-panel" class="gameplay-panel is-hidden" aria-label="Battle controls">
+        <div class="gameplay-stats">
+          <span>MODE <strong id="game-mode-value">SOLO</strong></span>
+          <span>WAVE <strong id="wave-value">0</strong></span>
+          <span>GOLD <strong id="gold-value">200</strong></span>
+          <span>HEART <strong id="base-health-value">20</strong></span>
+        </div>
+        <div class="gameplay-actions">
+          <span id="gameplay-message">Build your first defense.</span>
+          <button id="start-wave-button" class="primary-button" type="button">START WAVE</button>
         </div>
       </section>
     </main>

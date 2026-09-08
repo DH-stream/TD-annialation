@@ -2,7 +2,6 @@ import {
   ArcRotateCamera,
   ArcRotateCameraPointersInput,
   Color3,
-  Color4,
   DirectionalLight,
   Engine,
   GlowLayer,
@@ -18,6 +17,7 @@ import {
   VertexBuffer,
   Vector3,
 } from 'babylonjs';
+import earcut from 'earcut';
 import { DEFAULT_SCENE_CONFIG, type SceneConfig } from './config/sceneConfig';
 
 export function getCameraSettings(config: SceneConfig): SceneConfig['camera'] {
@@ -63,6 +63,34 @@ function addSubtleVertexVariation(mesh: Mesh): void {
   mesh.useVertexColors = true;
 }
 
+function createChamferedBox(
+  scene: Scene,
+  name: string,
+  dimensions: { width: number; height: number; depth: number },
+): Mesh {
+  const halfWidth = dimensions.width / 2;
+  const halfDepth = dimensions.depth / 2;
+  const chamfer = Math.min(0.12, halfWidth * 0.25, halfDepth * 0.25);
+  const shape = [
+    new Vector3(-halfWidth + chamfer, 0, -halfDepth),
+    new Vector3(halfWidth - chamfer, 0, -halfDepth),
+    new Vector3(halfWidth, 0, -halfDepth + chamfer),
+    new Vector3(halfWidth, 0, halfDepth - chamfer),
+    new Vector3(halfWidth - chamfer, 0, halfDepth),
+    new Vector3(-halfWidth + chamfer, 0, halfDepth),
+    new Vector3(-halfWidth, 0, halfDepth - chamfer),
+    new Vector3(-halfWidth, 0, -halfDepth + chamfer),
+  ];
+  const block = MeshBuilder.ExtrudePolygon(
+    name,
+    { shape, depth: dimensions.height, sideOrientation: Mesh.DOUBLESIDE },
+    scene,
+    earcut,
+  );
+  block.position.y = dimensions.height / 2;
+  return block;
+}
+
 function addBlock(
   scene: Scene,
   material: StandardMaterial,
@@ -71,13 +99,10 @@ function addBlock(
   dimensions: { width: number; height: number; depth: number },
   rotationY = 0,
 ): Mesh {
-  const block = MeshBuilder.CreateBox(name, dimensions, scene);
-  block.position = position;
+  const block = createChamferedBox(scene, name, dimensions);
+  block.position.addInPlace(position);
   block.rotation.y = rotationY;
   block.material = material;
-  block.enableEdgesRendering(0.97);
-  block.edgesWidth = 1.2;
-  block.edgesColor = new Color4(0.15, 0.2, 0.18, 0.35);
   return block;
 }
 
@@ -115,7 +140,7 @@ function addBuildPad(
   }, scene);
   base.position = position;
   base.material = stone;
-  base.metadata = { interaction: 'map' };
+  base.metadata = { interaction: 'build-pad', buildPadId: index };
 
   const ring = MeshBuilder.CreateTorus(`build-pad-ring-${index}`, {
     diameter: 2.75,
@@ -124,7 +149,7 @@ function addBuildPad(
   }, scene);
   ring.position = position.add(new Vector3(0, 0.16, 0));
   ring.material = brass;
-  ring.metadata = { interaction: 'map' };
+  ring.metadata = { interaction: 'build-pad', buildPadId: index };
 
   const rune = MeshBuilder.CreateTorus(`build-pad-rune-${index}`, {
     diameter: 1.85,
@@ -133,7 +158,7 @@ function addBuildPad(
   }, scene);
   rune.position = position.add(new Vector3(0, 0.21, 0));
   rune.material = magic;
-  rune.metadata = { interaction: 'map' };
+  rune.metadata = { interaction: 'build-pad', buildPadId: index };
 }
 
 function addBarricade(scene: Scene, wood: StandardMaterial, position: Vector3, rotationY: number): void {
@@ -218,15 +243,64 @@ function addLantern(
   flame.position = position.add(new Vector3(0, 0.25, 0));
   flame.material = magic;
   const light = new PointLight(`lantern-light-${position.x}-${position.z}`, position, scene);
-  light.diffuse = new Color3(1, 0.62, 0.2);
+  light.diffuse = brass.diffuseColor.clone();
   light.intensity = 0.8;
   light.range = 7;
+}
+
+export function createEnemyVisual(scene: Scene, config: SceneConfig, id: string): TransformNode {
+  const root = new TransformNode(`enemy-root-${id}`, scene);
+  const body = MeshBuilder.CreateCapsule(`enemy-body-${id}`, {
+    height: 1.35,
+    radius: 0.46,
+    tessellation: 8,
+  }, scene);
+  body.position.y = 0.72;
+  body.material = createMaterial(scene, `enemy-body-material-${id}`, config.colors.stone, 0.78);
+  body.parent = root;
+
+  const head = MeshBuilder.CreateSphere(`enemy-head-${id}`, { diameter: 0.7, segments: 8 }, scene);
+  head.position.y = 1.62;
+  head.material = createMaterial(scene, `enemy-head-material-${id}`, config.colors.wood, 0.82);
+  head.parent = root;
+
+  const crest = MeshBuilder.CreateCylinder(`enemy-crest-${id}`, { diameter: 0.22, height: 0.42, tessellation: 6 }, scene);
+  crest.position = new Vector3(0, 2.08, 0);
+  crest.material = createMaterial(scene, `enemy-crest-material-${id}`, config.colors.brass, 0.5);
+  crest.parent = root;
+  return root;
+}
+
+export function createTowerVisual(scene: Scene, config: SceneConfig, id: string): TransformNode {
+  const root = new TransformNode(`tower-root-${id}`, scene);
+  const base = MeshBuilder.CreateCylinder(`tower-base-${id}`, { diameter: 1.25, height: 0.5, tessellation: 10 }, scene);
+  base.position.y = 0.25;
+  base.material = createMaterial(scene, `tower-base-material-${id}`, config.colors.stone, 0.78);
+  base.parent = root;
+
+  const core = MeshBuilder.CreateCylinder(`tower-core-${id}`, { diameter: 0.62, height: 1.25, tessellation: 8 }, scene);
+  core.position.y = 1.05;
+  core.material = createMaterial(scene, `tower-core-material-${id}`, config.colors.wood, 0.82);
+  core.parent = root;
+
+  const crystal = MeshBuilder.CreateSphere(`tower-crystal-${id}`, { diameter: 0.42, segments: 8 }, scene);
+  crystal.position.y = 1.78;
+  crystal.material = createMaterial(scene, `tower-crystal-material-${id}`, config.colors.magic, 0.25);
+  crystal.parent = root;
+  return root;
 }
 
 export function createGameScene(
   canvas: HTMLCanvasElement,
   config: SceneConfig = DEFAULT_SCENE_CONFIG,
-): { engine: Engine; scene: Scene; heroRoot: TransformNode; destinationMarker: Mesh; mapRoot: TransformNode } {
+): {
+  engine: Engine;
+  scene: Scene;
+  heroRoot: TransformNode;
+  destinationMarker: Mesh;
+  mapRoot: TransformNode;
+  buildPads: Array<{ id: number; position: Vector3 }>;
+} {
   const engine = new Engine(canvas, true, { stencil: true, preserveDrawingBuffer: true });
   const scene = new Scene(engine);
   const groundColor = Color3.FromHexString(config.colors.ground);
@@ -272,6 +346,8 @@ export function createGameScene(
   shadows.useBlurExponentialShadowMap = true;
   shadows.blurKernel = 32;
   shadows.setDarkness(0.32);
+  shadows.bias = 0.02;
+  shadows.normalBias = 0.02;
 
   const ambientOcclusion = new SSAO2RenderingPipeline('greenward-ambient-occlusion', scene, {
     ssaoRatio: 0.7,
@@ -315,7 +391,8 @@ export function createGameScene(
     pathSegment.metadata = { interaction: 'map' };
   });
 
-  [new Vector3(-8, 0.12, 1.9), new Vector3(3.8, 0.12, 5.2), new Vector3(6.8, 0.12, 0.3), new Vector3(-3.7, 0.12, -4.1)].forEach((position, index) => {
+  const buildPadPositions = [new Vector3(-8, 0.12, 1.9), new Vector3(3.8, 0.12, 5.2), new Vector3(6.8, 0.12, 0.3), new Vector3(-3.7, 0.12, -4.1)];
+  buildPadPositions.forEach((position, index) => {
     addBuildPad(scene, stone, brass, magic, position, index);
   });
 
@@ -368,5 +445,12 @@ export function createGameScene(
     }
   });
 
-  return { engine, scene, heroRoot, destinationMarker, mapRoot };
+  return {
+    engine,
+    scene,
+    heroRoot,
+    destinationMarker,
+    mapRoot,
+    buildPads: buildPadPositions.map((position, id) => ({ id, position })),
+  };
 }

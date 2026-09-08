@@ -11,9 +11,11 @@
   },
   "dependencies": {
     "@fontsource/metal-mania": "^5.3.0",
-    "babylonjs": "^8.25.0"
+    "babylonjs": "^8.25.0",
+    "earcut": "^3.0.0"
   },
   "devDependencies": {
+    "@types/earcut": "^2.1.4",
     "@types/node": "^24.0.0",
     "typescript": "^5.8.3",
     "vite": "^7.1.3",
