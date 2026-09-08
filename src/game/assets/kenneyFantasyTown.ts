@@ -5,6 +5,7 @@ import type { Scene } from '@babylonjs/core/scene';
 
 export type FantasyTownAsset =
   | 'banner-green'
+  | 'chimney'
   | 'fence'
   | 'fountain-round'
   | 'lantern'

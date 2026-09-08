@@ -18,4 +18,8 @@ describe('scene configuration', () => {
   it('uses the locked Greenward ground anchor', () => {
     expect(DEFAULT_SCENE_CONFIG.colors.ground).toBe('#3F5D47');
   });
+
+  it('uses the locked Greenward horizon palette value', () => {
+    expect(DEFAULT_SCENE_CONFIG.colors.horizon).toBe('#142523');
+  });
 });

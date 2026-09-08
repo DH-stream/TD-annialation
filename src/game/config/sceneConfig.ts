@@ -9,6 +9,7 @@ export type SceneConfig = {
     upperRadiusLimit: number;
   };
   colors: {
+    horizon: string;
     ground: string;
     path: string;
     stone: string;
@@ -30,6 +31,7 @@ export const DEFAULT_SCENE_CONFIG: SceneConfig = {
     upperRadiusLimit: 68,
   },
   colors: {
+    horizon: '#142523',
     ground: '#3F5D47',
     path: '#B98A57',
     stone: '#59676D',

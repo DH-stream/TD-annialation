@@ -106,6 +106,30 @@ The updated art-direction instructions are treated as acceptance criteria for th
 9. **Pass — moodboard exists.** `docs/superpowers/specs/greenward-moodboard.md` contains five reference images, source pages and the locked seven-color palette.
 10. **Pass — art QA is part of project verification.** This section and the checklist above sit next to the automated test, build, desktop/mobile and interaction verification records.
 
+## Atmosphere & regression pass — fresh 2026-09-08 evidence
+
+This section supersedes the earlier Phase 0 art-compliance claims for no-void coverage (item 1), locked rendered palette (item 2) and scale/silhouette coherence (item 5). Those claims must not be reused as evidence after later environment changes. The current comparison target is `docs/superpowers/specs/greenward-moodboard.md`; fresh captures are stored at `docs/evidence/greenward-atmosphere-default.jpg` and `docs/evidence/greenward-atmosphere-orbit.jpg`.
+
+1. **Pass — no bare void.** `createHorizonDome()` creates an infinite-distance, fog-independent horizon shell using the locked horizon/ground colors. Fresh 1280×720 default and middle-drag orbit captures show the full camera frustum covered at both tested bounded angles with no raw black clear color.
+2. **Pass — locked rendered palette.** The configured ground remains `#3F5D47` (`[63,93,71]`). Fresh unshadowed screenshot samples were `[63,92,58]`, `[63,93,56]` and `[63,93,56]`: red/green are within 1 level and blue is within 15 levels after ACES, warm key, cool fill, AO and JPEG capture. This is the documented acceptance tolerance for this pass.
+3. **Pass — scale and silhouette coherence.** The castle baseline moved behind the route endpoint (`castleZ = -12.5`), its roofs stay below the HUD card in the default capture, and the moved-right rock cluster no longer touches the route edge. The shrine/fountain, route and build pads remain readable ahead of the background buildings.
+4. **Pass — intentional diorama composition.** In the default capture the eye lands first on the bright brass shrine orb over the pale circular fountain, then follows the ochre S-route toward the castle. This establishes one central focal point while keeping the castle as the destination landmark.
+5. **Pass — placement and HUD readability.** The default capture shows no building floating over or clipping into the path and no static prop covering the top-right stage card or bottom command panel. `src/styles.css` anchors the stage card at the top-right instead of over the shrine.
+6. **Pass — ambient motion.** Imported tree roots are registered by `registerWindNode()` and receive layered oscillation in `updateAmbient()`. Procedural flame meshes and their point lights use independent high-frequency flicker; the environment replacement now explicitly preserves `lantern-flame-*` meshes so it no longer animates disposed references.
+7. **Pass — ambient particles.** `createAmbientMotes()` creates twelve low-density brass motes and `updateAmbient()` drifts each on distinct phase/frequency values. They remain local presentation and do not enter the multiplayer payload.
+8. **Pass — warm/cool lighting.** ACES exposure is calibrated to `0.62`; a warm directional key (`[1,0.84,0.66]`) is balanced by a cooler hemispheric fill (`[0.58,0.72,0.68]`). The fresh captures preserve green ground, readable roof facets and soft shadows rather than the earlier cream washout.
+9. **Pass — signs of habitation.** Two imported CC0 chimney assets sit on the outer roofs. Four softly emissive smoke puffs rise, drift, scale and fade continuously; both chimney smoke columns are visible in the fresh default and orbit captures.
+10. **Pass — optional audio intentionally omitted.** No ambient-audio infrastructure exists yet, so wind/bird/village audio was not introduced under the explicitly non-blocking stretch clause.
+
+Fresh verification for this exact pass:
+
+- `npm test -- --run` — 26 tests passed across 8 files, including the new locked-horizon regression assertion.
+- `npm run build` — exit code 0; 949 modules transformed. Entry output is 1,372.67 kB minified / 338.51 kB gzip and remains below the 1 MB gzip initial-load budget; the existing >500 kB chunk warning remains open performance work.
+- Desktop browser QA — 1280×720 default and alternate orbit captures above; the orbit was performed with the documented middle-button control.
+- Palette readback — six screenshot samples recorded, including three unobstructed ground samples and two horizon samples (`[40,59,51]`).
+- Mobile browser smoke check — a clean 390×844 initialization rendered without horizontal overflow at `docs/evidence/greenward-atmosphere-mobile-390x844.jpg`. Mobile is not a supported gameplay target and receives no layout/camera optimization; desktop remains the visual acceptance platform.
+- `git diff --check` — no whitespace errors; PowerShell reported only expected LF→CRLF working-copy notices.
+
 ## Research conclusions
 
 The closest genre benchmarks show that a premium-feeling action tower-defense game needs a clear visual identity, readable combat feedback, meaningful hero/tower roles, progression, a good solo path and multiplayer that scales with the party. Steam planning must eventually include controller support, networking/lobbies, achievements, cloud saves, overlay and Steam Deck validation.

@@ -16,6 +16,7 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { Engine } from '@babylonjs/core/Engines/engine';
 import { Scene } from '@babylonjs/core/scene';
 import { SceneInstrumentation } from '@babylonjs/core/Instrumentation/sceneInstrumentation';
+import { ImageProcessingConfiguration } from '@babylonjs/core/Materials/imageProcessingConfiguration';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { PointLight } from '@babylonjs/core/Lights/pointLight';
 import earcut from 'earcut';
@@ -33,6 +34,11 @@ declare global {
     };
   }
 }
+
+type WindNode = { node: TransformNode; phase: number; strength: number };
+type AmbientFlame = { flame: Mesh; light: PointLight; phase: number; baseIntensity: number };
+type AmbientMote = { mesh: Mesh; origin: Vector3; phase: number; drift: Vector3 };
+type SmokePuff = { mesh: Mesh; origin: Vector3; phase: number };
 
 export function getCameraSettings(config: SceneConfig): SceneConfig['camera'] {
   return config.camera;
@@ -75,6 +81,75 @@ function addSubtleVertexVariation(mesh: Mesh): void {
   }
   mesh.setVerticesData(VertexBuffer.ColorKind, colors, true, 4);
   mesh.useVertexColors = true;
+}
+
+function createHorizonDome(scene: Scene, horizonColor: Color3, upperColor: Color3): Mesh {
+  const dome = MeshBuilder.CreateSphere('greenward-horizon-dome', {
+    diameter: 360,
+    segments: 32,
+  }, scene);
+  const material = new StandardMaterial('greenward-horizon-material', scene);
+  material.disableLighting = true;
+  material.backFaceCulling = false;
+  material.disableDepthWrite = true;
+  material.diffuseColor = Color3.Black();
+  material.emissiveColor = Color3.Lerp(horizonColor, upperColor, 0.28);
+  material.fogEnabled = false;
+  dome.material = material;
+  dome.infiniteDistance = true;
+  dome.isPickable = false;
+  dome.renderingGroupId = 0;
+  return dome;
+}
+
+function createAmbientMotes(scene: Scene, mapRoot: TransformNode, color: Color3): AmbientMote[] {
+  const material = new StandardMaterial('greenward-mote-material', scene);
+  material.disableLighting = true;
+  material.diffuseColor = color;
+  material.emissiveColor = color.scale(0.65);
+  material.alpha = 0.7;
+  material.disableDepthWrite = true;
+  const positions = [
+    [-13, 2.5, 7], [-9, 1.8, 1], [-4, 2.2, 8], [1, 2.9, 6], [6, 2.1, 8],
+    [12, 2.8, 4], [-15, 3.1, -1], [-8, 2.4, -7], [5, 2.8, -6], [13, 2.2, -8],
+    [-1, 3.4, 10], [9, 3.6, 1],
+  ];
+  return positions.map(([x, y, z], index) => {
+    const mesh = MeshBuilder.CreateSphere(`greenward-mote-${index}`, { diameter: 0.09, segments: 6 }, scene);
+    mesh.material = material;
+    mesh.parent = mapRoot;
+    mesh.position.set(x, y, z);
+    mesh.isPickable = false;
+    return {
+      mesh,
+      origin: new Vector3(x, y, z),
+      phase: index * 0.83,
+      drift: new Vector3(0.35 + (index % 3) * 0.08, 0.18 + (index % 2) * 0.06, 0.25),
+    };
+  });
+}
+
+function createSmokePuffs(scene: Scene, mapRoot: TransformNode, color: Color3): SmokePuff[] {
+  const material = new StandardMaterial('greenward-smoke-material', scene);
+  material.disableLighting = true;
+  material.diffuseColor = Color3.Black();
+  material.emissiveColor = Color3.Lerp(color, Color3.White(), 0.28);
+  material.alpha = 0.22;
+  material.disableDepthWrite = true;
+  const origins = [
+    new Vector3(-8.4, 7.2, -12.7),
+    new Vector3(-8.4, 7.8, -12.7),
+    new Vector3(8.4, 7.2, -12.7),
+    new Vector3(8.4, 7.8, -12.7),
+  ];
+  return origins.map((origin, index) => {
+    const mesh = MeshBuilder.CreateSphere(`greenward-chimney-smoke-${index}`, { diameter: 0.65, segments: 8 }, scene);
+    mesh.material = material;
+    mesh.parent = mapRoot;
+    mesh.position.copyFrom(origin);
+    mesh.isPickable = false;
+    return { mesh, origin, phase: index * 0.7 };
+  });
 }
 
 function createChamferedBox(
@@ -241,6 +316,8 @@ function addLantern(
   brass: StandardMaterial,
   magic: StandardMaterial,
   position: Vector3,
+  ambientFlames: AmbientFlame[],
+  phase: number,
 ): void {
   const post = MeshBuilder.CreateCylinder(`lantern-post-${position.x}-${position.z}`, {
     diameter: 0.16,
@@ -260,6 +337,7 @@ function addLantern(
   light.diffuse = brass.diffuseColor.clone();
   light.intensity = 0.8;
   light.range = 7;
+  ambientFlames.push({ flame, light, phase, baseIntensity: light.intensity });
 }
 
 export function createEnemyVisual(scene: Scene, config: SceneConfig, id: string): TransformNode {
@@ -332,9 +410,13 @@ export function createGameScene(
   destinationMarker: Mesh;
   mapRoot: TransformNode;
   buildPads: Array<{ id: number; position: Vector3 }>;
+  registerWindNode: (node: TransformNode, phase?: number, strength?: number) => void;
+  updateAmbient: (timeSeconds: number) => void;
 } {
   const engine = new Engine(canvas, true, { stencil: true, preserveDrawingBuffer: true });
   const scene = new Scene(engine);
+  const windNodes: WindNode[] = [];
+  const ambientFlames: AmbientFlame[] = [];
   const instrumentation = new SceneInstrumentation(scene);
   instrumentation.captureFrameTime = true;
   instrumentation.captureRenderTime = true;
@@ -351,8 +433,10 @@ export function createGameScene(
   scene.fogMode = Scene.FOGMODE_EXP2;
   scene.fogDensity = 0.004;
   scene.fogColor = Color3.FromHexString(config.colors.ground);
-  scene.imageProcessingConfiguration.contrast = 1.02;
-  scene.imageProcessingConfiguration.exposure = 0.68;
+  scene.imageProcessingConfiguration.toneMappingEnabled = true;
+  scene.imageProcessingConfiguration.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
+  scene.imageProcessingConfiguration.contrast = 1;
+  scene.imageProcessingConfiguration.exposure = 0.62;
 
   const cameraSettings = getCameraSettings(config);
   const camera = new ArcRotateCamera(
@@ -376,14 +460,14 @@ export function createGameScene(
   }
 
   const ambient = new HemisphericLight('ambient-light', new Vector3(0, 1, 0), scene);
-  ambient.intensity = 0.55;
-  ambient.diffuse = new Color3(0.84, 0.9, 0.87);
+  ambient.intensity = 0.6;
+  ambient.diffuse = new Color3(0.58, 0.72, 0.68);
   ambient.groundColor = Color3.FromHexString(config.colors.stone);
 
   const sun = new DirectionalLight('sun-light', new Vector3(-0.45, -1, 0.35), scene);
   sun.position = new Vector3(-16, 24, -18);
-  sun.intensity = 0.7;
-  sun.diffuse = new Color3(1, 0.93, 0.82);
+  sun.intensity = 0.68;
+  sun.diffuse = new Color3(1, 0.84, 0.66);
 
   const shadows = new ShadowGenerator(1024, sun);
   shadows.useBlurExponentialShadowMap = true;
@@ -411,9 +495,7 @@ export function createGameScene(
     });
 
   const ground = createMaterial(scene, 'ground-material', config.colors.ground, 0.9);
-  ground.diffuseColor = Color3.FromHexString(config.colors.ground).scale(0.18);
-  ground.emissiveColor = Color3.FromHexString(config.colors.ground).scale(0.38);
-  ground.disableLighting = true;
+  ground.emissiveColor = Color3.FromHexString(config.colors.ground).scale(0.4);
   const path = createMaterial(scene, 'path-material', config.colors.path, 0.86);
   const stone = createMaterial(scene, 'stone-material', config.colors.stone, 0.82);
   const wood = createMaterial(scene, 'wood-material', config.colors.wood, 0.86);
@@ -478,11 +560,14 @@ export function createGameScene(
     [new Vector3(14, 0, 12), 0.85],
   ].forEach(([position, scale]) => addTree(scene, wood, ground, position as Vector3, scale as number));
 
-  addLantern(scene, wood, brass, magic, new Vector3(-3.7, 2.4, -10.4));
-  addLantern(scene, wood, brass, magic, new Vector3(3.7, 2.4, -10.4));
+  addLantern(scene, wood, brass, magic, new Vector3(-3.7, 2.4, -10.4), ambientFlames, 0.4);
+  addLantern(scene, wood, brass, magic, new Vector3(3.7, 2.4, -10.4), ambientFlames, 2.1);
 
   const mapRoot = new TransformNode('greenward-map-root', scene);
   mapRoot.scaling = new Vector3(1.5, 1.5, 1.5);
+  ambientFlames.forEach(({ light }) => {
+    light.parent = mapRoot;
+  });
   heroRoot.parent = mapRoot;
   destinationMarker.parent = mapRoot;
   scene.meshes.forEach((mesh) => {
@@ -499,6 +584,42 @@ export function createGameScene(
   });
   battlefield.useVertexColors = true;
 
+  const horizonDome = createHorizonDome(
+    scene,
+    Color3.FromHexString(config.colors.horizon),
+    Color3.FromHexString(config.colors.ground),
+  );
+  const ambientMotes = createAmbientMotes(scene, mapRoot, Color3.FromHexString(config.colors.brass));
+  const smokePuffs = createSmokePuffs(scene, mapRoot, Color3.FromHexString(config.colors.stone));
+  const registerWindNode = (node: TransformNode, phase = windNodes.length * 0.7, strength = 0.018): void => {
+    windNodes.push({ node, phase, strength });
+  };
+  const updateAmbient = (timeSeconds: number): void => {
+    windNodes.forEach(({ node, phase, strength }) => {
+      const gust = Math.sin(timeSeconds * 0.9 + phase) * 0.65 + Math.sin(timeSeconds * 1.7 + phase * 1.4) * 0.35;
+      node.rotation.z = gust * strength;
+      node.rotation.x = Math.sin(timeSeconds * 0.75 + phase) * strength * 0.45;
+    });
+    ambientFlames.forEach(({ flame, light, phase, baseIntensity }) => {
+      const flicker = 1 + Math.sin(timeSeconds * 8 + phase) * 0.12 + Math.sin(timeSeconds * 13 + phase) * 0.06;
+      flame.scaling.set(1 + flicker * 0.08, flicker, 1 + flicker * 0.08);
+      light.intensity = baseIntensity * flicker;
+    });
+    ambientMotes.forEach(({ mesh, origin, phase, drift }) => {
+      mesh.position.x = origin.x + Math.sin(timeSeconds * drift.x + phase) * 0.55;
+      mesh.position.y = origin.y + Math.sin(timeSeconds * drift.y + phase) * 0.45;
+      mesh.position.z = origin.z + Math.cos(timeSeconds * drift.z + phase) * 0.5;
+    });
+    smokePuffs.forEach(({ mesh, origin, phase }) => {
+      const cycle = (timeSeconds * 0.12 + phase / (Math.PI * 2)) % 1;
+      mesh.position.set(origin.x + Math.sin(timeSeconds * 0.7 + phase) * 0.12, origin.y + cycle * 2.2, origin.z);
+      const size = 0.7 + cycle * 0.9;
+      mesh.scaling.set(size, size, size);
+      mesh.visibility = 0.55 + (1 - cycle) * 0.35;
+    });
+    horizonDome.rotation.y = timeSeconds * 0.002;
+  };
+
   return {
     engine,
     scene,
@@ -507,5 +628,7 @@ export function createGameScene(
     destinationMarker,
     mapRoot,
     buildPads: buildPadPositions.map((position, id) => ({ id, position })),
+    registerWindNode,
+    updateAmbient,
   };
 }

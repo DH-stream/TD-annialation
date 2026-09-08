@@ -652,7 +652,9 @@ body {
 }
 
 .hud-stage {
-  align-self: center;
+  position: absolute;
+  top: 28px;
+  right: 34px;
   flex-direction: column;
   gap: 6px;
   padding: 14px 22px 16px;
@@ -716,6 +718,11 @@ body {
 
   .hud-stage strong {
     font-size: 17px;
+  }
+
+  .hud-stage {
+    top: 20px;
+    right: 20px;
   }
 
   .hud-footer {

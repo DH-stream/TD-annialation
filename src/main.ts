@@ -46,7 +46,17 @@ if (!canvas || !app || !gameHud || !gameplayPanel || !gameModeValue || !waveValu
   throw new Error('The game shell is missing a required root element.');
 }
 
-const { engine, scene, shadows, heroRoot, destinationMarker, mapRoot, buildPads } = createGameScene(canvas);
+const {
+  engine,
+  scene,
+  shadows,
+  heroRoot,
+  destinationMarker,
+  mapRoot,
+  buildPads,
+  registerWindNode,
+  updateAmbient,
+} = createGameScene(canvas);
 const keyboard = createKeyboardInputSource(window, loadStoredKeyboardBindings());
 let stageState: StageState | null = null;
 const enemyVisuals = new Map<string, TransformNode>();
@@ -97,7 +107,7 @@ void prepareCharacterAssets();
 
 const prepareFantasyEnvironment = async (): Promise<void> => {
   try {
-    const [wall, wallArchTop, doorwayBase, doorwaySquare, door, roof, roofGable, tree, treeHigh, rock, fence, banner, lantern, fountain] = await Promise.all([
+    const [wall, wallArchTop, doorwayBase, doorwaySquare, door, roof, roofGable, tree, treeHigh, rock, fence, banner, lantern, fountain, chimney] = await Promise.all([
       loadKenneyFantasyTownAsset(scene, 'wall'),
       loadKenneyFantasyTownAsset(scene, 'wall-arch-top'),
       loadKenneyFantasyTownAsset(scene, 'wall-doorway-base'),
@@ -112,10 +122,15 @@ const prepareFantasyEnvironment = async (): Promise<void> => {
       loadKenneyFantasyTownAsset(scene, 'banner-green'),
       loadKenneyFantasyTownAsset(scene, 'lantern'),
       loadKenneyFantasyTownAsset(scene, 'fountain-round'),
+      loadKenneyFantasyTownAsset(scene, 'chimney'),
     ]);
 
     scene.meshes
-      .filter((mesh) => /^(castle-|tree-|barricade-|lantern-|central-shrine)/.test(mesh.name))
+      .filter((mesh) => (
+        /^(castle-|tree-|barricade-|lantern-|central-shrine)/.test(mesh.name)
+        && !mesh.name.startsWith('lantern-flame-')
+        && mesh.name !== 'central-shrine-glow'
+      ))
       .forEach((mesh) => mesh.dispose(false, false));
 
     const addAsset = (
@@ -131,9 +146,12 @@ const prepareFantasyEnvironment = async (): Promise<void> => {
         mesh.receiveShadows = true;
         shadows.addShadowCaster(mesh, true);
       });
+      if (id.startsWith('greenward-tree')) {
+        registerWindNode(root);
+      }
     };
 
-    const castleZ = -10;
+    const castleZ = -12.5;
     [-8.4, -4.2, 4.2, 8.4].forEach((x) => addAsset(wall, `castle-wall-${x}`, { x, y: 2, z: castleZ }, 2, Math.PI / 2));
     addAsset(doorwayBase, 'castle-doorway-base', { x: 0, y: 2, z: castleZ + 0.05 }, 2.2, Math.PI / 2);
     addAsset(doorwaySquare, 'castle-doorway-arch', { x: 0, y: 3.9, z: castleZ + 0.05 }, 2.2, Math.PI / 2);
@@ -142,14 +160,16 @@ const prepareFantasyEnvironment = async (): Promise<void> => {
     addAsset(roofGable, 'castle-roof-center', { x: 0, y: 5.8, z: castleZ }, 2.5, Math.PI / 2);
     [-8.4, -4.2, 4.2, 8.4].forEach((x) => addAsset(roof, `castle-roof-${x}`, { x, y: 4.1, z: castleZ }, 2.3, Math.PI / 2));
     addAsset(banner, 'castle-banner', { x: 0, y: 4.4, z: castleZ - 0.8 }, 2);
+    addAsset(chimney, 'castle-chimney-left', { x: -8.4, y: 6.1, z: castleZ }, 1.35, Math.PI / 2);
+    addAsset(chimney, 'castle-chimney-right', { x: 8.4, y: 6.1, z: castleZ }, 1.35, Math.PI / 2);
 
     [
       [-13, -5, 1.9], [-13, 8, 1.55], [12, 7, 2.05], [13, -3, 1.7],
       [-10.5, 11, 1.45], [10.5, 11, 1.6],
     ].forEach(([x, z, scale], index) => addAsset(index % 2 === 0 ? treeHigh : tree, `greenward-tree-${index}`, { x, y: scale, z }, scale));
     [
-      [-11.5, 7.7, 1.5], [-12.1, 10.2, 1.1], [10.5, 8.7, 1.4], [11.6, 5.6, 1.0],
-      [-9.6, 10.8, 1.1], [9.8, 10.2, 1.15],
+      [-11.5, 7.7, 1.5], [-12.1, 10.2, 1.1], [11.8, 8.7, 1.4], [12.9, 5.6, 1.0],
+      [-9.6, 10.8, 1.1], [11.1, 10.2, 1.15],
     ].forEach(([x, z, scale], index) => addAsset(rock, `greenward-rock-${index}`, { x, y: scale, z }, scale, index * 0.6));
     addAsset(fence, 'greenward-fence-left', { x: -14, y: 2, z: -7.8 }, 2, Math.PI / 2);
     addAsset(fence, 'greenward-fence-right', { x: 14, y: 2, z: -7.8 }, 2, Math.PI / 2);
@@ -332,6 +352,7 @@ engine.runRenderLoop(() => {
   const now = performance.now();
   const deltaSeconds = Math.min((now - lastFrameTime) / 1000, 0.1);
   lastFrameTime = now;
+  updateAmbient(now / 1000);
 
   const input = keyboard.read(localPlayerId, now);
   networkTransport?.sendInput(input);
