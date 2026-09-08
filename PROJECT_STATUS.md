@@ -1,13 +1,13 @@
 # TD Annihilation — project status
 
 Last updated: 2026-09-08
-Current branch: `codex/phase-0-foundation`
+Current branch: `codex/hero-movement`
 Base: `origin/main` at `042c5e9`
-Pull request: https://github.com/DH-stream/TD-annialation/pull/1
+Pull request: pending
 
 ## Current milestone
 
-Phase 0 — Foundation scene implemented and verified locally.
+Phase 0.5 — Foundation scene with first playable hero interaction.
 
 ## Confirmed direction
 
@@ -34,6 +34,9 @@ The closest genre benchmarks show that a premium-feeling action tower-defense ga
 - Added strategic battlefield scene with castle, path, build pads, shrine, barricades, trees, lighting and HUD shell.
 - Added plain simulation contracts for future player input and network transport.
 - Corrected the initial camera azimuth after visual QA found the castle blocking the foreground.
+- Added click-to-move for the royal hero on map surfaces, with a destination marker.
+- Added deterministic WASD movement with remappable keyboard bindings; keyboard movement overrides click-to-move.
+- Added a focused implementation plan at `docs/superpowers/plans/2026-09-08-hero-movement.md`.
 
 ## Verification completed
 
@@ -41,9 +44,11 @@ The closest genre benchmarks show that a premium-feeling action tower-defense ga
 - `npm test -- --run src/game/config/sceneConfig.test.ts` — 2 tests passed.
 - `npm test -- --run src/game/createScene.test.ts src/game/config/sceneConfig.test.ts` — 3 tests passed.
 - `npm run build` — completed with exit code 0; TypeScript checks and Vite production build passed.
+- `npm test -- --run` — 7 tests passed across 4 test files, including keyboard input and hero movement.
 - `npm run dev -- --host 127.0.0.1 --port 5174` — Vite served the app at `http://127.0.0.1:5174/`.
 - Browser/IAB smoke check — page identity `TD Annihilation`, meaningful canvas/HUD rendered, no framework error overlay observed.
 - Desktop visual check — castle sits behind the battlefield; path, four build pads and scene landmarks are readable.
+- Movement smoke check — clicking a map surface shows a destination marker and moves the royal hero without treating a short click as camera orbit; WASD input is covered by unit tests.
 - Interaction check — pointer drag changed the ArcRotateCamera orbit; wheel scrolling changed camera zoom while staying inside configured limits.
 - Mobile visual check — temporary 390×844 viewport rendered without horizontal overflow; HUD remained readable. Viewport was restored after QA.
 
@@ -51,10 +56,10 @@ The closest genre benchmarks show that a premium-feeling action tower-defense ga
 
 - Vite reports a large Babylon bundle: approximately 7.9 MB uncompressed and 1.66 MB gzip. This is acceptable for the foundation checkpoint but should be addressed before production distribution, likely by using tree-shakeable Babylon imports or code splitting.
 - The scene still uses intentionally composed primitive geometry. Final GLB/environment/character art, gore VFX, audio and confetti are later vertical-slice work.
-- No gameplay, save data, Supabase, WebRTC, Steamworks or Tauri integration exists yet.
+- The map is still a foundation/v0 sandbox: no combat, enemies, towers, navigation, save data, Supabase, WebRTC, Steamworks or Tauri integration exists yet.
 
 ## What is next
 
-1. Freeze the Phase 0 baseline and open the branch for review against `main`.
+1. Review the hero movement branch against `main`.
 2. Plan Phase 1 core loop: data-driven enemy/tower types, fixed path, five-enemy wave, tower targeting and win/lose state.
 3. Preserve the current `GameState`/`PlayerInput` boundaries while adding the first deterministic simulation step.
