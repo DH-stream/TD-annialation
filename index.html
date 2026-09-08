@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101820" />
+    <title>TD Annihilation</title>
+  </head>
+  <body>
+    <main id="app" aria-label="TD Annihilation game">
+      <canvas id="game-canvas" aria-label="3D battlefield"></canvas>
+      <section class="hud" aria-label="Game status">
+        <div class="hud-brand">
+          <span class="hud-mark" aria-hidden="true">✦</span>
+          <span>TD ANNIHILATION</span>
+        </div>
+        <div class="hud-stage">
+          <span class="hud-label">STAGE 01</span>
+          <strong>THE GREENWARD</strong>
+          <span class="hud-status"><span class="status-dot" aria-hidden="true"></span> FOUNDATION SCENE</span>
+        </div>
+        <div class="hud-footer">
+          <span>STRATEGIC VIEW</span>
+          <span class="hud-divider" aria-hidden="true"></span>
+          <span>Click to move · WASD to ride · Scroll to zoom · Middle drag to orbit</span>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

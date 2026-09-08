@@ -1,0 +1,140 @@
+:root {
+  color: #f4ead7;
+  background: #0e1719;
+  font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background: #0e1719;
+}
+
+#game-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  touch-action: none;
+}
+
+.hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  padding: 28px 34px 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-shadow: 0 2px 12px rgb(0 0 0 / 45%);
+}
+
+.hud-brand,
+.hud-stage,
+.hud-footer {
+  display: flex;
+  align-items: center;
+}
+
+.hud-brand {
+  gap: 11px;
+  color: #f4ead7;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.hud-mark {
+  color: #d6aa58;
+  font-size: 22px;
+}
+
+.hud-stage {
+  align-self: center;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 22px 16px;
+  border: 1px solid rgb(235 207 153 / 38%);
+  border-radius: 4px;
+  background: linear-gradient(180deg, rgb(13 27 27 / 60%), rgb(13 22 24 / 34%));
+  backdrop-filter: blur(7px);
+}
+
+.hud-label,
+.hud-status,
+.hud-footer {
+  color: rgb(244 234 215 / 72%);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+}
+
+.hud-stage strong {
+  color: #f5d89c;
+  font-size: 21px;
+  letter-spacing: 0.08em;
+}
+
+.hud-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 3px;
+  color: rgb(181 231 211 / 86%);
+  letter-spacing: 0.11em;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #74d0a5;
+  box-shadow: 0 0 13px rgb(116 208 165 / 75%);
+}
+
+.hud-footer {
+  justify-content: center;
+  gap: 14px;
+}
+
+.hud-divider {
+  width: 1px;
+  height: 12px;
+  background: rgb(244 234 215 / 40%);
+}
+
+@media (max-width: 640px) {
+  .hud {
+    padding: 20px;
+  }
+
+  .hud-brand {
+    font-size: 12px;
+  }
+
+  .hud-stage strong {
+    font-size: 17px;
+  }
+
+  .hud-footer {
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .hud-divider {
+    width: 24px;
+    height: 1px;
+  }
+}
