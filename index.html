@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101820" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>TD Annihilation</title>
+  </head>
+  <body>
+    <main id="app" aria-label="TD Annihilation game">
+      <canvas id="game-canvas" aria-label="3D battlefield"></canvas>
+      <section id="game-hud" class="hud is-hidden" aria-label="Game status">
+        <div class="hud-brand">
+          <span class="hud-mark" aria-hidden="true">✦</span>
+          <span>TD ANNIHILATION</span>
+        </div>
+        <div class="hud-stage">
+          <span class="hud-label">STAGE 01</span>
+          <strong>THE GREENWARD</strong>
+          <span class="hud-status"><span class="status-dot" aria-hidden="true"></span> FOUNDATION SCENE</span>
+        </div>
+        <div class="hud-footer">
+          <span>STRATEGIC VIEW</span>
+          <span class="hud-divider" aria-hidden="true"></span>
+          <span>Click to move · WASD to ride · J attack · K special · Scroll zoom · Middle drag orbit</span>
+        </div>
+      </section>
+      <section id="gameplay-panel" class="gameplay-panel is-hidden" aria-label="Battle controls">
+        <div class="gameplay-stats">
+          <span>MODE <strong id="game-mode-value">SOLO</strong></span>
+          <span>WAVE <strong id="wave-value">0</strong></span>
+          <span>GOLD <strong id="gold-value">200</strong></span>
+          <span>HEART <strong id="base-health-value">20</strong></span>
+          <span>BASIC <strong id="basic-attack-value">READY</strong></span>
+          <span>SPECIAL <strong id="special-attack-value">READY</strong></span>
+        </div>
+        <div class="gameplay-actions">
+          <span id="gameplay-message">Build your first defense.</span>
+          <button id="start-wave-button" class="primary-button" type="button">START WAVE</button>
+        </div>
+        <div id="nearby-players" class="nearby-players is-hidden" aria-live="polite"></div>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
