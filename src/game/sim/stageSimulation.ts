@@ -121,6 +121,35 @@ export function placeTower(state: StageState, position: TowerPlacement): { state
   };
 }
 
+export function applyHeroAttack(
+  state: StageState,
+  position: { x: number; z: number },
+  attack: 'basic' | 'special',
+): StageState {
+  if (state.status !== 'wave') return state;
+
+  const range = attack === 'special' ? 5.8 : 3.4;
+  const damage = attack === 'special' ? 18 : 8;
+  const targets = state.enemies
+    .map((enemy) => ({ enemy, distance: Math.hypot(enemy.x - position.x, enemy.z - position.z) }))
+    .filter(({ distance }) => distance <= range)
+    .sort((left, right) => left.distance - right.distance)
+    .slice(0, attack === 'special' ? undefined : 1)
+    .map(({ enemy }) => enemy.id);
+  if (targets.length === 0) return state;
+
+  const targetIds = new Set(targets);
+  const coins = [...state.coins];
+  const enemies = state.enemies.flatMap((enemy) => {
+    if (!targetIds.has(enemy.id)) return [enemy];
+    const health = enemy.health - damage;
+    if (health > 0) return [{ ...enemy, health }];
+    coins.push({ id: `coin-${enemy.id}`, x: enemy.x, z: enemy.z, value: ENEMY_REWARD });
+    return [];
+  });
+  return finishWave({ ...state, enemies, coins });
+}
+
 function spawnEnemy(state: StageState): EnemyState {
   const enemyNumber = 5 + state.wave - state.remainingToSpawn;
   const maxHealth = 8 + state.wave * 2;

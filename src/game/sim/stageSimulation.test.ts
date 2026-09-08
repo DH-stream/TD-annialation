@@ -6,6 +6,7 @@ import {
   placeTower,
   startNextWave,
   collectCoins,
+  applyHeroAttack,
   type EnemyState,
 } from './stageSimulation';
 
@@ -24,7 +25,7 @@ describe('Greenward stage simulation', () => {
 
   it('drops a coin on a tower kill and rewards the hero on proximity pickup', () => {
     const wave = startNextWave(createStageState('endless'));
-    const placed = placeTower(wave, { x: -11, z: 8.7 });
+    const placed = placeTower(wave, { x: -20, z: 13 });
     const enemy: EnemyState = {
       id: 'target',
       x: GREENWARD_PATH[0].x,
@@ -55,6 +56,43 @@ describe('Greenward stage simulation', () => {
     expect(first.tower).toBeDefined();
     expect(second.tower).toBeUndefined();
     expect(second.state.gold).toBe(150);
+  });
+
+  it('creates a coin when the hero basic attack defeats a nearby enemy', () => {
+    const enemy: EnemyState = {
+      id: 'hero-target',
+      x: 0,
+      z: 0,
+      health: 8,
+      maxHealth: 8,
+      speed: 0,
+      waypointIndex: 0,
+    };
+
+    const afterAttack = applyHeroAttack(
+      { ...createStageState('endless'), status: 'wave', enemies: [enemy] },
+      { x: 0, z: 0 },
+      'basic',
+    );
+
+    expect(afterAttack.enemies).toHaveLength(0);
+    expect(afterAttack.coins).toEqual([{ id: 'coin-hero-target', x: 0, z: 0, value: 10 }]);
+  });
+
+  it('lets the hero special attack defeat every nearby enemy', () => {
+    const enemies: EnemyState[] = [
+      { id: 'first-target', x: 1, z: 0, health: 12, maxHealth: 12, speed: 0, waypointIndex: 0 },
+      { id: 'second-target', x: -1, z: 0, health: 12, maxHealth: 12, speed: 0, waypointIndex: 0 },
+    ];
+
+    const afterAttack = applyHeroAttack(
+      { ...createStageState('endless'), status: 'wave', enemies },
+      { x: 0, z: 0 },
+      'special',
+    );
+
+    expect(afterAttack.enemies).toHaveLength(0);
+    expect(afterAttack.coins).toHaveLength(2);
   });
 
   it('loses base health when an enemy reaches the gate', () => {

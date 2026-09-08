@@ -5,6 +5,12 @@ Current branch: `codex/v1-playable-shell`
 Base: `origin/main` at `042c5e9`
 Pull request: https://github.com/DH-stream/TD-annialation/pull/3
 
+## Session notes — 2026-09-08
+
+- Sync source: `git fetch --all` found the latest pushed work on `origin/codex/v1-playable-shell`; this checkout tracks that branch.
+- Starting revision: `6412934e3be0bc0ddb2a3877d523eb2c02c3b2e6`; PR #3 is open against `main`.
+- Baseline: `npm install` completed with no vulnerabilities; the first `npm test` found one stale coin test fixture after the route expansion. The fixture was corrected and the final fresh run is 32/32 tests plus a successful production build.
+
 ## Current milestone
 
 Phase 1.0 — First playable Greenward vertical slice.
@@ -208,3 +214,57 @@ The closest genre benchmarks show that a premium-feeling action tower-defense ga
 - Persistent blood uses Babylon ground decals from a 4–8 variant stylized palette atlas, capped at 150–300 active decals per stage with oldest-first eviction.
 - Dismemberment uses pre-split head/torso/limb child segments, probabilistic attack-dependent detachment and short physics impulses; gore and dismemberment are independently toggleable.
 - Co-op gore outcomes use a host-agreed death/event id as the deterministic random seed so all clients see the same result.
+
+## Session resync — 2026-09-08
+
+This is the single current reconciliation record. It replaces the earlier historical pass statements as evidence: every row below was checked against the current `codex/v1-playable-shell` worktree in this session. The visual comparison target was `docs/superpowers/specs/greenward-moodboard.md`.
+
+| Area | Acceptance criterion | Status | Fresh evidence |
+| --- | --- | --- | --- |
+| Sync | Latest pushed work is checked out exactly | Pass | `git fetch --all`; branch is `codex/v1-playable-shell`, starting at `6412934e3be0bc0ddb2a3877d523eb2c02c3b2e6`, tracking its origin branch. |
+| Baseline | Install, unit tests and production build are clean | Pass | `npm install`; final `npm test` = 10 files / 32 tests passed; final `npm run build` exits 0. |
+| Phase 0 | Desktop scene and strategic HUD are usable | Pass | Fresh 1280×900 capture `.playwright-cli/page-2026-09-08T18-13-48-155Z.png`; Solo → Stages → Enter flow reached the live HUD with no console errors. |
+| Phase 0 | Mobile viewport remains readable | Pass | Fresh 390×844 capture `.playwright-cli/page-2026-09-08T18-14-01-521Z.png`; no horizontal overflow or console errors. |
+| Phase 0 | Camera orbit and bounded strategic view work | Pass | Fresh middle-drag orbit capture `.playwright-cli/page-2026-09-08T18-14-39-658Z.png`; the route, pads and HUD remain usable. |
+| Art compliance | No bare void or hard ground/clear-color edge | Pass | Default, mobile and orbit captures above are fully covered by `greenward-horizon-ground` plus the infinite horizon dome; the current orbit has no black clear-color gap. |
+| Art compliance | Locked Greenward material palette | Pass | `DEFAULT_SCENE_CONFIG.colors` is the seven-color source; fresh rendered ground remains green and the path/brass/stone/wood roles are visible without a new scene material hue. |
+| Art compliance | Intentional low-poly edges and controlled surface variation | Pass | `createChamferedBox()` and `addSubtleVertexVariation()` remain applied; current captures show faceted, chamfered pads/path and rounded hero forms. |
+| Art compliance | Soft shadows, fill and AO preserve readability | Pass | Current scene uses blurred shadow maps, hemispheric fill and lazy SSAO; fresh desktop/mobile captures retain readable pads, route and focal shrine. |
+| Art compliance | Building scale and placement are coherent | Pass | Rechecked after the earlier stale claim: castle is now at local `z = -15` with 1.75–2.15 asset scales, and the default/orbit captures show it as a destination landmark without obscuring the HUD or route. |
+| Art compliance | Environment and mobs share a toon/cel material ramp | Fail | Current characters/environment still use the existing StandardMaterial/Kenney treatment; no shared toon/cel ramp exists. |
+| Art compliance | No stray dark debug plane | Pass | Fresh captures show no isolated dark plane; shrine/fountain and hero remain named scene objects. |
+| Moodboard | The map reads warm, medieval/magical and intentionally low-poly | Pass | Compared fresh captures with the five Greenward references: warm path, brass shrine/lantern light, castle, runes, smoke and restrained motes now establish the intended foundation read. It remains intentionally less content-dense than the references. |
+| Visual v0 | Kenney character/environment assets and lazy loader remain wired | Pass | `kenneyAssets.test.ts` passes; current browser captures show the loaded castle, trees, rocks, fences, fountain and character. |
+| Visual v0 | Hero basic and special attacks resolve, cool down and have visible weight | Pass | `stageSimulation.test.ts` covers basic/special damage and coin creation; fresh `K` capture `.playwright-cli/page-2026-09-08T18-11-37-165Z.png` shows the large special shockwave and 3.2s cooldown. |
+| Visual v0 | Shared S-shaped route reaches the castle | Pass | Current default and orbit captures visibly follow the multi-turn route; simulation route tests pass. |
+| Visual v0 | Remaining proxies receive a shared final treatment | Fail | Towers and combat remain simplified geometry; the common toon/cel material ramp is still absent. |
+| Final-product gap | Coin drops and hero-only pickup economy | Pass | Simulation tests cover drop/pickup; fresh Endless browser play placed towers, completed wave 1, then changed gold from 0 to 40 after approaching drops (`.playwright-cli/page-2026-09-08T17-59-03-842Z.png`). |
+| Final-product gap | Endless mode is played through beyond one wave | Pass | Fresh session browser run completed waves 1 and 2 with Heart 20 retained (`.playwright-cli/page-2026-09-08T17-59-36-258Z.png`). |
+| Final-product gap | Skill tree persists through reload | Pass | New `skillProgress.test.ts` passes; fresh browser purchase of Royal Oath reduced points to 4 and, after reload, the tree retained “Royal Oath ✓” and 4 points. |
+| Atmosphere | Ambient motion | Pass | `updateAmbient()` drives tree wind, flame flicker and smoke drift; current default/orbit captures show the live particle/smoke layer. |
+| Atmosphere | Ambient particles | Pass | Twelve phased motes are created by `createAmbientMotes()`; the fresh default/orbit captures show their restrained brass motion. |
+| Atmosphere | Warm lighting mood | Pass | Current scene raises exposure to 0.8, uses the warm key, a brighter shrine and warm lantern lights; fresh final desktop/mobile captures show the brass glow pooling around the shrine and route. |
+| Atmosphere | Signs of habitation | Pass | Castle, lanterns, chimney smoke, fencing and fountain are visible in the fresh captures; smoke continues through `createSmokePuffs()`. |
+| Atmosphere | Optional ambient audio | Not-yet-started | Deliberately omitted under the non-blocking stretch clause. |
+| Performance | A1: initial gzip JavaScript is below 1 MB | Pass | Final build: largest entry 396.39 kB gzip; supporting chunks 163.40 kB and 58.93 kB gzip. Vite’s >500 kB minified-chunk warning remains. |
+| Performance | A2: representative desktop/integrated frame budget is recorded | Fail | `window.__TD_PERF__` instrumentation exists and gave a local smoke sample, but no representative 60 fps desktop / 30 fps integrated benchmark has been recorded. |
+| Performance | A3: enemy and coin visual pooling | Pass | `src/main.ts` now returns removed enemy, character and coin visuals to pools and re-enables them on spawn; a `ponytail:` ceiling comment records the required future cap. |
+| Performance | A4: static instancing is measured and verified | Fail | Repeated static content is not yet backed by an explicit instancing/draw-call measurement. |
+| Performance | A5: gore decal cap and oldest-first eviction | Not-yet-started | Gore is still intentionally deferred; no decal pool/cap exists. |
+| Performance | A6: automated bundle/frame budget checks | Fail | Build size is manually verified this session; CI assertions do not exist. |
+| Co-op boundary | Realtime bridge stays TD-scoped and secret-free | Pass | `supabaseRealtimeBridge.test.ts` passes (5 tests); source remains Broadcast/Presence-only with public client configuration. |
+| Co-op boundary | Authoritative join/host/snapshot/reconnect flow | Not-yet-started | The documented next co-op pass remains unimplemented. |
+
+### Completed during this session
+
+- Corrected the stale coin test fixture exposed by the expanded path, then added focused simulation coverage for basic and special hero attacks.
+- Added real hero damage resolution, kill coins, cooldown-backed attack effects and a visible special shockwave; the initial fresh screenshot caught the edge-on/invisible ring regression, which was fixed before acceptance.
+- Persisted purchased skill IDs and remaining points in local storage, with a focused reload test and browser reload proof.
+- Added/reused pools for fallback enemies, Kenney enemy characters and coins.
+- Reworked the current composition after fresh comparison: a horizon ground underlay removes the old diagonal edge; the castle is closer and correctly scaled; camera framing is tighter; shrine/lantern warmth, motes, smoke and a focal glow are visible in the final captures.
+
+### Open work in required priority order
+
+1. Finish the shared environment/creature toon-cel ramp and replace the remaining tower/combat proxy treatment.
+2. Record representative desktop/integrated frame measurements, add explicit static-instance/draw-call evidence, and add automated performance-budget checks. Gore decal pooling/cap starts only when the deferred gore feature starts.
+3. Only after those rows pass, resume the later roadmap: broader asset sourcing, creature shading, gore/dismemberment, first-win confetti, co-op authority and Steam preparation.

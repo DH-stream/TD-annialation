@@ -5,7 +5,7 @@ describe('scene configuration', () => {
   it('uses a strategic top-down default camera angle', () => {
     expect(DEFAULT_SCENE_CONFIG.camera.alpha).toBeCloseTo(Math.PI / 2);
     expect(DEFAULT_SCENE_CONFIG.camera.beta).toBeCloseTo(0.72);
-    expect(DEFAULT_SCENE_CONFIG.camera.radius).toBe(62);
+    expect(DEFAULT_SCENE_CONFIG.camera.radius).toBe(52);
     expect(DEFAULT_SCENE_CONFIG.camera.lowerRadiusLimit).toBeLessThan(
       DEFAULT_SCENE_CONFIG.camera.upperRadiusLimit,
     );

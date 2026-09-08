@@ -8,6 +8,7 @@ import {
   GREENWARD_SKILL_TREE,
   purchaseSkill,
 } from '../game/progression/skillTree';
+import { loadStoredSkillProgress, saveSkillProgress } from '../game/progression/skillProgress';
 import {
   createInitialMenuState,
   selectGameMode,
@@ -95,8 +96,9 @@ export function createAppShell(
   let bindings = keyboard.getBindings();
   let capturingBinding: keyof KeyboardBindings | null = null;
   let captureHandler: ((event: KeyboardEvent) => void) | null = null;
-  let skillPoints = 5;
-  let purchasedSkills = new Set<string>();
+  const storedSkillProgress = loadStoredSkillProgress();
+  let skillPoints = storedSkillProgress.remainingPoints;
+  let purchasedSkills = new Set(storedSkillProgress.purchased);
   let skillFeedback = 'Choose a node to begin your path.';
   let friendRoomCode = createRoomCode();
   let friendPassword = '';
@@ -325,6 +327,7 @@ export function createAppShell(
         } else {
           purchasedSkills = result.purchased;
           skillPoints = result.remainingPoints;
+          saveSkillProgress({ purchased: [...purchasedSkills], remainingPoints: skillPoints });
           skillFeedback = `${node.title} awakened. The next ring is now listening.`;
         }
         render();

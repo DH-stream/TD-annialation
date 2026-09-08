@@ -2,13 +2,14 @@ import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { AssetContainer } from '@babylonjs/core/assetContainer';
 import './styles.css';
-import { createCoinVisual, createEnemyVisual, createGameScene, createTowerVisual } from './game/createScene';
+import { createCoinVisual, createEnemyVisual, createGameScene, createHeroAttackEffect, createTowerVisual } from './game/createScene';
 import { DEFAULT_SCENE_CONFIG } from './game/config/sceneConfig';
 import { createKeyboardInputSource } from './game/input/keyboardInput';
 import { createAppShell, loadStoredKeyboardBindings } from './ui/appShell';
 import { advanceHeroPosition, type HeroPosition } from './game/sim/heroMovement';
 import {
   advanceStage,
+  applyHeroAttack,
   collectCoins,
   createStageState,
   placeTower,
@@ -61,10 +62,15 @@ const keyboard = createKeyboardInputSource(window, loadStoredKeyboardBindings())
 let stageState: StageState | null = null;
 const enemyVisuals = new Map<string, TransformNode>();
 const enemyCharacterInstances = new Map<string, CharacterInstance>();
+// ponytail: pools retain the peak active visual count; cap and evict if endless scale makes that material.
+const fallbackEnemyVisualPool: TransformNode[] = [];
+const enemyCharacterPool: CharacterInstance[] = [];
 const remotePlayerVisuals = new Map<string, CharacterInstance>();
 const remotePlayerStates = new Map<string, { x: number; y: number; z: number; receivedAt: number }>();
 const towerVisuals = new Map<string, TransformNode>();
 const coinVisuals = new Map<string, TransformNode>();
+const coinVisualPool: TransformNode[] = [];
+const attackEffects: Array<{ root: TransformNode; expiresAt: number }> = [];
 let enemyCharacterContainer: AssetContainer | null = null;
 let heroCharacter: CharacterInstance | null = null;
 let networkTransport: NetworkTransport | null = null;
@@ -130,6 +136,7 @@ const prepareFantasyEnvironment = async (): Promise<void> => {
       .filter((mesh) => (
         /^(castle-|tree-|barricade-|lantern-|central-shrine)/.test(mesh.name)
         && !mesh.name.startsWith('lantern-flame-')
+        && !mesh.name.startsWith('castle-window-')
         && mesh.name !== 'central-shrine-glow'
       ))
       .forEach((mesh) => mesh.dispose(false, false));
@@ -152,17 +159,17 @@ const prepareFantasyEnvironment = async (): Promise<void> => {
       }
     };
 
-    const castleZ = -16;
-    [-10.5, -5.25, 5.25, 10.5].forEach((x) => addAsset(wall, `castle-wall-${x}`, { x, y: 0, z: castleZ }, 2, Math.PI / 2));
-    addAsset(doorwayBase, 'castle-doorway-base', { x: 0, y: 0, z: castleZ + 0.05 }, 2.2, Math.PI / 2);
-    addAsset(doorwaySquare, 'castle-doorway-arch', { x: 0, y: 1.9, z: castleZ + 0.05 }, 2.2, Math.PI / 2);
-    addAsset(door, 'castle-door', { x: 0, y: 0, z: castleZ + 1.25 }, 1.7, Math.PI / 2);
-    addAsset(wallArchTop, 'castle-gate-top', { x: 0, y: 5.3, z: castleZ }, 2.4, Math.PI / 2);
-    addAsset(roofGable, 'castle-roof-center', { x: 0, y: 5.8, z: castleZ }, 2.5, Math.PI / 2);
-    [-10.5, -5.25, 5.25, 10.5].forEach((x) => addAsset(roof, `castle-roof-${x}`, { x, y: 2.05, z: castleZ }, 2.3, Math.PI / 2));
-    addAsset(banner, 'castle-banner', { x: 0, y: 4.4, z: castleZ - 0.8 }, 2);
-    addAsset(chimney, 'castle-chimney-left', { x: -10.5, y: 4.1, z: castleZ }, 1.35, Math.PI / 2);
-    addAsset(chimney, 'castle-chimney-right', { x: 10.5, y: 4.1, z: castleZ }, 1.35, Math.PI / 2);
+    const castleZ = -15;
+    [-10.5, -5.25, 5.25, 10.5].forEach((x) => addAsset(wall, `castle-wall-${x}`, { x, y: 0, z: castleZ }, 1.75, Math.PI / 2));
+    addAsset(doorwayBase, 'castle-doorway-base', { x: 0, y: 0, z: castleZ + 0.05 }, 2, Math.PI / 2);
+    addAsset(doorwaySquare, 'castle-doorway-arch', { x: 0, y: 1.5, z: castleZ + 0.05 }, 2, Math.PI / 2);
+    addAsset(door, 'castle-door', { x: 0, y: 0, z: castleZ + 1.05 }, 1.45, Math.PI / 2);
+    addAsset(wallArchTop, 'castle-gate-top', { x: 0, y: 4.2, z: castleZ }, 2.15, Math.PI / 2);
+    addAsset(roofGable, 'castle-roof-center', { x: 0, y: 4.7, z: castleZ }, 2.15, Math.PI / 2);
+    [-10.5, -5.25, 5.25, 10.5].forEach((x) => addAsset(roof, `castle-roof-${x}`, { x, y: 1.55, z: castleZ }, 1.75, Math.PI / 2));
+    addAsset(banner, 'castle-banner', { x: 0, y: 3.5, z: castleZ - 0.65 }, 1.75);
+    addAsset(chimney, 'castle-chimney-left', { x: -10.5, y: 3.1, z: castleZ }, 1.2, Math.PI / 2);
+    addAsset(chimney, 'castle-chimney-right', { x: 10.5, y: 3.1, z: castleZ }, 1.2, Math.PI / 2);
 
     [
       [-27, -7, 1.9], [-29, 12, 1.55], [27, 11, 2.05], [29, -5, 1.7],
@@ -381,6 +388,14 @@ engine.runRenderLoop(() => {
   specialAttackCooldown = Math.max(0, specialAttackCooldown - deltaSeconds);
   const basicAttackReady = input.basicAttack && basicAttackCooldown <= 0;
   const specialAttackReady = input.specialAttack && specialAttackCooldown <= 0;
+  if (stageState && (basicAttackReady || specialAttackReady)) {
+    const attack = specialAttackReady ? 'special' : 'basic';
+    stageState = applyHeroAttack(stageState, heroRoot.position, attack);
+    const effect = createHeroAttackEffect(scene, DEFAULT_SCENE_CONFIG, String(now), attack);
+    effect.parent = mapRoot;
+    effect.position.copyFrom(heroRoot.position);
+    attackEffects.push({ root: effect, expiresAt: now + (attack === 'special' ? 3200 : 1200) });
+  }
   const movement = advanceHeroPosition(
     { x: heroRoot.position.x, y: heroRoot.position.y, z: heroRoot.position.z },
     input,
@@ -417,12 +432,14 @@ engine.runRenderLoop(() => {
       let enemyVisual = enemyVisuals.get(enemy.id);
       if (!enemyVisual) {
         if (enemyCharacterContainer) {
-          const instance = instantiateKenneyCharacter(enemyCharacterContainer, enemy.id, 0.9);
+          const instance = enemyCharacterPool.pop() ?? instantiateKenneyCharacter(enemyCharacterContainer, enemy.id, 0.9);
+          instance.root.setEnabled(true);
           instance.play('walk');
           enemyCharacterInstances.set(enemy.id, instance);
           enemyVisual = instance.root;
         } else {
-          enemyVisual = createEnemyVisual(scene, DEFAULT_SCENE_CONFIG, enemy.id);
+          enemyVisual = fallbackEnemyVisualPool.pop() ?? createEnemyVisual(scene, DEFAULT_SCENE_CONFIG, enemy.id);
+          enemyVisual.setEnabled(true);
         }
         enemyVisual.parent = mapRoot;
         enemyVisuals.set(enemy.id, enemyVisual);
@@ -433,10 +450,12 @@ engine.runRenderLoop(() => {
       if (!activeEnemyIds.has(enemyId)) {
         const characterInstance = enemyCharacterInstances.get(enemyId);
         if (characterInstance) {
-          characterInstance.dispose();
+          characterInstance.root.setEnabled(false);
+          enemyCharacterPool.push(characterInstance);
           enemyCharacterInstances.delete(enemyId);
         } else {
-          enemyVisual.dispose(false, true);
+          enemyVisual.setEnabled(false);
+          fallbackEnemyVisualPool.push(enemyVisual);
         }
         enemyVisuals.delete(enemyId);
       }
@@ -445,7 +464,8 @@ engine.runRenderLoop(() => {
     stageState.coins.forEach((coin) => {
       let coinVisual = coinVisuals.get(coin.id);
       if (!coinVisual) {
-        coinVisual = createCoinVisual(scene, DEFAULT_SCENE_CONFIG, coin.id);
+        coinVisual = coinVisualPool.pop() ?? createCoinVisual(scene, DEFAULT_SCENE_CONFIG, coin.id);
+        coinVisual.setEnabled(true);
         coinVisual.parent = mapRoot;
         coinVisuals.set(coin.id, coinVisual);
       }
@@ -454,7 +474,8 @@ engine.runRenderLoop(() => {
     });
     coinVisuals.forEach((coinVisual, coinId) => {
       if (!activeCoinIds.has(coinId)) {
-        coinVisual.dispose(false, true);
+        coinVisual.setEnabled(false);
+        coinVisualPool.push(coinVisual);
         coinVisuals.delete(coinId);
       }
     });
@@ -479,6 +500,15 @@ engine.runRenderLoop(() => {
       });
     }
     updateGameplayHud();
+  }
+
+  for (let index = attackEffects.length - 1; index >= 0; index -= 1) {
+    const effect = attackEffects[index];
+    effect.root.rotation.y += deltaSeconds * 6;
+    if (now >= effect.expiresAt) {
+      effect.root.dispose(false, true);
+      attackEffects.splice(index, 1);
+    }
   }
 
   scene.render();

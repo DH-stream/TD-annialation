@@ -32,7 +32,7 @@ export const DEFAULT_SCENE_CONFIG: SceneConfig = {
   camera: {
     alpha: Math.PI / 2,
     beta: 0.72,
-    radius: 62,
+    radius: 52,
     lowerBetaLimit: 0.55,
     upperBetaLimit: 1.05,
     lowerRadiusLimit: 30,

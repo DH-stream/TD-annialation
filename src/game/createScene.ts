@@ -123,7 +123,7 @@ function createAmbientMotes(scene: Scene, mapRoot: TransformNode, color: Color3)
   material.disableLighting = true;
   material.diffuseColor = color;
   material.emissiveColor = color.scale(0.65);
-  material.alpha = 0.7;
+  material.alpha = 0.85;
   material.disableDepthWrite = true;
   const positions = [
     [-13, 2.5, 7], [-9, 1.8, 1], [-4, 2.2, 8], [1, 2.9, 6], [6, 2.1, 8],
@@ -131,7 +131,7 @@ function createAmbientMotes(scene: Scene, mapRoot: TransformNode, color: Color3)
     [-1, 3.4, 10], [9, 3.6, 1],
   ];
   return positions.map(([x, y, z], index) => {
-    const mesh = MeshBuilder.CreateSphere(`greenward-mote-${index}`, { diameter: 0.09, segments: 6 }, scene);
+    const mesh = MeshBuilder.CreateSphere(`greenward-mote-${index}`, { diameter: 0.14, segments: 6 }, scene);
     mesh.material = material;
     mesh.parent = mapRoot;
     mesh.position.set(x, y, z);
@@ -346,13 +346,13 @@ function addLantern(
   const lantern = MeshBuilder.CreateSphere(`lantern-${position.x}-${position.z}`, { diameter: 0.35, segments: 8 }, scene);
   lantern.position = position;
   lantern.material = brass;
-  const flame = MeshBuilder.CreateSphere(`lantern-flame-${position.x}-${position.z}`, { diameter: 0.18, segments: 8 }, scene);
+  const flame = MeshBuilder.CreateSphere(`lantern-flame-${position.x}-${position.z}`, { diameter: 0.28, segments: 8 }, scene);
   flame.position = position.add(new Vector3(0, 0.25, 0));
   flame.material = magic;
   const light = new PointLight(`lantern-light-${position.x}-${position.z}`, position, scene);
   light.diffuse = brass.diffuseColor.clone();
-  light.intensity = 0.8;
-  light.range = 7;
+  light.intensity = 1.2;
+  light.range = 10;
   ambientFlames.push({ flame, light, phase, baseIntensity: light.intensity });
 }
 
@@ -395,6 +395,36 @@ export function createTowerVisual(scene: Scene, config: SceneConfig, id: string)
   crystal.position.y = 1.78;
   crystal.material = createMaterial(scene, `tower-crystal-material-${id}`, config.colors.magic, 0.25);
   crystal.parent = root;
+  return root;
+}
+
+export function createHeroAttackEffect(
+  scene: Scene,
+  config: SceneConfig,
+  id: string,
+  attack: 'basic' | 'special',
+): TransformNode {
+  const root = new TransformNode(`hero-${attack}-effect-${id}`, scene);
+  const material = createMaterial(scene, `hero-${attack}-effect-material-${id}`, attack === 'special' ? config.colors.magic : config.colors.brass, 0.18);
+  material.emissiveColor = Color3.FromHexString(attack === 'special' ? config.colors.magic : config.colors.brass).scale(0.9);
+  const ring = MeshBuilder.CreateTorus(`hero-${attack}-effect-ring-${id}`, {
+    diameter: attack === 'special' ? 5.2 : 3.1,
+    thickness: attack === 'special' ? 0.18 : 0.12,
+    tessellation: 20,
+  }, scene);
+  ring.position.y = 0.2;
+  ring.material = material;
+  ring.parent = root;
+  if (attack === 'special') {
+    const shockwave = MeshBuilder.CreateCylinder(`hero-special-shockwave-${id}`, {
+      diameter: 5.4,
+      height: 0.06,
+      tessellation: 20,
+    }, scene);
+    shockwave.position.y = 0.04;
+    shockwave.material = material;
+    shockwave.parent = root;
+  }
   return root;
 }
 
@@ -452,7 +482,7 @@ export function createGameScene(
   scene.imageProcessingConfiguration.toneMappingEnabled = true;
   scene.imageProcessingConfiguration.toneMappingType = ImageProcessingConfiguration.TONEMAPPING_ACES;
   scene.imageProcessingConfiguration.contrast = 1;
-  scene.imageProcessingConfiguration.exposure = 0.62;
+  scene.imageProcessingConfiguration.exposure = 0.8;
 
   const cameraSettings = getCameraSettings(config);
   const camera = new ArcRotateCamera(
@@ -482,8 +512,8 @@ export function createGameScene(
 
   const sun = new DirectionalLight('sun-light', new Vector3(-0.45, -1, 0.35), scene);
   sun.position = new Vector3(-16, 24, -18);
-  sun.intensity = 0.68;
-  sun.diffuse = new Color3(1, 0.84, 0.66);
+  sun.intensity = 1;
+  sun.diffuse = new Color3(1, 0.76, 0.5);
 
   const shadows = new ShadowGenerator(1024, sun);
   shadows.useBlurExponentialShadowMap = true;
@@ -514,15 +544,15 @@ export function createGameScene(
     });
 
   const ground = createMaterial(scene, 'ground-material', config.colors.ground, 0.9);
-  ground.emissiveColor = Color3.FromHexString(config.colors.ground).scale(0.4);
+  ground.emissiveColor = Color3.FromHexString(config.colors.ground).scale(0.34);
   const path = createMaterial(scene, 'path-material', config.colors.path, 0.86);
   const stone = createMaterial(scene, 'stone-material', config.colors.stone, 0.82);
   const wood = createMaterial(scene, 'wood-material', config.colors.wood, 0.86);
   const brass = createMaterial(scene, 'brass-material', config.colors.brass, 0.5);
   const magic = createMaterial(scene, 'magic-material', config.colors.magic, 0.25);
-  magic.emissiveColor = Color3.FromHexString(config.colors.magic).scale(0.3);
+  magic.emissiveColor = Color3.FromHexString(config.colors.magic).scale(0.55);
   const magicGlow = new GlowLayer('greenward-magic-glow', scene);
-  magicGlow.intensity = 0.45;
+  magicGlow.intensity = 0.65;
 
   const battlefield = MeshBuilder.CreateGround('battlefield-ground', {
     width: config.battlefield.width,
@@ -531,6 +561,13 @@ export function createGameScene(
   }, scene);
   battlefield.material = ground;
   battlefield.metadata = { interaction: 'map' };
+  const horizonGround = MeshBuilder.CreateGround('greenward-horizon-ground', {
+    width: 360,
+    height: 360,
+  }, scene);
+  horizonGround.position.y = -0.06;
+  horizonGround.material = ground;
+  horizonGround.isPickable = false;
 
   GREENWARD_PATH.slice(0, -1).forEach((start, index) => {
     const end = GREENWARD_PATH[index + 1];
@@ -562,9 +599,16 @@ export function createGameScene(
   const centralShrine = MeshBuilder.CreateCylinder('central-shrine', { diameter: 2.1, height: 2.7, tessellation: 8 }, scene);
   centralShrine.position = new Vector3(0, 1.4, -4.2);
   centralShrine.material = stone;
-  const shrineGlow = MeshBuilder.CreateSphere('central-shrine-glow', { diameter: 0.75, segments: 12 }, scene);
+  const shrineGlow = MeshBuilder.CreateSphere('central-shrine-glow', { diameter: 1.05, segments: 12 }, scene);
   shrineGlow.position = new Vector3(0, 3.1, -4.2);
   shrineGlow.material = magic;
+  const windowMaterial = createMaterial(scene, 'castle-window-material', config.colors.brass, 0.25);
+  windowMaterial.emissiveColor = Color3.FromHexString(config.colors.brass).scale(0.85);
+  [-4.2, 4.2].forEach((x) => {
+    const window = MeshBuilder.CreatePlane(`castle-window-${x}`, { width: 0.72, height: 1.05 }, scene);
+    window.position.set(x, 2.9, -17.65);
+    window.material = windowMaterial;
+  });
 
   addCastle(scene, stone, wood, brass);
   const heroRoot = addHeroMarker(scene, wood, brass);
@@ -593,6 +637,11 @@ export function createGameScene(
 
   const mapRoot = new TransformNode('greenward-map-root', scene);
   mapRoot.scaling = new Vector3(1.5, 1.5, 1.5);
+  const shrineLight = new PointLight('central-shrine-light', new Vector3(0, 3.3, -4.2), scene);
+  shrineLight.parent = mapRoot;
+  shrineLight.diffuse = brass.diffuseColor.clone();
+  shrineLight.intensity = 1.8;
+  shrineLight.range = 14;
   ambientFlames.forEach(({ light }) => {
     light.parent = mapRoot;
   });
