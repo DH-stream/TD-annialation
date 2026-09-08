@@ -123,8 +123,8 @@ function createAmbientMotes(scene: Scene, mapRoot: TransformNode, color: Color3)
   const material = new StandardMaterial('greenward-mote-material', scene);
   material.disableLighting = true;
   material.diffuseColor = color;
-  material.emissiveColor = color.scale(0.65);
-  material.alpha = 0.85;
+  material.emissiveColor = color.scale(0.35);
+  material.alpha = 1;
   material.disableDepthWrite = true;
   const positions = [
     [-13, 2.5, 7], [-9, 1.8, 1], [-4, 2.2, 8], [1, 2.9, 6], [6, 2.1, 8],
@@ -132,7 +132,7 @@ function createAmbientMotes(scene: Scene, mapRoot: TransformNode, color: Color3)
     [-1, 3.4, 10], [9, 3.6, 1],
   ];
   return positions.map(([x, y, z], index) => {
-    const mesh = MeshBuilder.CreateSphere(`greenward-mote-${index}`, { diameter: 0.14, segments: 6 }, scene);
+    const mesh = MeshBuilder.CreateSphere(`greenward-mote-${index}`, { diameter: 0.05, segments: 4 }, scene);
     mesh.material = material;
     mesh.parent = mapRoot;
     mesh.position.set(x, y, z);
@@ -151,7 +151,7 @@ function createSmokePuffs(scene: Scene, mapRoot: TransformNode, color: Color3): 
   material.disableLighting = true;
   material.diffuseColor = Color3.Black();
   material.emissiveColor = Color3.Lerp(color, Color3.White(), 0.28);
-  material.alpha = 0.22;
+  material.alpha = 0.07;
   material.disableDepthWrite = true;
   const origins = [
     new Vector3(-8.4, 7.2, -12.7),
@@ -160,7 +160,7 @@ function createSmokePuffs(scene: Scene, mapRoot: TransformNode, color: Color3): 
     new Vector3(8.4, 7.8, -12.7),
   ];
   return origins.map((origin, index) => {
-    const mesh = MeshBuilder.CreateSphere(`greenward-chimney-smoke-${index}`, { diameter: 0.65, segments: 8 }, scene);
+    const mesh = MeshBuilder.CreateSphere(`greenward-chimney-smoke-${index}`, { diameter: 0.24, segments: 6 }, scene);
     mesh.material = material;
     mesh.parent = mapRoot;
     mesh.position.copyFrom(origin);
@@ -380,22 +380,23 @@ export function createEnemyVisual(scene: Scene, config: SceneConfig, id: string)
   return root;
 }
 
-export function createTowerVisual(scene: Scene, config: SceneConfig, id: string): TransformNode {
-  const root = new TransformNode(`tower-root-${id}`, scene);
-  const base = MeshBuilder.CreateCylinder(`tower-base-${id}`, { diameter: 1.25, height: 0.5, tessellation: 10 }, scene);
-  base.position.y = 0.25;
-  base.material = createMaterial(scene, `tower-base-material-${id}`, config.colors.stone, 0.78);
-  base.parent = root;
+export function createHeroCrown(scene: Scene, config: SceneConfig): TransformNode {
+  const root = new TransformNode('hero-crown', scene);
+  root.position.y = 2.5;
+  const material = createMaterial(scene, 'hero-crown-material', config.colors.brass, 0.3);
+  material.emissiveColor = Color3.FromHexString(config.colors.brass).scale(0.85);
 
-  const core = MeshBuilder.CreateCylinder(`tower-core-${id}`, { diameter: 0.62, height: 1.25, tessellation: 8 }, scene);
-  core.position.y = 1.05;
-  core.material = createMaterial(scene, `tower-core-material-${id}`, config.colors.wood, 0.82);
-  core.parent = root;
+  const band = MeshBuilder.CreateTorus('hero-crown-band', { diameter: 0.9, thickness: 0.1, tessellation: 12 }, scene);
+  band.rotation.x = Math.PI / 2;
+  band.material = material;
+  band.parent = root;
 
-  const crystal = MeshBuilder.CreateSphere(`tower-crystal-${id}`, { diameter: 0.42, segments: 8 }, scene);
-  crystal.position.y = 1.78;
-  crystal.material = createMaterial(scene, `tower-crystal-material-${id}`, config.colors.magic, 0.25);
-  crystal.parent = root;
+  [-0.2, 0, 0.2].forEach((x, index) => {
+    const point = MeshBuilder.CreateCylinder(`hero-crown-point-${index}`, { diameterTop: 0, diameterBottom: 0.22, height: 0.58, tessellation: 4 }, scene);
+    point.position.set(x * 1.25, 0.29 + (index === 1 ? 0.12 : 0), 0);
+    point.material = material;
+    point.parent = root;
+  });
   return root;
 }
 
@@ -692,7 +693,7 @@ export function createGameScene(
     smokePuffs.forEach(({ mesh, origin, phase }) => {
       const cycle = (timeSeconds * 0.12 + phase / (Math.PI * 2)) % 1;
       mesh.position.set(origin.x + Math.sin(timeSeconds * 0.7 + phase) * 0.12, origin.y + cycle * 2.2, origin.z);
-      const size = 0.7 + cycle * 0.9;
+      const size = 0.38 + cycle * 0.42;
       mesh.scaling.set(size, size, size);
       mesh.visibility = 0.55 + (1 - cycle) * 0.35;
     });

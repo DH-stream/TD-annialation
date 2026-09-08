@@ -2,7 +2,7 @@ import { PointerEventTypes } from '@babylonjs/core/Events/pointerEvents';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { AssetContainer } from '@babylonjs/core/assetContainer';
 import './styles.css';
-import { createCoinVisual, createEnemyVisual, createGameScene, createHeroAttackEffect, createTowerVisual } from './game/createScene';
+import { createCoinVisual, createEnemyVisual, createGameScene, createHeroAttackEffect, createHeroCrown } from './game/createScene';
 import { DEFAULT_SCENE_CONFIG } from './game/config/sceneConfig';
 import { createKeyboardInputSource } from './game/input/keyboardInput';
 import { createAppShell, loadStoredKeyboardBindings } from './ui/appShell';
@@ -73,6 +73,8 @@ const coinVisualPool: TransformNode[] = [];
 const attackEffects: Array<{ root: TransformNode; expiresAt: number }> = [];
 let enemyCharacterContainer: AssetContainer | null = null;
 let heroCharacter: CharacterInstance | null = null;
+let towerAssets: { base: AssetContainer; roof: AssetContainer; banner: AssetContainer } | null = null;
+let createTowerVisual: ((tower: { id: string; x: number; z: number }) => void) | null = null;
 let networkTransport: NetworkTransport | null = null;
 const localPlayerId = `player-${globalThis.crypto?.randomUUID?.().slice(0, 8) ?? Math.random().toString(36).slice(2, 10)}`;
 let networkStateTimer = 0;
@@ -91,6 +93,7 @@ const prepareCharacterAssets = async (): Promise<void> => {
     heroCharacter = instantiateKenneyCharacter(heroContainer, 'hero-king', 1.25);
     heroCharacter.root.parent = mapRoot;
     heroCharacter.root.position.copyFrom(heroRoot.position);
+    createHeroCrown(scene, DEFAULT_SCENE_CONFIG).parent = heroCharacter.root;
     heroCharacter.play('idle');
     heroRoot.setEnabled(false);
 
@@ -159,6 +162,27 @@ const prepareFantasyEnvironment = async (): Promise<void> => {
       }
     };
 
+    const createTower = (tower: { id: string; x: number; z: number }): void => {
+      if (!towerAssets || towerVisuals.has(tower.id)) return;
+      const root = new TransformNode(`tower-root-${tower.id}`, scene);
+      const addPart = (container: AssetContainer, part: string, y: number, rotationY = 0): void => {
+        const asset = instantiateFantasyTownAsset(container, `${tower.id}-${part}`, { x: 0, y, z: 0 }, 1, rotationY);
+        asset.parent = root;
+        asset.getChildMeshes().forEach((mesh) => {
+          if (!mesh.isAnInstance) mesh.receiveShadows = true;
+          shadows.addShadowCaster(mesh, true);
+        });
+      };
+      addPart(towerAssets.base, 'base', 0, Math.PI / 2);
+      addPart(towerAssets.roof, 'roof', 0.9, Math.PI / 2);
+      addPart(towerAssets.banner, 'banner', 0.75);
+      root.parent = mapRoot;
+      root.position.set(tower.x, 0, tower.z);
+      towerVisuals.set(tower.id, root);
+    };
+
+    towerAssets = { base: wall, roof, banner };
+
     const castleZ = -15;
     [-10.5, -5.25, 5.25, 10.5].forEach((x) => addAsset(wall, `castle-wall-${x}`, { x, y: 0, z: castleZ }, 1.75, Math.PI / 2));
     addAsset(doorwayBase, 'castle-doorway-base', { x: 0, y: 0, z: castleZ + 0.05 }, 2, Math.PI / 2);
@@ -184,6 +208,9 @@ const prepareFantasyEnvironment = async (): Promise<void> => {
     addAsset(fountain, 'greenward-fountain', { x: 0, y: 0, z: -4.2 }, 1.8);
     addAsset(lantern, 'greenward-lantern-left', { x: -4.8, y: 0, z: -13.8 }, 1.4);
     addAsset(lantern, 'greenward-lantern-right', { x: 4.8, y: 0, z: -13.8 }, 1.4);
+    stageState?.towers.forEach(createTower);
+
+    createTowerVisual = createTower;
   } catch (error) {
     console.warn('Kenney environment could not be loaded; using authored fallback geometry.', error);
     // Keep the authored foundation proxies if an optional environment asset fails to load.
@@ -335,10 +362,7 @@ scene.onPointerObservable.add((pointerInfo) => {
     const placement = placeTower(stageState, { x: pad.position.x, z: pad.position.z });
     stageState = placement.state;
     if (placement.tower) {
-      const towerVisual = createTowerVisual(scene, DEFAULT_SCENE_CONFIG, placement.tower.id);
-      towerVisual.parent = mapRoot;
-      towerVisual.position.set(placement.tower.x, 0, placement.tower.z);
-      towerVisuals.set(placement.tower.id, towerVisual);
+      createTowerVisual?.(placement.tower);
     }
     updateGameplayHud();
     return;

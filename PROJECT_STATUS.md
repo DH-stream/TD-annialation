@@ -271,3 +271,28 @@ This is the single current reconciliation record. It replaces the earlier histor
 1. Finish the shared environment/creature toon-cel ramp and replace the remaining tower/combat proxy treatment.
 2. Record representative desktop/integrated frame measurements, add explicit static-instance/draw-call evidence, and add automated performance-budget checks. Gore decal pooling/cap starts only when the deferred gore feature starts.
 3. Only after those rows pass, resume the later roadmap: broader asset sourcing, creature shading, gore/dismemberment, first-win confetti, co-op authority and Steam preparation.
+
+## Real gameplay visual pass — 2026-09-08
+
+This pass was triggered by a real default-camera Solo → Stages → The Greenward screenshot that exposed three regressions the staged showcase captures missed: proxy-looking tower geometry, oversized/soft ambient particles, and a hero silhouette that did not read as a king. The table below is the fresh reconciliation for that trigger; all visual rows use literal gameplay framing after entering the stage, not an isolated scene or composed showcase camera.
+
+| Check | Status | Fresh evidence |
+| --- | --- | --- |
+| 1. Towers use approved Kenney Fantasy Town Kit pieces, with no disconnected flat roof/pole proxy | Pass | `src/main.ts` assembles `wall`, `roof` and `banner` through `instantiateFantasyTownAsset()`; `.playwright-cli/live-desktop-default-tower.png` and `.playwright-cli/live-mobile-default-tower.png` show the placed tower in the live game. |
+| 2. Tower base is flush with terrain and rune pad | Pass | The tower root is placed at `y = 0`, with the kit base at local `y = 0`; both fresh gameplay captures show no floating gap or path clipping. |
+| 3. Tower scale follows the map-root scale system | Pass | `createTower()` uses component scale `1` under the existing uniformly scaled `mapRoot`; no tower-specific corrective scale is applied. |
+| 4. Tower composition is verified from default gameplay camera | Pass | The tower was placed through the actual Solo → Stages → Enter flow on a rune pad; `.playwright-cli/live-desktop-default-tower.png` keeps the shrine as focal point and the castle as destination landmark. |
+| 5. Hero reads as a king at normal zoom | Pass | `.playwright-cli/live-desktop-default-crown.png` and `.playwright-cli/live-mobile-default-tower.png` show the hero with a bright three-point crown clearly visible above the Kenney royal character at default zoom. |
+| 6. King identity decision and horse-mount scope are recorded | Pass | The current bespoke king treatment is the authored `createHeroCrown()` overlay on Kenney `character-d`; an eventual horse mount remains deferred to a later character pass. |
+| 7. Ambient motes are small distinct points rather than translucent circles | Pass | `createAmbientMotes()` now uses 0.05-unit four-segment spheres, opaque brass material and lower emissive output; the fresh default captures show restrained points without the former large circles. |
+| 8. Particle tuning is rechecked in actual gameplay | Pass | `.playwright-cli/live-desktop-default-tower.png` and `.playwright-cli/live-mobile-default-tower.png` are fresh post-tuning gameplay captures; console output reports 0 errors and 0 warnings. |
+| 9. Verification discipline uses literal default framing and moodboard comparison | Pass | Desktop and 390×844 mobile captures were taken after the real menu flow, with a tower placed; comparison against `docs/superpowers/specs/greenward-moodboard.md` confirms the warm path, brass shrine, medieval kit silhouettes and restrained atmosphere remain coherent. |
+| Baseline after visual changes | Pass | `npm test -- --run`: 10 files / 32 tests passed. `npm run build`: exit code 0; 959 modules transformed. `git diff --check`: clean aside from expected LF→CRLF notices. |
+
+### Newly completed in this pass
+
+- Replaced the gameplay tower primitive with a three-piece Kenney Fantasy Town Kit assembly and wired placement to the same asset path used by the environment.
+- Tuned ambient mote and chimney-smoke size/opacity so the atmosphere reads as small moving points and soft distant haze.
+- Added and visually verified an authored crown overlay so the default hero reads as the Greenward king; horse mounting remains a later scope item.
+
+The shared toon/cel ramp, representative frame-budget measurement, measured draw-call budget, automated budget assertions, gore decal cap and optional audio remain open in their earlier rows. The later roadmap stays paused behind those items.
