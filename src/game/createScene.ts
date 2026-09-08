@@ -8,10 +8,13 @@ import {
   HemisphericLight,
   Mesh,
   MeshBuilder,
-  PBRMaterial,
   PointLight,
+  SSAO2RenderingPipeline,
   Scene,
+  ShadowGenerator,
+  StandardMaterial,
   TransformNode,
+  VertexBuffer,
   Vector3,
 } from 'babylonjs';
 import { DEFAULT_SCENE_CONFIG, type SceneConfig } from './config/sceneConfig';
@@ -20,16 +23,38 @@ export function getCameraSettings(config: SceneConfig): SceneConfig['camera'] {
   return config.camera;
 }
 
-function createMaterial(scene: Scene, name: string, color: string, roughness = 0.82): PBRMaterial {
-  const material = new PBRMaterial(name, scene);
-  material.albedoColor = Color3.FromHexString(color);
-  material.roughness = roughness;
+function createMaterial(
+  scene: Scene,
+  name: string,
+  color: string,
+  roughness = 0.82,
+): StandardMaterial {
+  const material = new StandardMaterial(name, scene);
+  const diffuseColor = Color3.FromHexString(color);
+  material.diffuseColor = diffuseColor;
+  material.specularColor = diffuseColor.scale(1 - roughness);
   return material;
+}
+
+function addSubtleVertexVariation(mesh: Mesh): void {
+  const positions = mesh.getVerticesData(VertexBuffer.PositionKind);
+  const material = mesh.material;
+  if (!positions || !(material instanceof StandardMaterial)) {
+    return;
+  }
+
+  const colors: number[] = [];
+  for (let index = 0; index < positions.length; index += 3) {
+    const lightness = 0.97 + ((index / 3) % 5) * 0.015;
+    colors.push(lightness, lightness, lightness, 1);
+  }
+  mesh.setVerticesData(VertexBuffer.ColorKind, colors, true, 4);
+  mesh.useVertexColors = true;
 }
 
 function addBlock(
   scene: Scene,
-  material: PBRMaterial,
+  material: StandardMaterial,
   name: string,
   position: Vector3,
   dimensions: { width: number; height: number; depth: number },
@@ -39,10 +64,13 @@ function addBlock(
   block.position = position;
   block.rotation.y = rotationY;
   block.material = material;
+  block.enableEdgesRendering(0.97);
+  block.edgesWidth = 1.2;
+  block.edgesColor = new Color4(0.15, 0.2, 0.18, 0.35);
   return block;
 }
 
-function addTree(scene: Scene, wood: PBRMaterial, ground: PBRMaterial, position: Vector3, scale = 1): void {
+function addTree(scene: Scene, wood: StandardMaterial, ground: StandardMaterial, position: Vector3, scale = 1): void {
   const trunk = MeshBuilder.CreateCylinder(`tree-trunk-${position.x}-${position.z}`, {
     diameter: 0.45 * scale,
     height: 2.4 * scale,
@@ -61,7 +89,7 @@ function addTree(scene: Scene, wood: PBRMaterial, ground: PBRMaterial, position:
   crown.material = ground;
 }
 
-function addBuildPad(scene: Scene, stone: PBRMaterial, brass: PBRMaterial, position: Vector3, index: number): void {
+function addBuildPad(scene: Scene, stone: StandardMaterial, brass: StandardMaterial, position: Vector3, index: number): void {
   const base = MeshBuilder.CreateCylinder(`build-pad-${index}`, {
     diameter: 3.2,
     height: 0.18,
@@ -81,7 +109,7 @@ function addBuildPad(scene: Scene, stone: PBRMaterial, brass: PBRMaterial, posit
   ring.metadata = { interaction: 'map' };
 }
 
-function addBarricade(scene: Scene, wood: PBRMaterial, position: Vector3, rotationY: number): void {
+function addBarricade(scene: Scene, wood: StandardMaterial, position: Vector3, rotationY: number): void {
   addBlock(scene, wood, `barricade-rail-${position.x}-${position.z}`, position.add(new Vector3(0, 0.7, 0)), {
     width: 3.4,
     height: 0.28,
@@ -98,7 +126,7 @@ function addBarricade(scene: Scene, wood: PBRMaterial, position: Vector3, rotati
   }
 }
 
-function addCastle(scene: Scene, stone: PBRMaterial, wood: PBRMaterial, brass: PBRMaterial): void {
+function addCastle(scene: Scene, stone: StandardMaterial, wood: StandardMaterial, brass: StandardMaterial): void {
   addBlock(scene, stone, 'castle-wall-left', new Vector3(-11, 2.2, -11.5), { width: 10, height: 4.4, depth: 1.2 });
   addBlock(scene, stone, 'castle-wall-right', new Vector3(11, 2.2, -11.5), { width: 10, height: 4.4, depth: 1.2 });
   addBlock(scene, stone, 'castle-gatehouse', new Vector3(0, 3.6, -11.5), { width: 7.2, height: 7.2, depth: 1.8 });
@@ -114,12 +142,17 @@ function addCastle(scene: Scene, stone: PBRMaterial, wood: PBRMaterial, brass: P
   }
 }
 
-function addHeroMarker(scene: Scene, wood: PBRMaterial, brass: PBRMaterial): TransformNode {
+function addHeroMarker(scene: Scene, wood: StandardMaterial, brass: StandardMaterial): TransformNode {
   const heroRoot = new TransformNode('hero-root', scene);
   heroRoot.position = new Vector3(0, 0, 4.2);
 
-  const horse = MeshBuilder.CreateBox('hero-horse-preview', { width: 1.1, height: 0.9, depth: 1.8 }, scene);
+  const horse = MeshBuilder.CreateCapsule('hero-horse-preview', {
+    height: 1.8,
+    radius: 0.55,
+    tessellation: 8,
+  }, scene);
   horse.position = new Vector3(0, 0.7, 0);
+  horse.rotation.x = Math.PI / 2;
   horse.material = wood;
   horse.parent = heroRoot;
 
@@ -136,7 +169,7 @@ function addHeroMarker(scene: Scene, wood: PBRMaterial, brass: PBRMaterial): Tra
   return heroRoot;
 }
 
-function addLantern(scene: Scene, brass: PBRMaterial, position: Vector3): void {
+function addLantern(scene: Scene, brass: StandardMaterial, position: Vector3): void {
   const lantern = MeshBuilder.CreateSphere(`lantern-${position.x}-${position.z}`, { diameter: 0.35, segments: 8 }, scene);
   lantern.position = position;
   lantern.material = brass;
@@ -149,15 +182,16 @@ function addLantern(scene: Scene, brass: PBRMaterial, position: Vector3): void {
 export function createGameScene(
   canvas: HTMLCanvasElement,
   config: SceneConfig = DEFAULT_SCENE_CONFIG,
-): { engine: Engine; scene: Scene; heroRoot: TransformNode; destinationMarker: Mesh } {
+): { engine: Engine; scene: Scene; heroRoot: TransformNode; destinationMarker: Mesh; mapRoot: TransformNode } {
   const engine = new Engine(canvas, true, { stencil: true, preserveDrawingBuffer: true });
   const scene = new Scene(engine);
-  scene.clearColor = new Color4(0.055, 0.09, 0.1, 1);
+  const groundColor = Color3.FromHexString(config.colors.ground);
+  scene.clearColor = groundColor.scale(0.35).toColor4();
   scene.fogMode = Scene.FOGMODE_EXP2;
-  scene.fogDensity = 0.008;
-  scene.fogColor = Color3.FromHexString('#1b2d2a');
+  scene.fogDensity = 0.004;
+  scene.fogColor = Color3.FromHexString(config.colors.ground);
   scene.imageProcessingConfiguration.contrast = 1.08;
-  scene.imageProcessingConfiguration.exposure = 1.05;
+  scene.imageProcessingConfiguration.exposure = 1.2;
 
   const cameraSettings = getCameraSettings(config);
   const camera = new ArcRotateCamera(
@@ -181,19 +215,36 @@ export function createGameScene(
   }
 
   const ambient = new HemisphericLight('ambient-light', new Vector3(0, 1, 0), scene);
-  ambient.intensity = 0.72;
-  ambient.diffuse = Color3.FromHexString('#f0d3a0');
-  ambient.groundColor = Color3.FromHexString('#172522');
+  ambient.intensity = 1.0;
+  ambient.diffuse = Color3.FromHexString(config.colors.brass);
+  ambient.groundColor = Color3.FromHexString(config.colors.stone);
 
   const sun = new DirectionalLight('sun-light', new Vector3(-0.45, -1, 0.35), scene);
   sun.position = new Vector3(-16, 24, -18);
-  sun.intensity = 2.1;
-  sun.diffuse = Color3.FromHexString('#ffd7a0');
+  sun.intensity = 1.8;
+  sun.diffuse = Color3.FromHexString(config.colors.brass);
 
-  const ground = createMaterial(scene, 'ground-material', config.colors.ground);
-  const path = createMaterial(scene, 'path-material', config.colors.path);
-  const stone = createMaterial(scene, 'stone-material', config.colors.stone);
-  const wood = createMaterial(scene, 'wood-material', config.colors.wood);
+  const shadows = new ShadowGenerator(1024, sun);
+  shadows.useBlurExponentialShadowMap = true;
+  shadows.blurKernel = 32;
+  shadows.setDarkness(0.32);
+
+  const ambientOcclusion = new SSAO2RenderingPipeline('greenward-ambient-occlusion', scene, {
+    ssaoRatio: 0.7,
+    blurRatio: 0.7,
+  });
+  ambientOcclusion.radius = 2.2;
+  ambientOcclusion.totalStrength = 0.55;
+  ambientOcclusion.base = 0.5;
+  scene.postProcessRenderPipelineManager.attachCamerasToRenderPipeline(
+    'greenward-ambient-occlusion',
+    camera,
+  );
+
+  const ground = createMaterial(scene, 'ground-material', config.colors.ground, 0.9);
+  const path = createMaterial(scene, 'path-material', config.colors.path, 0.86);
+  const stone = createMaterial(scene, 'stone-material', config.colors.stone, 0.82);
+  const wood = createMaterial(scene, 'wood-material', config.colors.wood, 0.86);
   const brass = createMaterial(scene, 'brass-material', config.colors.brass, 0.5);
   const magic = createMaterial(scene, 'magic-material', config.colors.magic, 0.25);
 
@@ -253,5 +304,22 @@ export function createGameScene(
   addLantern(scene, brass, new Vector3(-3.7, 2.4, -10.4));
   addLantern(scene, brass, new Vector3(3.7, 2.4, -10.4));
 
-  return { engine, scene, heroRoot, destinationMarker };
+  const mapRoot = new TransformNode('greenward-map-root', scene);
+  mapRoot.scaling = new Vector3(1.5, 1.5, 1.5);
+  heroRoot.parent = mapRoot;
+  destinationMarker.parent = mapRoot;
+  scene.meshes.forEach((mesh) => {
+    if (!mesh.parent) {
+      mesh.parent = mapRoot;
+    }
+    if (mesh instanceof Mesh) {
+      addSubtleVertexVariation(mesh);
+    }
+    mesh.receiveShadows = true;
+    if (mesh !== battlefield) {
+      shadows.addShadowCaster(mesh, true);
+    }
+  });
+
+  return { engine, scene, heroRoot, destinationMarker, mapRoot };
 }

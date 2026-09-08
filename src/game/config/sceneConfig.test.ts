@@ -14,4 +14,8 @@ describe('scene configuration', () => {
     expect(clampCameraPitch(0)).toBeCloseTo(DEFAULT_SCENE_CONFIG.camera.lowerBetaLimit);
     expect(clampCameraPitch(Math.PI)).toBeCloseTo(DEFAULT_SCENE_CONFIG.camera.upperBetaLimit);
   });
+
+  it('uses the locked Greenward ground anchor', () => {
+    expect(DEFAULT_SCENE_CONFIG.colors.ground).toBe('#3F5D47');
+  });
 });

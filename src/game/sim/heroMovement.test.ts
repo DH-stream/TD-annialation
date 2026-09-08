@@ -27,4 +27,10 @@ describe('hero movement', () => {
     expect(result.position).toEqual({ x: 2, y: 0, z: 0 });
     expect(result.destination).toBeNull();
   });
+
+  it('keeps direct movement inside the enlarged local map bounds', () => {
+    const result = advanceHeroPosition(position, { ...idleInput, moveX: 1 }, null, 10);
+
+    expect(result.position.x).toBe(28);
+  });
 });

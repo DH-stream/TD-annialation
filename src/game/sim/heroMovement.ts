@@ -8,6 +8,20 @@ export type HeroPosition = {
 
 export const DEFAULT_HERO_SPEED = 6;
 export const HERO_ARRIVAL_DISTANCE = 0.12;
+export const HERO_MOVEMENT_BOUNDS = {
+  minX: -28,
+  maxX: 28,
+  minZ: -20,
+  maxZ: 20,
+};
+
+function clampPosition(position: HeroPosition): HeroPosition {
+  return {
+    x: Math.min(HERO_MOVEMENT_BOUNDS.maxX, Math.max(HERO_MOVEMENT_BOUNDS.minX, position.x)),
+    y: position.y,
+    z: Math.min(HERO_MOVEMENT_BOUNDS.maxZ, Math.max(HERO_MOVEMENT_BOUNDS.minZ, position.z)),
+  };
+}
 
 export function advanceHeroPosition(
   position: HeroPosition,
@@ -20,11 +34,11 @@ export function advanceHeroPosition(
   if (moveLength > 0.001) {
     const scale = (speed * Math.max(0, deltaSeconds)) / moveLength;
     return {
-      position: {
+      position: clampPosition({
         x: position.x + input.moveX * scale,
         y: position.y,
         z: position.z + input.moveZ * scale,
-      },
+      }),
       destination: null,
     };
   }
@@ -33,25 +47,26 @@ export function advanceHeroPosition(
     return { position, destination };
   }
 
-  const directionX = destination.x - position.x;
-  const directionZ = destination.z - position.z;
+  const clampedDestination = clampPosition(destination);
+  const directionX = clampedDestination.x - position.x;
+  const directionZ = clampedDestination.z - position.z;
   const distance = Math.hypot(directionX, directionZ);
   const travelDistance = speed * deltaSeconds;
 
   if (distance <= HERO_ARRIVAL_DISTANCE || distance <= travelDistance) {
     return {
-      position: { x: destination.x, y: position.y, z: destination.z },
+      position: { x: clampedDestination.x, y: position.y, z: clampedDestination.z },
       destination: null,
     };
   }
 
   const scale = travelDistance / distance;
   return {
-    position: {
-      x: position.x + directionX * scale,
-      y: position.y,
-      z: position.z + directionZ * scale,
-    },
-    destination,
-  };
+      position: clampPosition({
+        x: position.x + directionX * scale,
+        y: position.y,
+        z: position.z + directionZ * scale,
+      }),
+      destination: clampedDestination,
+    };
 }
