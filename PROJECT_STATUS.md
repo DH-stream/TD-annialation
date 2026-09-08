@@ -29,6 +29,7 @@ The Phase 0 scene is a foundation slice, but it must read as intentional charmin
 
 - Title/stage display font: Metal Mania, bundled locally with attribution and SIL Open Font License 1.1 in `THIRD_PARTY_LICENSES.md`.
 - Imported character assets: Kenney Blocky Characters (`character-a` for mobs and `character-d` for the royal hero), including the authored idle, walk, melee and kick animation clips. The pack is kept under `public/assets/vendor/kenney/blocky-characters/` with its CC0 license.
+- Imported environment assets: selected modular walls, roofs, trees, rocks, fences, banners, lanterns and fountain pieces from Kenney Fantasy Town Kit, kept under `public/assets/vendor/kenney/fantasy-town-kit/` with its CC0 license. The existing proxy layout remains as a safe fallback if an asset request fails.
 - UI body font: readable system/UI stack until the final UI type system is selected.
 - Greenward palette anchors: `#142523` horizon, `#3F5D47` ground, `#B98A57` path, `#59676D` stone, `#7B4B34` wood, `#D2A85B` brass/magic highlight and `#8E2F2B` blood.
 - The board is uniformly enlarged so walkable space grows with the composition; camera framing remains strategic and bounded.
@@ -54,17 +55,18 @@ Full target and references: `docs/superpowers/specs/2026-09-08-visual-style-foun
 ## Visual v0 implementation pass
 
 - [x] Replaced the enemy and hero placeholder silhouettes with real Kenney Blocky Characters GLB assets.
+- [x] Replaced the most visible castle, tree, rock, fence, banner, lantern and shrine proxy geometry with real Kenney Fantasy Town Kit GLB assets loaded through a lazy, cached asset layer.
 - [x] Loaded the GLB loader lazily so Solo's initial application does not pay the loader cost before the asset request.
 - [x] Connected authored `walk`, `idle`, `attack-melee-right` and `attack-kick-right` clips; J and K are one-shot actions with visible HUD cooldowns.
 - [x] Replaced the former near-straight enemy route with a shared S-shaped Greenward waypoint path that ends at the castle gate.
 - [x] Added world-space coin drops on kills and proximity pickup by the hero; coin pickup, not the remote client, grants the gold.
-- [ ] Replace the remaining castle/trees/tower proxy geometry with a consistent environment pack and finish the shared toon/cel material ramp.
+- [ ] Replace the remaining gameplay proxy geometry (towers, combat effects and future map dressing) with a consistent environment/character treatment and finish the shared toon/cel material ramp.
 
 ## Performance — budgets and verification
 
 The following is the current v0 budget record. It is intentionally evidence-based; items that need a later soak or instance pass remain open.
 
-- **A1 — bundle loading: pass for current target.** Babylon imports now use per-module paths. SSAO2 and the GLB loader are lazy-loaded. The production entry is 1,361 kB minified / 334.84 kB gzip; its split application chunks are 670.78 kB / 163.57 kB gzip and 224.85 kB / 58.93 kB gzip. The initial transferred JavaScript remains below the 1 MB gzip target, while the minified-chunk warning is retained for future tightening.
+- **A1 — bundle loading: pass for current target.** Babylon imports now use per-module paths. SSAO2 and the GLB loader are lazy-loaded. The production entry is 1,369.80 kB minified / 337.44 kB gzip; its split application chunks are 670.78 kB / 163.58 kB gzip and 224.85 kB / 58.93 kB gzip. The initial transferred JavaScript remains below the 1 MB gzip target, while the minified-chunk warning is retained for future tightening.
 - **A2 — frame instrumentation: pass for instrumentation, measurement follow-up open.** `SceneInstrumentation` captures frame, render and active-mesh evaluation counters in `src/game/createScene.ts`. A repeatable desktop 60 fps / integrated 30 fps evidence run still needs to be recorded on representative hardware.
 - **A3 — pooling: open.** Enemy and coin visuals are currently disposed when removed. A pooled enemy/projectile/gore runtime is required before the endless soak target can pass.
 - **A4 — static instancing: open.** Repeated trees and barricade parts are still separate meshes. Convert them to instances and record draw-call counts before production content work.
@@ -98,7 +100,7 @@ The updated art-direction instructions are treated as acceptance criteria for th
 3. **Pass — chamfered hero-visible hard edges.** `createChamferedBox()` builds an eight-sided 0.12 scene-unit corner chamfer through Babylon polygon extrusion; the browser capture shows softened path/castle corners and no raw box edge treatment dependency.
 4. **Pass — soft shadows and AO.** `ShadowGenerator` uses blurred exponential filtering, bias/normal-bias and reduced darkness; `SSAO2RenderingPipeline` is attached to the strategic camera. The capture shows filled shadows under pads, barricades and trees.
 5. **Pass — scale/silhouette coherence.** The board uses a uniform `mapRoot` scale of `1.5`; castle towers remain the dominant landmark while the largest tree stays below tower height. The same-angle browser capture shows the corrected relationship.
-6. **Pass — surface variation.** Every mesh with a `StandardMaterial` receives height-based vertex light gradients plus small facet variation through `addSubtleVertexVariation()`; material roughness and emissive magic are controlled per palette role.
+6. **Pass — surface variation.** Primitive meshes receive height-based vertex light gradients plus small facet variation through `addSubtleVertexVariation()`; imported Kenney meshes retain their authored colormap variation while material roughness and emissive magic remain controlled per palette role.
 7. **Pass — shading language documented.** The environment uses warm `StandardMaterial` shading modulated by vertex gradients, hemispheric fill, blurred shadows and AO; future creatures are required to use a matching toon/cel ramp, documented in the visual spec and future acceptance criteria.
 8. **Pass — stray shrine plane resolved.** The hero is a named capsule/rider silhouette under `heroRoot`; no unowned dark plane remains near the shrine in the browser capture.
 9. **Pass — moodboard exists.** `docs/superpowers/specs/greenward-moodboard.md` contains five reference images, source pages and the locked seven-color palette.
@@ -149,6 +151,7 @@ The closest genre benchmarks show that a premium-feeling action tower-defense ga
 - Mobile visual check — temporary 390×844 viewport rendered without horizontal overflow; HUD remained readable. Viewport was restored after QA.
 - Art QA browser check — Metal Mania rendered locally, larger battlefield was readable, horizon was fogged rather than void-black, click-to-move remained functional, shadows/AO were visible, camera orbit remained functional and the shrine-area box/plane reading was removed.
 - Art direction follow-up — updated spec requirements for medieval/magical details, warm hand-painted-style depth, shared creature shading and deterministic optional gore are recorded as binding future constraints.
+- Environment asset pass — the visible Greenward castle, trees, rocks, fences, banner, lanterns and fountain now use CC0 Kenney Fantasy Town Kit assets; a shared-material disposal bug that washed the battlefield white was fixed, and fresh desktop QA shows the locked dark-green ground palette.
 - v1 browser flow — Solo → Stages → Enter the Greenward rendered the gameplay HUD; clicking a rune pad placed a visible tower and deducted 50 gold; starting a wave updated the state and disabled the wave button while enemies advanced.
 - Settings browser flow — all four movement rows rendered with the corrected A/D semantics; a live W → I remap updated immediately and persisted locally.
 - Skill tree browser flow — radial nodes rendered with inner-to-outer animation; purchasing Royal Oath consumed one point and made the inner ring available.

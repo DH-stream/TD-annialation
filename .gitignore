@@ -7,3 +7,4 @@ dist/
 !.env.example
 .superpowers/
 output/
+.playwright-cli/

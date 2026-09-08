@@ -23,11 +23,11 @@ export const DEFAULT_SCENE_CONFIG: SceneConfig = {
   camera: {
     alpha: Math.PI / 2,
     beta: Math.PI / 3,
-    radius: 36,
+    radius: 44,
     lowerBetaLimit: Math.PI * 0.24,
     upperBetaLimit: Math.PI * 0.44,
-    lowerRadiusLimit: 18,
-    upperRadiusLimit: 58,
+    lowerRadiusLimit: 22,
+    upperRadiusLimit: 68,
   },
   colors: {
     ground: '#3F5D47',

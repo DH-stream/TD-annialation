@@ -327,6 +327,7 @@ export function createGameScene(
 ): {
   engine: Engine;
   scene: Scene;
+  shadows: ShadowGenerator;
   heroRoot: TransformNode;
   destinationMarker: Mesh;
   mapRoot: TransformNode;
@@ -350,8 +351,8 @@ export function createGameScene(
   scene.fogMode = Scene.FOGMODE_EXP2;
   scene.fogDensity = 0.004;
   scene.fogColor = Color3.FromHexString(config.colors.ground);
-  scene.imageProcessingConfiguration.contrast = 1.08;
-  scene.imageProcessingConfiguration.exposure = 1.2;
+  scene.imageProcessingConfiguration.contrast = 1.02;
+  scene.imageProcessingConfiguration.exposure = 0.68;
 
   const cameraSettings = getCameraSettings(config);
   const camera = new ArcRotateCamera(
@@ -359,7 +360,7 @@ export function createGameScene(
     cameraSettings.alpha,
     cameraSettings.beta,
     cameraSettings.radius,
-    new Vector3(0, 0, 0),
+    new Vector3(0, 0, -2.6),
     scene,
   );
   camera.lowerBetaLimit = cameraSettings.lowerBetaLimit;
@@ -375,14 +376,14 @@ export function createGameScene(
   }
 
   const ambient = new HemisphericLight('ambient-light', new Vector3(0, 1, 0), scene);
-  ambient.intensity = 1.0;
-  ambient.diffuse = Color3.FromHexString(config.colors.brass);
+  ambient.intensity = 0.55;
+  ambient.diffuse = new Color3(0.84, 0.9, 0.87);
   ambient.groundColor = Color3.FromHexString(config.colors.stone);
 
   const sun = new DirectionalLight('sun-light', new Vector3(-0.45, -1, 0.35), scene);
   sun.position = new Vector3(-16, 24, -18);
-  sun.intensity = 1.8;
-  sun.diffuse = Color3.FromHexString(config.colors.brass);
+  sun.intensity = 0.7;
+  sun.diffuse = new Color3(1, 0.93, 0.82);
 
   const shadows = new ShadowGenerator(1024, sun);
   shadows.useBlurExponentialShadowMap = true;
@@ -410,6 +411,9 @@ export function createGameScene(
     });
 
   const ground = createMaterial(scene, 'ground-material', config.colors.ground, 0.9);
+  ground.diffuseColor = Color3.FromHexString(config.colors.ground).scale(0.18);
+  ground.emissiveColor = Color3.FromHexString(config.colors.ground).scale(0.38);
+  ground.disableLighting = true;
   const path = createMaterial(scene, 'path-material', config.colors.path, 0.86);
   const stone = createMaterial(scene, 'stone-material', config.colors.stone, 0.82);
   const wood = createMaterial(scene, 'wood-material', config.colors.wood, 0.86);
@@ -493,10 +497,12 @@ export function createGameScene(
       shadows.addShadowCaster(mesh, true);
     }
   });
+  battlefield.useVertexColors = true;
 
   return {
     engine,
     scene,
+    shadows,
     heroRoot,
     destinationMarker,
     mapRoot,

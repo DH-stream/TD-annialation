@@ -6,6 +6,12 @@ The first imported animated character assets are from [Kenney's Blocky Character
 
 The pack is released under Creative Commons CC0. The original `License.txt` is kept beside the imported GLB files. No attribution is required, but Kenney is credited here for provenance.
 
+## Kenney Fantasy Town Kit
+
+The Greenward environment pass uses selected modular walls, roofs, trees, rocks, fences, banners, lanterns and fountain assets from [Kenney's Fantasy Town Kit](https://kenney.nl/assets/fantasy-town-kit), stored under `public/assets/vendor/kenney/fantasy-town-kit/`.
+
+The pack is released under Creative Commons CC0. The original `License.txt` is kept beside the imported GLB files. The source pack is used for commercial distribution without required attribution.
+
 ## Metal Mania
 
 Metal Mania is bundled through [`@fontsource/metal-mania`](https://fontsource.org/fonts/metal-mania).
