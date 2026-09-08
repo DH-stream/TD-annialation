@@ -61,7 +61,7 @@ describe('scene configuration', () => {
 
 - [ ] **Step 3: Run the test and verify the expected RED failure**
 
-Run: `npm test -- --run src/game/config/sceneConfig.test.ts`  
+Run: `npm test -- --run src/game/config/sceneConfig.test.ts`
 Expected: FAIL because `src/game/config/sceneConfig.ts` does not exist yet.
 
 - [ ] **Step 4: Implement the minimal configuration module**
@@ -119,7 +119,7 @@ export function clampCameraPitch(pitchRadians: number): number {
 
 - [ ] **Step 5: Run the focused test and verify GREEN**
 
-Run: `npm test -- --run src/game/config/sceneConfig.test.ts`  
+Run: `npm test -- --run src/game/config/sceneConfig.test.ts`
 Expected: PASS with 2 tests.
 
 - [ ] **Step 6: Commit the scaffold**
@@ -187,7 +187,7 @@ Create an accessible full-viewport canvas with a small code-native HUD shell: ga
 
 - [ ] **Step 5: Run the production build**
 
-Run: `npm run build`  
+Run: `npm run build`
 Expected: Vite emits a `dist/` build with exit code 0.
 
 - [ ] **Step 6: Commit the composed scene**
@@ -208,7 +208,7 @@ git commit -m "feat: add strategic fantasy battlefield scene"
 
 - [ ] **Step 1: Start the development server**
 
-Run: `npm run dev -- --host 127.0.0.1`  
+Run: `npm run dev -- --host 127.0.0.1`
 Expected: Vite reports a local URL.
 
 - [ ] **Step 2: Verify the first viewport in Browser/IAB**
@@ -221,9 +221,9 @@ Use the mouse wheel to zoom in and out, then drag with the middle mouse button t
 
 - [ ] **Step 4: Verify the focused tests and build again**
 
-Run: `npm test -- --run`  
-Expected: all tests pass.  
-Run: `npm run build`  
+Run: `npm test -- --run`
+Expected: all tests pass.
+Run: `npm run build`
 Expected: exit code 0.
 
 - [ ] **Step 5: Update the handoff file with evidence**
@@ -237,4 +237,3 @@ git diff --check
 git add PROJECT_STATUS.md
 git commit -m "docs: record phase 0 verification status"
 ```
-
