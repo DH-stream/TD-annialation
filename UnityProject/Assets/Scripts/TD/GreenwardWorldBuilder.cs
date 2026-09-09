@@ -98,7 +98,42 @@ namespace TDAnnihilation
         }
         static void Corruption(Transform p){var c=new GameObject("Blightfall Lowlands");c.transform.SetParent(p);for(int i=0;i<9;i++){float a=i*Mathf.PI*2/9;var point=new Vector2(-41+Mathf.Cos(a)*5,-10+Mathf.Sin(a)*5);if(GreenwardWorldLayout.IsRoad(point,2.8f))continue;Prim("Void Crystal",PrimitiveType.Cylinder,new Vector3(point.x,1,point.y),new Vector3(.45f,1.8f,.45f),corruption,c.transform);}Prim("Demon Portal",PrimitiveType.Cylinder,new Vector3(-43,2.8f,-10),new Vector3(4,.5f,4),corruption,c.transform).transform.rotation=Quaternion.Euler(90,0,0);for(int i=0;i<7;i++)Prim("Ruined Monolith",PrimitiveType.Cube,new Vector3(-35+i%3*3,1.3f,-19+i/3*3),new Vector3(1.2f,2.6f,1.2f),stone,c.transform);}
         static void Boundaries(Transform p){var rng=new System.Random(731);for(int i=0;i<64;i++){float x=-46+i*92f/63f;Tree(p,x,(i%2==0?-29:29),rng);if(i%3==0)Tree(p,x,(i%2==0?26:-26),rng);}for(int i=0;i<22;i++){float z=-27+i*54f/21f;Tree(p,-46,z,rng);if(i%2==0)Tree(p,47,z,rng);}for(int i=0;i<18;i++){float x=-44+(float)rng.NextDouble()*88,z=-27+(float)rng.NextDouble()*54;if(Mathf.Abs(z)<15)continue;Prim("Mossy Boulder",PrimitiveType.Sphere,new Vector3(x,GreenwardWorldLayout.HeightAt(x,z)+.5f,z),Vector3.one*(.6f+(float)rng.NextDouble()),stone,p);}}
-        static void Tree(Transform p,float x,float z,System.Random rng){if(GreenwardWorldLayout.IsRoad(new Vector2(x,z),4.2f))return;float y=GreenwardWorldLayout.HeightAt(x,z),s=.8f+(float)rng.NextDouble()*.7f;Prim("Ancient Tree",PrimitiveType.Cylinder,new Vector3(x,y+1.5f*s,z),new Vector3(.45f*s,1.5f*s,.45f*s),wood,p);Prim("Broadleaf Crown",PrimitiveType.Sphere,new Vector3(x,y+4.1f*s,z),new Vector3(2.1f*s,1.6f*s,1.8f*s),leaf,p);Prim("Leaf Cluster",PrimitiveType.Sphere,new Vector3(x-1.2f*s,y+3.7f*s,z+.4f*s),new Vector3(1.3f*s,1.15f*s,1.2f*s),new Color(.18f,.39f,.13f),p);Prim("Leaf Cluster",PrimitiveType.Sphere,new Vector3(x+1.1f*s,y+4.3f*s,z-.3f*s),new Vector3(1.25f*s,1.1f*s,1.25f*s),new Color(.12f,.29f,.10f),p);}
+        static void Tree(Transform p,float x,float z,System.Random rng)
+        {
+            if(GreenwardWorldLayout.IsRoad(new Vector2(x,z),4.2f))return;
+            float y=GreenwardWorldLayout.HeightAt(x,z),s=.8f+(float)rng.NextDouble()*.7f;
+            string[] variants={"Oak_Tree","Fir_Tree","Poplar_Tree"};
+            string variant=variants[rng.Next(variants.Length)];
+            GameObject prefab=Resources.Load<GameObject>("TDAnnihilation/Environment/Trees/"+variant);
+            if(prefab!=null)
+            {
+                GameObject tree=Object.Instantiate(prefab,new Vector3(x,y,z),Quaternion.Euler(0f,(float)rng.NextDouble()*360f,0f),p);
+                tree.name="Darth Artisan "+variant.Replace('_',' ');
+                tree.transform.localScale=Vector3.one*(1.2f*s);
+                MakeTreeMaterialsPipelineSafe(tree);
+                return;
+            }
+            Prim("Ancient Tree",PrimitiveType.Cylinder,new Vector3(x,y+1.5f*s,z),new Vector3(.45f*s,1.5f*s,.45f*s),wood,p);
+            Prim("Broadleaf Crown",PrimitiveType.Sphere,new Vector3(x,y+4.1f*s,z),new Vector3(2.1f*s,1.6f*s,1.8f*s),leaf,p);
+            Prim("Leaf Cluster",PrimitiveType.Sphere,new Vector3(x-1.2f*s,y+3.7f*s,z+.4f*s),new Vector3(1.3f*s,1.15f*s,1.2f*s),new Color(.18f,.39f,.13f),p);
+            Prim("Leaf Cluster",PrimitiveType.Sphere,new Vector3(x+1.1f*s,y+4.3f*s,z-.3f*s),new Vector3(1.25f*s,1.1f*s,1.25f*s),new Color(.12f,.29f,.10f),p);
+        }
+        static void MakeTreeMaterialsPipelineSafe(GameObject tree)
+        {
+            Shader shader=Shader.Find("Universal Render Pipeline/Lit");
+            if(shader==null)return;
+            foreach(Renderer renderer in tree.GetComponentsInChildren<Renderer>(true))
+            {
+                Material source=renderer.sharedMaterial;
+                Material material=new Material(shader){name="Darth Artisan Tree URP"};
+                if(source!=null)
+                {
+                    if(source.mainTexture!=null)material.SetTexture("_BaseMap",source.mainTexture);
+                    material.SetColor("_BaseColor",source.color);
+                }
+                renderer.sharedMaterial=material;
+            }
+        }
         static void Atmosphere(){RenderSettings.skybox=null;RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Linear;RenderSettings.fogColor=new Color(.36f,.46f,.45f);RenderSettings.fogStartDistance=48f;RenderSettings.fogEndDistance=105f;RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.42f,.52f,.56f);RenderSettings.ambientEquatorColor=new Color(.28f,.34f,.30f);RenderSettings.ambientGroundColor=new Color(.18f,.16f,.12f);}
         static void BuildRiverRibbon(Transform p)
         {
@@ -121,7 +156,7 @@ namespace TDAnnihilation
                 triangles[q+3]=v+1;triangles[q+4]=v+2;triangles[q+5]=v+3;
             }
             var mesh=new Mesh{name="Greenward River Ribbon"};mesh.vertices=vertices;mesh.uv=uv;mesh.triangles=triangles;mesh.RecalculateNormals();
-            var river=new GameObject("Meandering Greenward River");river.transform.SetParent(p);river.AddComponent<MeshFilter>().sharedMesh=mesh;river.AddComponent<MeshRenderer>().sharedMaterial=GreenwardMaterialLibrary.Water;
+            var river=new GameObject("Meandering Greenward River");river.transform.SetParent(p);river.AddComponent<MeshFilter>().sharedMesh=mesh;river.AddComponent<MeshRenderer>().sharedMaterial=GreenwardMaterialLibrary.Water;river.AddComponent<GreenwardWaterMotion>();
         }
         static void GableRoof(Transform p,Vector3 center,float width,float depth,float rise)
         {
@@ -148,7 +183,41 @@ namespace TDAnnihilation
             var mesh=new Mesh{name="Faceted Tower Roof"};mesh.vertices=vertices;mesh.triangles=triangles;mesh.RecalculateNormals();
             var roofObject=new GameObject("Steep Copper Shingle Tower Roof");roofObject.transform.SetParent(p);roofObject.transform.position=center;roofObject.AddComponent<MeshFilter>().sharedMesh=mesh;roofObject.AddComponent<MeshRenderer>().sharedMaterial=GreenwardMaterialLibrary.Roof;
         }
-        static void Life(Transform p){for(int i=0;i<7;i++){float x=-5+i*3,z=-8+(i%3)*4;while(GreenwardWorldLayout.IsRoad(new Vector2(x,z),3.2f))z-=1f;var npc=Prim(i<2?"Greenward Guard":"Village Inhabitant",PrimitiveType.Capsule,new Vector3(x,GreenwardWorldLayout.HeightAt(x,z)+1,z),new Vector3(.55f,1,.55f),i<2?new Color(.16f,.28f,.55f):new Color(.55f,.28f,.12f),p);npc.transform.rotation=Quaternion.Euler(0,i*47,0);}}
+        static void Life(Transform p)
+        {
+            GameObject villagerPrefab = Resources.Load<GameObject>("TDAnnihilation/Warrior");
+            RuntimeAnimatorController villagerController = Resources.Load<RuntimeAnimatorController>("TDAnnihilation/VillagerRpg");
+            for (int i = 0; i < 7; i++)
+            {
+                float x = -5 + i * 3, z = -8 + (i % 3) * 4;
+                while (GreenwardWorldLayout.IsRoad(new Vector2(x, z), 3.2f)) z -= 1f;
+                Vector3 work = new Vector3(x, GreenwardWorldLayout.HeightAt(x, z) + 0.25f, z);
+                Vector3 shelter = new Vector3(x + (i % 2 == 0 ? 1.2f : -1.2f), GreenwardWorldLayout.HeightAt(x, z + 2.4f) + 0.25f, z + 2.4f);
+                GameObject npc = villagerPrefab != null
+                    ? Object.Instantiate(villagerPrefab, work, Quaternion.Euler(0f, i * 47f, 0f), p)
+                    : Prim(i < 2 ? "Greenward Guard" : "Village Inhabitant", PrimitiveType.Capsule, work, new Vector3(.55f, 1f, .55f), i < 2 ? new Color(.16f, .28f, .55f) : new Color(.55f, .28f, .12f), p);
+                npc.name = i < 2 ? "Greenward Guard" : "Hearthvale Villager";
+                npc.transform.localScale = Vector3.one * (villagerPrefab != null ? TDPresentationScale.Hero * 0.86f : 1f);
+                Animator animator = npc.GetComponentInChildren<Animator>();
+                if (animator == null) animator = npc.AddComponent<Animator>();
+                if (villagerController != null) animator.runtimeAnimatorController = villagerController;
+                animator.applyRootMotion = false;
+                GreenwardVillagerController controller = npc.GetComponent<GreenwardVillagerController>();
+                if (controller == null) controller = npc.AddComponent<GreenwardVillagerController>();
+                controller.Configure(work, shelter);
+                ApplyVillagerPalette(npc, i);
+            }
+        }
+        static void ApplyVillagerPalette(GameObject root, int index)
+        {
+            Color palette = index < 2 ? new Color(.16f, .28f, .55f) : index % 2 == 0 ? new Color(.52f, .25f, .12f) : new Color(.76f, .52f, .20f);
+            foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
+            {
+                Material material = renderer.sharedMaterial != null ? new Material(renderer.sharedMaterial) : GreenwardMaterialLibrary.ForColor(palette);
+                material.color = palette;
+                renderer.sharedMaterial = material;
+            }
+        }
         static Material Mat(Color c){return GreenwardMaterialLibrary.ForColor(c);}
         static GameObject Model(string assetName,Vector3 position,float scale,float yaw,Transform parent)
         {

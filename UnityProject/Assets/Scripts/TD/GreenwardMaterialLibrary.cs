@@ -16,6 +16,9 @@ namespace TDAnnihilation
         public static Material Plaster => Get("Plaster", new Color(0.72f, 0.59f, 0.39f), 0.2f, 1301);
         public static Material Roof => Get("Roof", new Color(0.38f, 0.12f, 0.08f), 0.2f, 1423);
         public static Material Leaves => Get("Leaves", new Color(0.14f, 0.32f, 0.12f), 0.12f, 1543);
+        public static Material GrassBlade => Get("GrassBlade", new Color(0.26f, 0.48f, 0.18f), 0.08f, 1853, 3.6f, 0.18f);
+        public static Material GrassBladeDark => Get("GrassBladeDark", new Color(0.16f, 0.34f, 0.12f), 0.08f, 1867, 3.2f, 0.18f);
+        public static Material GrassBladeLight => Get("GrassBladeLight", new Color(0.38f, 0.58f, 0.20f), 0.08f, 1879, 4.1f, 0.18f);
         public static Material Corruption => Get("Corruption", new Color(0.34f, 0.06f, 0.25f), 0.28f, 1663);
         public static Material Water => Get("Water", new Color(0.12f, 0.42f, 0.50f), 0.72f, 1733);
 
@@ -39,8 +42,18 @@ namespace TDAnnihilation
 
         private static Material Get(string key, Color baseColor, float smoothness, int seed, float tiling = 2f, float normalStrength = 0.28f)
         {
-            if (Materials.TryGetValue(key, out Material existing)) return existing;
+            if (Materials.TryGetValue(key, out Material existing))
+            {
+                if (existing != null && existing.shader != null) return existing;
+                Materials.Remove(key);
+            }
             Shader shader = Shader.Find(key == "Leaves" ? "Universal Render Pipeline/Unlit" : "Universal Render Pipeline/Lit");
+            if (shader == null || !shader.isSupported) shader = Shader.Find("Unlit/Color");
+            if (shader == null)
+            {
+                Debug.LogError("Greenward material shader unavailable for " + key);
+                return null;
+            }
             Material material = new Material(shader) { name = "Greenward " + key };
             Texture2D texture = key == "Gravel"
                 ? Resources.Load<Texture2D>("TDAnnihilation/Surfaces/gravel_stones_diff_1k")

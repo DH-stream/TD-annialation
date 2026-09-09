@@ -48,7 +48,12 @@ namespace TDAnnihilation
 
         public static bool IsRoad(Vector2 point, float halfWidth)
         {
-            List<Vector3> route = CreateRoute();
+            return IsRoad(point, halfWidth, CreateRoute());
+        }
+
+        public static bool IsRoad(Vector2 point, float halfWidth, IReadOnlyList<Vector3> route)
+        {
+            if (route == null || route.Count < 2) return false;
             float thresholdSquared = halfWidth * halfWidth;
             for (int i = 1; i < route.Count; i++)
             {
@@ -64,6 +69,15 @@ namespace TDAnnihilation
         public static GreenwardSurfaceRegion SurfaceRegionAt(Vector2 point)
         {
             if (IsRoad(point, 2.2f)) return GreenwardSurfaceRegion.Road;
+            if (point.x < -30f) return GreenwardSurfaceRegion.Corruption;
+            if (Mathf.Abs(point.x + 15f) < 3.5f) return GreenwardSurfaceRegion.Riverbank;
+            if (point.x > 28f) return GreenwardSurfaceRegion.Castle;
+            return GreenwardSurfaceRegion.Meadow;
+        }
+
+        public static GreenwardSurfaceRegion SurfaceRegionAt(Vector2 point, IReadOnlyList<Vector3> route)
+        {
+            if (IsRoad(point, 2.2f, route)) return GreenwardSurfaceRegion.Road;
             if (point.x < -30f) return GreenwardSurfaceRegion.Corruption;
             if (Mathf.Abs(point.x + 15f) < 3.5f) return GreenwardSurfaceRegion.Riverbank;
             if (point.x > 28f) return GreenwardSurfaceRegion.Castle;

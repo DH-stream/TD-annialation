@@ -80,7 +80,13 @@ namespace TDAnnihilation
                 float scale = Mathf.Lerp(0.12f, 0.32f, (float)random.NextDouble());
                 GameObject stone = CreatePrimitive("Roadside Gravel", PrimitiveType.Sphere, center + Vector3.up * 0.11f,
                     new Vector3(scale * 1.7f, scale * 0.45f, scale), GreenwardMaterialLibrary.Stone, parent);
-                Object.Destroy(stone.GetComponent<Collider>());
+                Collider collider = stone.GetComponent<Collider>();
+#if UNITY_EDITOR
+                if (!Application.isPlaying) Object.DestroyImmediate(collider);
+                else Object.Destroy(collider);
+#else
+                Object.Destroy(collider);
+#endif
             }
         }
 
@@ -91,11 +97,12 @@ namespace TDAnnihilation
 
         private static void BuildGrass(Transform parent)
         {
-            Mesh cluster = CreateGrassCluster();
+            Material[] materials = { GreenwardMaterialLibrary.GrassBlade, GreenwardMaterialLibrary.GrassBladeDark, GreenwardMaterialLibrary.GrassBladeLight };
             var random = new System.Random(4411);
-            for (int batch = 0; batch < 12; batch++)
+            for (int batch = 0; batch < 18; batch++)
             {
-                CombineInstance[] instances = new CombineInstance[180];
+                Mesh cluster = CreateGrassCluster(0.85f + (batch % 3) * 0.12f);
+                CombineInstance[] instances = new CombineInstance[140];
                 int filled = 0;
                 while (filled < instances.Length)
                 {
@@ -115,7 +122,7 @@ namespace TDAnnihilation
                 GameObject grass = new GameObject("Grass Meadow Batch");
                 grass.transform.SetParent(parent);
                 grass.AddComponent<MeshFilter>().sharedMesh = combined;
-                grass.AddComponent<MeshRenderer>().sharedMaterial = GreenwardMaterialLibrary.Leaves;
+                grass.AddComponent<MeshRenderer>().sharedMaterial = materials[batch % materials.Length];
             }
         }
 
@@ -136,7 +143,7 @@ namespace TDAnnihilation
             return false;
         }
 
-        private static Mesh CreateGrassCluster()
+        private static Mesh CreateGrassCluster(float sizeScale)
         {
             var vertices = new List<Vector3>();
             var normals = new List<Vector3>();
@@ -145,9 +152,9 @@ namespace TDAnnihilation
             for (int blade = 0; blade < 5; blade++)
             {
                 float angle = blade * 137.5f * Mathf.Deg2Rad;
-                Vector3 center = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 0.12f;
-                Vector3 side = new Vector3(-Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * 0.055f;
-                Vector3 tip = center + new Vector3(Mathf.Sin(angle) * 0.08f, 0.58f + blade * 0.045f, Mathf.Cos(angle) * 0.08f);
+                Vector3 center = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 0.12f * sizeScale;
+                Vector3 side = new Vector3(-Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * 0.055f * sizeScale;
+                Vector3 tip = center + new Vector3(Mathf.Sin(angle) * 0.08f, (0.58f + blade * 0.045f) * sizeScale, Mathf.Cos(angle) * 0.08f);
                 Vector3 normal = Vector3.Cross(tip - center, side).normalized;
                 int start = vertices.Count;
                 vertices.Add(center - side); vertices.Add(center + side); vertices.Add(tip);

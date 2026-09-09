@@ -6,16 +6,23 @@ namespace TDAnnihilation
     public sealed class TDStrategicCamera : MonoBehaviour
     {
         private Transform target;
-        private Vector3 offset = new Vector3(-7f, 14.5f, -19f);
-        private Vector3 panOffset;
-        [SerializeField] private float panSpeed = 18f;
+        [SerializeField] private float distance = 7.5f;
+        [SerializeField] private float height = 2.6f;
+        [SerializeField] private float followSharpness = 10f;
+        [SerializeField] private float orbitSharpness = 12f;
+        [SerializeField] private float mouseSensitivity = 0.12f;
+        [SerializeField] private float minPitch = 12f;
+        [SerializeField] private float maxPitch = 55f;
+        private float yaw = 35f;
+        private float pitch = 24f;
+        private float targetDistance;
         private void Awake()
         {
             Camera cameraComponent = GetComponent<Camera>();
             cameraComponent.allowHDR = true;
             cameraComponent.clearFlags = CameraClearFlags.SolidColor;
             cameraComponent.backgroundColor = new Color(0.38f, 0.55f, 0.68f);
-            cameraComponent.fieldOfView = 46f;
+            cameraComponent.fieldOfView = 54f;
             cameraComponent.nearClipPlane = 0.3f;
             var cameraData = GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
             if (cameraData != null) cameraData.renderPostProcessing = false;
@@ -29,21 +36,23 @@ namespace TDAnnihilation
         private void LateUpdate()
         {
             if (target == null) return;
-            Keyboard keyboard = Keyboard.current;
-            Vector2 input = keyboard == null ? Vector2.zero : new Vector2(
-                (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed ? 1f : 0f) - (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed ? 1f : 0f),
-                (keyboard.wKey.isPressed || keyboard.upArrowKey.isPressed ? 1f : 0f) - (keyboard.sKey.isPressed || keyboard.downArrowKey.isPressed ? 1f : 0f));
-            if (keyboard != null && (keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed))
-                panOffset += CalculatePan(input.normalized, panSpeed, Time.deltaTime);
-            else if (input.sqrMagnitude < 0.01f)
-                panOffset = Vector3.Lerp(panOffset, Vector3.zero, Time.deltaTime * 1.2f);
-            panOffset.x = Mathf.Clamp(panOffset.x, -22f, 22f);
-            panOffset.z = Mathf.Clamp(panOffset.z, -15f, 15f);
-            Vector3 focus = target.position + new Vector3(11f, 0.8f, 1f) + panOffset;
-            focus.x = Mathf.Clamp(focus.x, -18f, 31f);
-            focus.z = Mathf.Clamp(focus.z, -10f, 11f);
-            transform.position = Vector3.Lerp(transform.position, focus + offset, Time.deltaTime * 2.2f);
-            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(focus - transform.position), Time.deltaTime * 3f);
+            Mouse mouse = Mouse.current;
+            if (mouse != null && mouse.rightButton.isPressed)
+            {
+                Vector2 delta = mouse.delta.ReadValue();
+                yaw += delta.x * mouseSensitivity;
+                pitch = Mathf.Clamp(pitch - delta.y * mouseSensitivity, minPitch, maxPitch);
+            }
+            if (mouse != null) targetDistance = Mathf.Clamp(targetDistance - mouse.scroll.ReadValue().y * 0.01f, 5f, 10f);
+            if (targetDistance <= 0f) targetDistance = distance;
+            Quaternion orbit = Quaternion.Euler(pitch, yaw, 0f);
+            Vector3 focus = target.position + Vector3.up * 1.1f;
+            Vector3 desiredPosition = focus + orbit * new Vector3(0f, height * 0.15f, -targetDistance);
+            desiredPosition.x = Mathf.Clamp(desiredPosition.x, -52f, 52f);
+            desiredPosition.z = Mathf.Clamp(desiredPosition.z, -38f, 38f);
+            transform.position = Vector3.Lerp(transform.position, desiredPosition, Time.deltaTime * followSharpness);
+            Quaternion desiredRotation = Quaternion.LookRotation(focus - transform.position, Vector3.up);
+            transform.rotation = Quaternion.Slerp(transform.rotation, desiredRotation, Time.deltaTime * orbitSharpness);
         }
     }
 }
