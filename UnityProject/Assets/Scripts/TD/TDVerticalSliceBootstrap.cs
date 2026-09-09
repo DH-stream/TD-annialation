@@ -59,7 +59,7 @@ namespace TDAnnihilation
                 TDStrategicCamera strategic = camera.GetComponent<TDStrategicCamera>();
                 if (strategic == null) strategic = camera.gameObject.AddComponent<TDStrategicCamera>();
                 strategic.SetTarget(hero);
-                camera.fieldOfView = 48f;
+                camera.fieldOfView = 62f;
             }
             GreenwardLightingBuilder.Configure(camera);
             if (GetComponent<TDVerticalSliceHUD>() == null) gameObject.AddComponent<TDVerticalSliceHUD>();
