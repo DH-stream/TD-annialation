@@ -42,10 +42,19 @@ namespace TDAnnihilation
         static void Village(Transform p)
         {
             var v=new GameObject("Hearthvale Village");v.transform.SetParent(p);
-            House(v.transform,-7,11,1.1f);House(v.transform,3,10,.9f);House(v.transform,10,7,1f);House(v.transform,-2,-10,.85f);House(v.transform,10,-11,1.15f);
-            Prim("Market Canopy",PrimitiveType.Cube,new Vector3(2,2,-1),new Vector3(6,.25f,4),new Color(.72f,.18f,.12f),v.transform); for(int i=0;i<5;i++)Prim("Market Barrel",PrimitiveType.Cylinder,new Vector3(-1+i*.8f,.55f,-3),new Vector3(.45f,.55f,.45f),wood,v.transform);
-            Prim("Forge",PrimitiveType.Cube,new Vector3(-7,1.3f,-7),new Vector3(5,2.6f,4),stone,v.transform);Prim("Forge Fire",PrimitiveType.Sphere,new Vector3(-7,1,-4.8f),Vector3.one*.65f,gold,v.transform);
-            Prim("Mill Tower",PrimitiveType.Cylinder,new Vector3(15,2.6f,12),new Vector3(2.2f,2.6f,2.2f),plaster,v.transform);var wheel=Prim("Turning Mill Wheel",PrimitiveType.Cylinder,new Vector3(15,3,9.7f),new Vector3(2.8f,.25f,2.8f),wood,v.transform);wheel.transform.rotation=Quaternion.Euler(90,0,0);wheel.AddComponent<GreenwardAmbientMotion>().speed=14;
+            Model("House_1",new Vector3(-8,0,12),1.65f,165,v.transform);
+            Model("House_2",new Vector3(2,0,12),1.55f,190,v.transform);
+            Model("Inn",new Vector3(11,0,10),1.45f,205,v.transform);
+            Model("House_3",new Vector3(-3,0,-12),1.75f,18,v.transform);
+            Model("Stable",new Vector3(10,0,-13),1.5f,-15,v.transform);
+            Model("MarketStand_1",new Vector3(1,0,-7.5f),2.25f,10,v.transform);
+            Model("MarketStand_2",new Vector3(5,0,-8.5f),2.1f,-12,v.transform);
+            Model("Blacksmith",new Vector3(-9,0,-8),1.55f,8,v.transform);
+            Model("Mill",new Vector3(16,0,14),1.55f,185,v.transform);
+            Model("Well",new Vector3(5,0,7),2.1f,0,v.transform);
+            Model("Cart",new Vector3(-1,0,8.5f),1.55f,32,v.transform);
+            Model("Bonfire_Lit",new Vector3(10,0,4),1.5f,0,v.transform);
+            for(int i=0;i<4;i++)Model(i%2==0?"Barrel":"Crate",new Vector3(-5+i*1.1f,0,-8.8f),1.4f,i*23,v.transform);
             for(int i=0;i<14;i++){float x=-7+i*1.1f;Prim("Farm Crop",PrimitiveType.Capsule,new Vector3(x,.45f,18+(i%2)),new Vector3(.18f,.45f,.18f),new Color(.55f,.62f,.12f),v.transform);}
         }
         static void House(Transform p,float x,float z,float s)
@@ -68,28 +77,28 @@ namespace TDAnnihilation
             var c=new GameObject("Sunspire Keep");c.transform.SetParent(p);
             float y=GreenwardWorldLayout.HeightAt(38,4);
             Prim("Castle Courtyard",PrimitiveType.Cube,new Vector3(39,y-.12f,4),new Vector3(15,.45f,17),stone,c.transform);
-            Prim("North Curtain Wall",PrimitiveType.Cube,new Vector3(39,y+2.2f,12),new Vector3(17,4.4f,1.5f),stone,c.transform);
-            Prim("South Curtain Wall",PrimitiveType.Cube,new Vector3(39,y+2.2f,-4),new Vector3(17,4.4f,1.5f),stone,c.transform);
-            Prim("East Curtain Wall",PrimitiveType.Cube,new Vector3(46.8f,y+2.2f,4),new Vector3(1.5f,4.4f,17),stone,c.transform);
+            Prim("North Curtain Wall",PrimitiveType.Cube,new Vector3(39,y+1.5f,12),new Vector3(17,3f,1.1f),stone,c.transform);
+            Prim("South Curtain Wall",PrimitiveType.Cube,new Vector3(39,y+1.5f,-4),new Vector3(17,3f,1.1f),stone,c.transform);
+            Prim("East Curtain Wall",PrimitiveType.Cube,new Vector3(46.8f,y+1.5f,4),new Vector3(1.1f,3f,17),stone,c.transform);
             for(int z=-4;z<=12;z+=16) for(int x=31;x<=47;x+=16)
             {
-                Prim("Round Castle Tower",PrimitiveType.Cylinder,new Vector3(x,y+3.2f,z),new Vector3(2.25f,3.2f,2.25f),stone,c.transform);
-                ConeRoof(c.transform,new Vector3(x,y+6.35f,z),3.05f,2.25f);
+                Prim("Round Castle Tower",PrimitiveType.Cylinder,new Vector3(x,y+2.4f,z),new Vector3(1.65f,2.4f,1.65f),stone,c.transform);
+                ConeRoof(c.transform,new Vector3(x,y+4.75f,z),2.25f,1.7f);
             }
-            Prim("Gatehouse Left",PrimitiveType.Cube,new Vector3(31,y+3f,1.5f),new Vector3(2.2f,6,3.2f),stone,c.transform);
-            Prim("Gatehouse Right",PrimitiveType.Cube,new Vector3(31,y+3f,6.5f),new Vector3(2.2f,6,3.2f),stone,c.transform);
-            Prim("Gatehouse Arch",PrimitiveType.Cube,new Vector3(31,y+5.2f,4),new Vector3(2.3f,1.5f,2.2f),stone,c.transform);
+            Prim("Gatehouse Left",PrimitiveType.Cube,new Vector3(31,y+2.2f,-.2f),new Vector3(1.5f,4.4f,1.8f),stone,c.transform);
+            Prim("Gatehouse Right",PrimitiveType.Cube,new Vector3(31,y+2.2f,5.6f),new Vector3(1.5f,4.4f,1.8f),stone,c.transform);
+            Prim("Gatehouse Arch",PrimitiveType.Cube,new Vector3(31,y+4f,2.7f),new Vector3(1.6f,1.0f,3.2f),stone,c.transform);
             for(int i=0;i<5;i++) for(int side=-1;side<=1;side+=2)
                 Prim("Battlement",PrimitiveType.Cube,new Vector3(34+i*2.5f,y+4.8f,4+side*8f),new Vector3(1.15f,1,.9f),stone,c.transform);
             for(int i=0;i<3;i++)
             {
-                var b=Prim("Royal Banner",PrimitiveType.Cube,new Vector3(29.82f,y+3.8f,1.7f+i*2.3f),new Vector3(.10f,2.2f,1.1f),new Color(.12f,.28f,.65f),c.transform);
+                var b=Prim("Royal Banner",PrimitiveType.Cube,new Vector3(32.2f,y+3.8f,-1f+i*4f),new Vector3(.10f,2.2f,1.1f),new Color(.12f,.28f,.65f),c.transform);
                 b.AddComponent<GreenwardAmbientMotion>().sway=5;
             }
         }
-        static void Corruption(Transform p){var c=new GameObject("Blightfall Lowlands");c.transform.SetParent(p);for(int i=0;i<9;i++){float a=i*Mathf.PI*2/9;Prim("Void Crystal",PrimitiveType.Cylinder,new Vector3(-41+Mathf.Cos(a)*5,1,-10+Mathf.Sin(a)*5),new Vector3(.45f,1.8f,.45f),corruption,c.transform);}Prim("Demon Portal",PrimitiveType.Cylinder,new Vector3(-43,2.8f,-10),new Vector3(4,.5f,4),corruption,c.transform).transform.rotation=Quaternion.Euler(90,0,0);for(int i=0;i<7;i++)Prim("Ruined Monolith",PrimitiveType.Cube,new Vector3(-35+i%3*3,1.3f,-19+i/3*3),new Vector3(1.2f,2.6f,1.2f),stone,c.transform);}
+        static void Corruption(Transform p){var c=new GameObject("Blightfall Lowlands");c.transform.SetParent(p);for(int i=0;i<9;i++){float a=i*Mathf.PI*2/9;var point=new Vector2(-41+Mathf.Cos(a)*5,-10+Mathf.Sin(a)*5);if(GreenwardWorldLayout.IsRoad(point,2.8f))continue;Prim("Void Crystal",PrimitiveType.Cylinder,new Vector3(point.x,1,point.y),new Vector3(.45f,1.8f,.45f),corruption,c.transform);}Prim("Demon Portal",PrimitiveType.Cylinder,new Vector3(-43,2.8f,-10),new Vector3(4,.5f,4),corruption,c.transform).transform.rotation=Quaternion.Euler(90,0,0);for(int i=0;i<7;i++)Prim("Ruined Monolith",PrimitiveType.Cube,new Vector3(-35+i%3*3,1.3f,-19+i/3*3),new Vector3(1.2f,2.6f,1.2f),stone,c.transform);}
         static void Boundaries(Transform p){var rng=new System.Random(731);for(int i=0;i<64;i++){float x=-46+i*92f/63f;Tree(p,x,(i%2==0?-29:29),rng);if(i%3==0)Tree(p,x,(i%2==0?26:-26),rng);}for(int i=0;i<22;i++){float z=-27+i*54f/21f;Tree(p,-46,z,rng);if(i%2==0)Tree(p,47,z,rng);}for(int i=0;i<18;i++){float x=-44+(float)rng.NextDouble()*88,z=-27+(float)rng.NextDouble()*54;if(Mathf.Abs(z)<15)continue;Prim("Mossy Boulder",PrimitiveType.Sphere,new Vector3(x,GreenwardWorldLayout.HeightAt(x,z)+.5f,z),Vector3.one*(.6f+(float)rng.NextDouble()),stone,p);}}
-        static void Tree(Transform p,float x,float z,System.Random rng){float y=GreenwardWorldLayout.HeightAt(x,z),s=.8f+(float)rng.NextDouble()*.7f;Prim("Ancient Tree",PrimitiveType.Cylinder,new Vector3(x,y+1.5f*s,z),new Vector3(.45f*s,1.5f*s,.45f*s),wood,p);Prim("Broadleaf Crown",PrimitiveType.Sphere,new Vector3(x,y+4.1f*s,z),new Vector3(2.1f*s,1.6f*s,1.8f*s),leaf,p);Prim("Leaf Cluster",PrimitiveType.Sphere,new Vector3(x-1.2f*s,y+3.7f*s,z+.4f*s),new Vector3(1.3f*s,1.15f*s,1.2f*s),new Color(.18f,.39f,.13f),p);Prim("Leaf Cluster",PrimitiveType.Sphere,new Vector3(x+1.1f*s,y+4.3f*s,z-.3f*s),new Vector3(1.25f*s,1.1f*s,1.25f*s),new Color(.12f,.29f,.10f),p);}
+        static void Tree(Transform p,float x,float z,System.Random rng){if(GreenwardWorldLayout.IsRoad(new Vector2(x,z),4.2f))return;float y=GreenwardWorldLayout.HeightAt(x,z),s=.8f+(float)rng.NextDouble()*.7f;Prim("Ancient Tree",PrimitiveType.Cylinder,new Vector3(x,y+1.5f*s,z),new Vector3(.45f*s,1.5f*s,.45f*s),wood,p);Prim("Broadleaf Crown",PrimitiveType.Sphere,new Vector3(x,y+4.1f*s,z),new Vector3(2.1f*s,1.6f*s,1.8f*s),leaf,p);Prim("Leaf Cluster",PrimitiveType.Sphere,new Vector3(x-1.2f*s,y+3.7f*s,z+.4f*s),new Vector3(1.3f*s,1.15f*s,1.2f*s),new Color(.18f,.39f,.13f),p);Prim("Leaf Cluster",PrimitiveType.Sphere,new Vector3(x+1.1f*s,y+4.3f*s,z-.3f*s),new Vector3(1.25f*s,1.1f*s,1.25f*s),new Color(.12f,.29f,.10f),p);}
         static void Atmosphere(){RenderSettings.skybox=null;RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Linear;RenderSettings.fogColor=new Color(.36f,.46f,.45f);RenderSettings.fogStartDistance=48f;RenderSettings.fogEndDistance=105f;RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.42f,.52f,.56f);RenderSettings.ambientEquatorColor=new Color(.28f,.34f,.30f);RenderSettings.ambientGroundColor=new Color(.18f,.16f,.12f);}
         static void BuildRiverRibbon(Transform p)
         {
@@ -139,8 +148,27 @@ namespace TDAnnihilation
             var mesh=new Mesh{name="Faceted Tower Roof"};mesh.vertices=vertices;mesh.triangles=triangles;mesh.RecalculateNormals();
             var roofObject=new GameObject("Steep Copper Shingle Tower Roof");roofObject.transform.SetParent(p);roofObject.transform.position=center;roofObject.AddComponent<MeshFilter>().sharedMesh=mesh;roofObject.AddComponent<MeshRenderer>().sharedMaterial=GreenwardMaterialLibrary.Roof;
         }
-        static void Life(Transform p){for(int i=0;i<7;i++){float x=-5+i*3,z=-2+(i%3)*3;var npc=Prim(i<2?"Greenward Guard":"Village Inhabitant",PrimitiveType.Capsule,new Vector3(x,GreenwardWorldLayout.HeightAt(x,z)+1,z),new Vector3(.55f,1,.55f),i<2?new Color(.16f,.28f,.55f):new Color(.55f,.28f,.12f),p);npc.transform.rotation=Quaternion.Euler(0,i*47,0);}}
+        static void Life(Transform p){for(int i=0;i<7;i++){float x=-5+i*3,z=-8+(i%3)*4;while(GreenwardWorldLayout.IsRoad(new Vector2(x,z),3.2f))z-=1f;var npc=Prim(i<2?"Greenward Guard":"Village Inhabitant",PrimitiveType.Capsule,new Vector3(x,GreenwardWorldLayout.HeightAt(x,z)+1,z),new Vector3(.55f,1,.55f),i<2?new Color(.16f,.28f,.55f):new Color(.55f,.28f,.12f),p);npc.transform.rotation=Quaternion.Euler(0,i*47,0);}}
         static Material Mat(Color c){return GreenwardMaterialLibrary.ForColor(c);}
+        static GameObject Model(string assetName,Vector3 position,float scale,float yaw,Transform parent)
+        {
+            GameObject prefab=Resources.Load<GameObject>("TDAnnihilation/Environment/MedievalVillage/"+assetName);
+            if(prefab==null)return null;
+            position.y=GreenwardWorldLayout.HeightAt(position.x,position.z);
+            GameObject instance=Object.Instantiate(prefab,position,Quaternion.Euler(0,yaw,0),parent);
+            instance.name="Authored "+assetName.Replace('_',' ');
+            instance.transform.localScale=Vector3.one*scale;
+            Renderer[] renderers=instance.GetComponentsInChildren<Renderer>();
+            if(renderers.Length>0)
+            {
+                Bounds bounds=renderers[0].bounds;for(int i=1;i<renderers.Length;i++)bounds.Encapsulate(renderers[i].bounds);
+                BoxCollider collider=instance.AddComponent<BoxCollider>();
+                collider.center=instance.transform.InverseTransformPoint(bounds.center);
+                Vector3 lossy=instance.transform.lossyScale;
+                collider.size=new Vector3(bounds.size.x/lossy.x,bounds.size.y/lossy.y,bounds.size.z/lossy.z);
+            }
+            return instance;
+        }
         static GameObject Prim(string n,PrimitiveType t,Vector3 pos,Vector3 scale,Color c,Transform p){var g=GameObject.CreatePrimitive(t);g.name=n;g.transform.SetParent(p);g.transform.position=pos;g.transform.localScale=scale;g.GetComponent<Renderer>().sharedMaterial=Mat(c);return g;}
     }
 }

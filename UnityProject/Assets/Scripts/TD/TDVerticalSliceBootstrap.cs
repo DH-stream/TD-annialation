@@ -109,7 +109,7 @@ namespace TDAnnihilation
                 ? Instantiate(warriorPrefab, heroPosition, Quaternion.Euler(0f, 25f, 0f))
                 : MakePrimitive("Hero fallback", PrimitiveType.Capsule, heroPosition + Vector3.up, Vector3.one, new Color(0.12f, 0.28f, 0.42f));
             hero.name = "Hero - Warden of Greenward";
-            hero.transform.localScale = Vector3.one * 1.4f;
+            hero.transform.localScale = Vector3.one * TDPresentationScale.Hero;
             EnsureAnimator(hero, "Warrior");
             if (hero.GetComponent<TDHeroController>() == null) hero.AddComponent<TDHeroController>();
             ApplyFantasyPalette(hero, true);

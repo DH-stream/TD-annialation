@@ -26,9 +26,9 @@ namespace TDAnnihilation
                 {
                     if ((i + mark) % 3 == 0) continue;
                     float start = (mark + 0.18f) / marks;
-                    float end = Mathf.Min(1f, start + 0.48f / marks);
+                    float end = Mathf.Min(1f, start + 0.28f / marks);
                     Vector3[] dash = { Vector3.Lerp(a, b, start), Vector3.Lerp(a, b, end) };
-                    BuildRibbon(parent, dash, "Worn Wheel Track", 0.30f, 0.095f,
+                    BuildRibbon(parent, dash, "Worn Wheel Track", 0.18f, 0.095f,
                         GreenwardMaterialLibrary.CompactedGravel, ((i + mark) & 1) == 0 ? -0.78f : 0.78f);
                 }
             }
@@ -76,11 +76,17 @@ namespace TDAnnihilation
                 Vector3 center = Vector3.Lerp(route[segment], route[segment + 1], t);
                 Vector3 direction = route[segment + 1] - route[segment];
                 Vector3 right = Vector3.Cross(Vector3.up, direction.normalized);
-                center += right * Mathf.Lerp(-1.8f, 1.8f, (float)random.NextDouble());
+                center += right * ClampRoadsideOffset(Mathf.Lerp(-1.8f, 1.8f, (float)random.NextDouble()));
                 float scale = Mathf.Lerp(0.12f, 0.32f, (float)random.NextDouble());
-                CreatePrimitive("Embedded Gravel", PrimitiveType.Sphere, center + Vector3.up * 0.11f,
+                GameObject stone = CreatePrimitive("Roadside Gravel", PrimitiveType.Sphere, center + Vector3.up * 0.11f,
                     new Vector3(scale * 1.7f, scale * 0.45f, scale), GreenwardMaterialLibrary.Stone, parent);
+                Object.Destroy(stone.GetComponent<Collider>());
             }
+        }
+
+        public static float ClampRoadsideOffset(float offset)
+        {
+            return Mathf.Sign(offset == 0f ? 1f : offset) * Mathf.Max(2.6f, Mathf.Abs(offset));
         }
 
         private static void BuildGrass(Transform parent)

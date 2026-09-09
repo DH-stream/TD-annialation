@@ -1,8 +1,13 @@
 namespace TDAnnihilation
 {
+    public static class TDPresentationScale
+    {
+        public const float Hero = 0.72f;
+    }
+
     public readonly struct TDEnemyArchetype
     {
-        public static readonly TDEnemyArchetype Raider = new TDEnemyArchetype(0.72f, 1f, false);
+        public static readonly TDEnemyArchetype Raider = new TDEnemyArchetype(0.58f, 1f, false);
         public static readonly TDEnemyArchetype Elite = new TDEnemyArchetype(1.18f, 3.2f, true);
 
         private TDEnemyArchetype(float scale, float healthMultiplier, bool isElite)

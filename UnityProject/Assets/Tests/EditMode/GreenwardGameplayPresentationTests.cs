@@ -48,5 +48,34 @@ namespace TDAnnihilation.Tests
             flow.ReturnToMenu();
             Assert.That(flow.Phase, Is.EqualTo(TDGamePhase.MainMenu));
         }
+
+        [Test]
+        public void HeroControllerRequiresPhysicalCollision()
+        {
+            var hero = new GameObject("Collision test hero");
+            try
+            {
+                hero.AddComponent<TDHeroController>();
+                Assert.That(hero.GetComponent<CharacterController>(), Is.Not.Null);
+            }
+            finally
+            {
+                Object.DestroyImmediate(hero);
+            }
+        }
+
+        [Test]
+        public void GameplayCharactersPreserveWorldScale()
+        {
+            Assert.That(TDPresentationScale.Hero, Is.LessThanOrEqualTo(0.9f));
+            Assert.That(TDEnemyArchetype.Raider.Scale, Is.LessThan(TDPresentationScale.Hero));
+        }
+
+        [Test]
+        public void RoadsideDecorationsRemainOutsideEnemyClearance()
+        {
+            Assert.That(GreenwardGroundBuilder.ClampRoadsideOffset(0.4f), Is.GreaterThanOrEqualTo(2.6f));
+            Assert.That(GreenwardGroundBuilder.ClampRoadsideOffset(-1.2f), Is.LessThanOrEqualTo(-2.6f));
+        }
     }
 }
