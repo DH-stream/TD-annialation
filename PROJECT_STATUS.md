@@ -13,3 +13,11 @@ Verified in the Unity Editor on 2026-09-09:
 - A verified visual capture is at `C:\TD-Annihilation-Unity\TD-Annihilation-Unity\Assets\Screenshots\greenward_valley_final.png`.
 
 Known environment issue: the Unity MCP package still reports failed local HTTP/WebSocket transport startup because `uvx` is not available to its launcher, even though the editor command bridge is currently usable. The Unity project is not yet merged into this Babylon/Vite repository.
+# Unity migration status — 2026-09-09
+
+- Unity 6000.6.0f1 project is now versioned under `UnityProject/` on `codex/unity-vertical-slice`.
+- Original external Unity working copy remains at `C:/TD-Annihilation-Unity/TD-Annihilation-Unity`.
+- Babylon gameplay reference is preserved on `codex/v1-playable-shell`; `main` contains only README.
+- Visual/gameplay correction pass added uneven terrain sampling, sand/gravel road readability, Input System hero movement, bounded Shift+WASD/arrow camera pan, smaller raiders, and periodic larger high-health elites.
+- Unity EditMode: 3/3 focused tests passed. Clean Play Mode: zero Console messages after 12 seconds.
+- Migration gap matrix: `docs/migration/2026-09-09-babylon-to-unity-inventory.md`.
