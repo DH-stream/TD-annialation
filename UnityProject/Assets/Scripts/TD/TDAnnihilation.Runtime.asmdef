@@ -1,0 +1,5 @@
+{
+  "name": "TDAnnihilation.Runtime",
+  "rootNamespace": "TDAnnihilation",
+  "references": ["Unity.RenderPipelines.Universal.Runtime", "Unity.InputSystem"]
+}
