@@ -29,5 +29,24 @@ namespace TDAnnihilation.Tests
             Assert.That(movement.y, Is.EqualTo(0f));
             Assert.That(movement.sqrMagnitude, Is.GreaterThan(0f));
         }
+
+        [Test]
+        public void GameFlowTraversesMenuBuildWaveVictoryAndBack()
+        {
+            var flow = new TDGameFlow(1);
+            Assert.That(flow.Phase, Is.EqualTo(TDGamePhase.MainMenu));
+
+            flow.SelectSoloStages();
+            Assert.That(flow.Phase, Is.EqualTo(TDGamePhase.Build));
+
+            flow.StartWave();
+            Assert.That(flow.Phase, Is.EqualTo(TDGamePhase.Wave));
+
+            flow.CompleteWave();
+            Assert.That(flow.Phase, Is.EqualTo(TDGamePhase.Victory));
+
+            flow.ReturnToMenu();
+            Assert.That(flow.Phase, Is.EqualTo(TDGamePhase.MainMenu));
+        }
     }
 }

@@ -12,14 +12,13 @@ namespace TDAnnihilation
         [Header("Slice tuning")]
         [SerializeField] private int startingGold = 120;
         [SerializeField] private int startingLives = 20;
-        [SerializeField] private float waveInterval = 4f;
+        [SerializeField] private int stageWaveCount = 3;
 
         private readonly List<TDEnemyController> enemies = new List<TDEnemyController>();
         private readonly List<Vector3> path = new List<Vector3>();
         private TDResourceState state;
         private TDTowerController tower;
-        private float waveTimer;
-        private int wave = 1;
+        private TDGameFlow flow;
         private bool ready;
 
         private void Awake()
@@ -28,6 +27,7 @@ namespace TDAnnihilation
             Application.runInBackground = true;
             ready = true;
             state = gameObject.AddComponent<TDResourceState>();
+            flow = new TDGameFlow(stageWaveCount);
             state.gold = startingGold;
             state.lives = startingLives;
             LoadArtIfNeeded();
@@ -45,20 +45,18 @@ namespace TDAnnihilation
             }
             GreenwardLightingBuilder.Configure(camera);
             if (GetComponent<TDVerticalSliceHUD>() == null) gameObject.AddComponent<TDVerticalSliceHUD>();
-            SpawnWave(3);
         }
 
         private void Update()
         {
-            if (state == null || state.lives <= 0) return;
-            waveTimer += Time.deltaTime;
-            if (waveTimer >= waveInterval && enemies.Count == 0)
-            {
-                waveTimer = 0f;
-                wave++;
-                SpawnWave(2 + wave);
-            }
             enemies.RemoveAll(enemy => enemy == null);
+            if (state == null || flow == null) return;
+            if (state.lives <= 0)
+            {
+                flow.Lose();
+                return;
+            }
+            if (flow.Phase == TDGamePhase.Wave && enemies.Count == 0) flow.CompleteWave();
         }
 
         private void LoadArtIfNeeded()
@@ -134,7 +132,8 @@ namespace TDAnnihilation
             if (path.Count == 0) path.AddRange(GreenwardWorldLayout.CreateRoute());
             for (int i = 0; i < count; i++)
             {
-                bool spawnElite = wave > 1 && wave % 4 == 0 && i == count - 1;
+                int currentWave = flow == null ? 1 : flow.Wave;
+                bool spawnElite = currentWave > 1 && currentWave % 4 == 0 && i == count - 1;
                 TDEnemyArchetype archetype = spawnElite ? TDEnemyArchetype.Elite : TDEnemyArchetype.Raider;
                 GameObject enemyObject = demonPrefab != null
                     ? Instantiate(demonPrefab, path[0] + Vector3.up * (0.25f + i * 0.02f) + Vector3.back * i * 0.75f, Quaternion.Euler(0f, 90f, 0f))
@@ -144,7 +143,7 @@ namespace TDAnnihilation
                 EnsureAnimator(enemyObject, "Demon");
                 ApplyFantasyPalette(enemyObject, false);
                 TDEnemyController enemy = enemyObject.AddComponent<TDEnemyController>();
-                enemy.Configure(path.ToArray(), (30f + wave * 5f) * archetype.HealthMultiplier, 1.2f + wave * 0.05f, state);
+                enemy.Configure(path.ToArray(), (30f + currentWave * 5f) * archetype.HealthMultiplier, 1.2f + currentWave * 0.05f, state);
                 enemies.Add(enemy);
             }
         }
@@ -199,7 +198,24 @@ namespace TDAnnihilation
         public void RegisterEnemy(TDEnemyController enemy) => enemies.Remove(enemy);
         public IReadOnlyList<Vector3> Path => path;
         public TDResourceState State => state;
-        public int CurrentWave => wave;
+        public void StartSoloStages()
+        {
+            state.gold = startingGold;
+            state.lives = startingLives;
+            state.defeated = 0;
+            flow.SelectSoloStages();
+        }
+
+        public void StartNextWave()
+        {
+            if (flow.Phase != TDGamePhase.Build) return;
+            flow.StartWave();
+            SpawnWave(4 + flow.Wave);
+        }
+
+        public void ReturnToMenu() => flow.ReturnToMenu();
+        public int CurrentWave => flow == null ? 0 : flow.Wave;
+        public TDGamePhase Phase => flow == null ? TDGamePhase.MainMenu : flow.Phase;
     }
 
     public sealed class TDResourceState : MonoBehaviour
@@ -373,6 +389,11 @@ namespace TDAnnihilation
         private void OnGUI()
         {
             if (game == null || game.State == null) return;
+            if (game.Phase == TDGamePhase.MainMenu)
+            {
+                DrawMainMenu();
+                return;
+            }
             GUIStyle title = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold, normal = { textColor = Color.white } };
             GUIStyle body = new GUIStyle(GUI.skin.label) { fontSize = 16, normal = { textColor = Color.white } };
             GUI.Box(new Rect(18f, 18f, 280f, 128f), GUIContent.none);
@@ -380,6 +401,27 @@ namespace TDAnnihilation
             GUI.Label(new Rect(34f, 64f, 250f, 24f), "Gold  " + game.State.gold + "     Lives  " + game.State.lives, body);
             GUI.Label(new Rect(34f, 90f, 250f, 24f), "Wave  " + game.CurrentWave + "     Defeated  " + game.State.defeated, body);
             GUI.Label(new Rect(34f, 116f, 250f, 24f), "Arcane tower online", body);
+            if (game.Phase == TDGamePhase.Build && GUI.Button(new Rect(18f, 158f, 180f, 42f), "START NEXT WAVE")) game.StartNextWave();
+            if (game.Phase == TDGamePhase.Victory || game.Phase == TDGamePhase.Defeat)
+            {
+                string result = game.Phase == TDGamePhase.Victory ? "GREENWARD DEFENDED" : "GREENWARD HAS FALLEN";
+                GUI.Box(new Rect(Screen.width * 0.5f - 190f, Screen.height * 0.5f - 90f, 380f, 180f), GUIContent.none);
+                GUI.Label(new Rect(Screen.width * 0.5f - 145f, Screen.height * 0.5f - 55f, 310f, 38f), result, title);
+                if (GUI.Button(new Rect(Screen.width * 0.5f - 100f, Screen.height * 0.5f + 18f, 200f, 44f), "RETURN TO MENU")) game.ReturnToMenu();
+            }
+        }
+
+        private void DrawMainMenu()
+        {
+            float left = Screen.width * 0.5f - 240f;
+            float top = Screen.height * 0.5f - 170f;
+            GUIStyle heading = new GUIStyle(GUI.skin.label) { fontSize = 34, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold, normal = { textColor = new Color(1f, 0.78f, 0.32f) } };
+            GUIStyle copy = new GUIStyle(GUI.skin.label) { fontSize = 17, alignment = TextAnchor.MiddleCenter, normal = { textColor = Color.white } };
+            GUI.Box(new Rect(left, top, 480f, 340f), GUIContent.none);
+            GUI.Label(new Rect(left + 20f, top + 34f, 440f, 52f), "TD ANNIHILATION", heading);
+            GUI.Label(new Rect(left + 30f, top + 92f, 420f, 52f), "Defend the royal heart. Shape the battlefield. Hold the line.", copy);
+            if (GUI.Button(new Rect(left + 90f, top + 180f, 300f, 64f), "SOLO — GREENWARD STAGES")) game.StartSoloStages();
+            GUI.Label(new Rect(left + 50f, top + 270f, 380f, 30f), "Stages • Endless and progression coming next", copy);
         }
     }
 }
