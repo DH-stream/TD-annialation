@@ -1,0 +1,6 @@
+Downloaded 2026-09-09 from the official Poly Haven CDN:
+https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravel_stones/gravel_stones_diff_1k.jpg
+https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/gravel_stones/gravel_stones_nor_gl_1k.jpg
+
+Resolution: 1K
+Purpose: Greenward Valley gravel road albedo and normal detail.

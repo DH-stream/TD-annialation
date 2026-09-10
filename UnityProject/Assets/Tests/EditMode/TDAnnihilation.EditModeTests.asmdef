@@ -1,0 +1,6 @@
+{
+  "name": "TDAnnihilation.EditModeTests",
+  "references": ["TDAnnihilation.Runtime"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"]
+}

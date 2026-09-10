@@ -1,0 +1,652 @@
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+namespace TDAnnihilation
+{
+    public sealed class TDVerticalSliceBootstrap : MonoBehaviour
+    {
+        [Header("Free Quaternius art")]
+        [SerializeField] private GameObject warriorPrefab;
+        [SerializeField] private GameObject demonPrefab;
+
+        [Header("Slice tuning")]
+        [SerializeField] private int startingGold = 120;
+        [SerializeField] private int startingLives = 20;
+        [SerializeField] private int stageWaveCount = 3;
+
+        [Header("Authored scene references")]
+        [SerializeField] private Transform authoredWorldRoot;
+        [SerializeField] private Transform heroSpawnPoint;
+        [SerializeField] private Transform enemySpawnPoint;
+        [SerializeField] private Transform castleTarget;
+        [SerializeField] private Transform[] pathWaypoints;
+        [SerializeField] private Bounds buildArea = new Bounds(Vector3.zero, new Vector3(90f, 8f, 58f));
+
+        private readonly List<TDEnemyController> enemies = new List<TDEnemyController>();
+        private readonly List<Vector3> path = new List<Vector3>();
+        private TDResourceState state;
+        private TDTowerController tower;
+        private TDGameFlow flow;
+        private TDHeroController heroController;
+        private bool ready;
+        private readonly List<Transform> placedTowers = new List<Transform>();
+        private GameObject placementGhost;
+        private Material placementMaterial;
+        private bool placementMode;
+        private bool placementValid;
+        private float previewOverrideTimer;
+        private const int TowerCost = 40;
+
+        private void Awake()
+        {
+            if (ready) return;
+            Application.runInBackground = true;
+            ready = true;
+            state = gameObject.AddComponent<TDResourceState>();
+            flow = new TDGameFlow(stageWaveCount);
+            state.gold = startingGold;
+            state.lives = startingLives;
+            LoadArtIfNeeded();
+            LoadAuthoredArena();
+            Transform hero = SpawnHero();
+            heroController = hero.GetComponent<TDHeroController>();
+            SpawnTower(new Vector3(-5f, GreenwardWorldLayout.HeightAt(-5f, -2f) + 0.3f, -2f));
+            SpawnTower(new Vector3(22f, GreenwardWorldLayout.HeightAt(22f, 3f) + 0.3f, 3f));
+            Camera camera = Camera.main;
+            if (camera != null)
+            {
+                TDStrategicCamera strategic = camera.GetComponent<TDStrategicCamera>();
+                if (strategic == null) strategic = camera.gameObject.AddComponent<TDStrategicCamera>();
+                strategic.SetTarget(hero);
+                camera.fieldOfView = 62f;
+            }
+            GreenwardLightingBuilder.Configure(camera);
+            if (GetComponent<TDVerticalSliceHUD>() == null) gameObject.AddComponent<TDVerticalSliceHUD>();
+        }
+
+        private void Update()
+        {
+            enemies.RemoveAll(enemy => enemy == null);
+            if (state == null || flow == null) return;
+            HandlePlacementInput();
+            if (!placementMode && flow.Phase == TDGamePhase.Wave && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+                heroController?.Attack();
+            if (state.lives <= 0)
+            {
+                flow.Lose();
+                return;
+            }
+            if (flow.Phase == TDGamePhase.Wave && enemies.Count == 0) flow.CompleteWave();
+        }
+
+        private void LoadArtIfNeeded()
+        {
+            if (warriorPrefab == null) warriorPrefab = Resources.Load<GameObject>("TDAnnihilation/Warrior");
+            if (demonPrefab == null) demonPrefab = Resources.Load<GameObject>("TDAnnihilation/Demon");
+        }
+
+        private void LoadAuthoredArena()
+        {
+            path.Clear();
+            if (authoredWorldRoot == null)
+                Debug.LogError("Greenward authored scene is missing its static environment reference. Use TD Annihilation/Greenward/Bake Static Scene.");
+            if (pathWaypoints != null)
+                for (int i = 0; i < pathWaypoints.Length; i++)
+                    if (pathWaypoints[i] != null) path.Add(pathWaypoints[i].position);
+            if (castleTarget != null && path.Count > 0) path[path.Count - 1] = castleTarget.position;
+            if (path.Count < 2)
+            {
+                Debug.LogError("Greenward authored scene is missing path waypoints. Use TD Annihilation/Greenward/Bake Static Scene.");
+            }
+        }
+
+        private Transform SpawnHero()
+        {
+            Vector3 heroPosition = heroSpawnPoint != null
+                ? heroSpawnPoint.position
+                : new Vector3(4f, GreenwardWorldLayout.HeightAt(4f, 4f) + 0.25f, 4f);
+            GameObject hero = warriorPrefab != null
+                ? Instantiate(warriorPrefab, heroPosition, Quaternion.Euler(0f, 25f, 0f))
+                : MakePrimitive("Hero fallback", PrimitiveType.Capsule, heroPosition + Vector3.up, Vector3.one, new Color(0.12f, 0.28f, 0.42f));
+            hero.name = "Hero - Warden of Greenward";
+            hero.transform.localScale = Vector3.one * TDPresentationScale.Hero;
+            EnsureAnimator(hero, "Warrior");
+            if (hero.GetComponent<TDHeroController>() == null) hero.AddComponent<TDHeroController>();
+            ApplyFantasyPalette(hero, true);
+            return hero.transform;
+        }
+
+        private void SpawnTower(Vector3 position)
+        {
+            GameObject towerRoot = new GameObject("Arcane Watchtower");
+            towerRoot.transform.position = position;
+            MakePrimitive("Tower Base", PrimitiveType.Cylinder, towerRoot.transform.position + Vector3.up * 0.8f, new Vector3(1.5f, 1.6f, 1.5f), new Color(0.32f, 0.29f, 0.36f), towerRoot.transform);
+            MakePrimitive("Tower Rune", PrimitiveType.Sphere, towerRoot.transform.position + Vector3.up * 2.45f, Vector3.one * 0.75f, new Color(0.38f, 0.25f, 0.96f), towerRoot.transform);
+            tower = towerRoot.AddComponent<TDTowerController>();
+            tower.state = state;
+            tower.projectileColor = new Color(0.58f, 0.35f, 1f);
+            placedTowers.Add(towerRoot.transform);
+        }
+
+        private void HandlePlacementInput()
+        {
+            Keyboard keyboard = Keyboard.current;
+            Mouse mouse = Mouse.current;
+            if (keyboard != null && keyboard.bKey.wasPressedThisFrame) TogglePlacementMode();
+            if (!placementMode) return;
+            if ((keyboard != null && keyboard.escapeKey.wasPressedThisFrame) || (mouse != null && mouse.rightButton.wasPressedThisFrame))
+            {
+                ExitPlacementMode();
+                return;
+            }
+            if (previewOverrideTimer > 0f) previewOverrideTimer -= Time.deltaTime;
+            else UpdatePlacementGhost(mouse);
+            if (mouse != null && mouse.leftButton.wasPressedThisFrame && placementValid)
+                TryPlaceTowerAt(placementGhost.transform.position);
+        }
+
+        public void TogglePlacementMode()
+        {
+            if (placementMode) ExitPlacementMode();
+            else BeginPlacementMode();
+        }
+
+        public void BeginPlacementMode()
+        {
+            if (flow == null || flow.Phase != TDGamePhase.Build || state.gold < TowerCost) return;
+            placementMode = true;
+            EnsurePlacementGhost();
+            placementGhost.SetActive(false);
+        }
+
+        public void ExitPlacementMode()
+        {
+            placementMode = false;
+            placementValid = false;
+            if (placementGhost != null) placementGhost.SetActive(false);
+        }
+
+        public void PreviewPlacementAt(Vector3 worldPosition)
+        {
+            if (!placementMode) BeginPlacementMode();
+            if (!placementMode) return;
+            EnsurePlacementGhost();
+            previewOverrideTimer = 0.35f;
+            SetPlacementGhost(worldPosition);
+        }
+
+        public bool TryPlaceTowerAt(Vector3 worldPosition)
+        {
+            if (!placementMode) BeginPlacementMode();
+            if (!placementMode) return false;
+            SetPlacementGhost(worldPosition);
+            if (!placementValid || state.gold < TowerCost) return false;
+            state.gold -= TowerCost;
+            SpawnTower(placementGhost.transform.position);
+            ExitPlacementMode();
+            return true;
+        }
+
+        private void UpdatePlacementGhost(Mouse mouse)
+        {
+            if (mouse == null || Camera.main == null)
+            {
+                if (placementGhost != null) placementGhost.SetActive(false);
+                placementValid = false;
+                return;
+            }
+            Ray ray = Camera.main.ScreenPointToRay(mouse.position.ReadValue());
+            Plane plane = new Plane(Vector3.up, Vector3.zero);
+            if (!plane.Raycast(ray, out float distance))
+            {
+                placementGhost.SetActive(false);
+                placementValid = false;
+                return;
+            }
+            SetPlacementGhost(ray.GetPoint(distance));
+        }
+
+        private void SetPlacementGhost(Vector3 worldPosition)
+        {
+            EnsurePlacementGhost();
+            Vector3 position = new Vector3(worldPosition.x, GreenwardWorldLayout.HeightAt(worldPosition.x, worldPosition.z), worldPosition.z);
+            if (!buildArea.Contains(position))
+            {
+                placementGhost.SetActive(false);
+                placementValid = false;
+                return;
+            }
+            placementGhost.transform.position = position;
+            placementValid = CanPlaceTower(position);
+            placementMaterial.color = placementValid ? new Color(0.18f, 1f, 0.35f, 0.48f) : new Color(1f, 0.16f, 0.12f, 0.48f);
+            placementMaterial.SetColor("_BaseColor", placementMaterial.color);
+            placementGhost.SetActive(true);
+        }
+
+        private bool CanPlaceTower(Vector3 position)
+        {
+            Vector2 point = new Vector2(position.x, position.z);
+            GreenwardSurfaceRegion region = GreenwardWorldLayout.SurfaceRegionAt(point, path);
+            if (region == GreenwardSurfaceRegion.Road || region == GreenwardSurfaceRegion.Riverbank || region == GreenwardSurfaceRegion.Corruption || region == GreenwardSurfaceRegion.Castle) return false;
+            foreach (Transform towerRoot in placedTowers)
+                if (towerRoot != null && Vector3.Distance(towerRoot.position, position) < 3.5f) return false;
+            Collider[] obstacles = Physics.OverlapSphere(position + Vector3.up * 1.2f, 1.5f);
+            foreach (Collider obstacle in obstacles)
+                if (obstacle != null && !obstacle.transform.IsChildOf(placementGhost.transform)) return false;
+            return true;
+        }
+
+        private void EnsurePlacementGhost()
+        {
+            if (placementGhost != null) return;
+            placementGhost = new GameObject("Arcane Watchtower Placement Ghost");
+            GameObject basePart = MakePrimitive("Ghost Base", PrimitiveType.Cylinder, Vector3.up * 0.8f, new Vector3(1.5f, 1.6f, 1.5f), Color.white, placementGhost.transform);
+            GameObject runePart = MakePrimitive("Ghost Rune", PrimitiveType.Sphere, Vector3.up * 2.45f, Vector3.one * 0.75f, Color.white, placementGhost.transform);
+            placementMaterial = CreateGhostMaterial();
+            basePart.GetComponent<Renderer>().sharedMaterial = placementMaterial;
+            runePart.GetComponent<Renderer>().sharedMaterial = placementMaterial;
+            foreach (Collider collider in placementGhost.GetComponentsInChildren<Collider>()) Destroy(collider);
+            placementGhost.SetActive(false);
+        }
+
+        private static Material CreateGhostMaterial()
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) shader = Shader.Find("Unlit/Color");
+            Material material = new Material(shader) { name = "Tower Placement Ghost" };
+            material.color = new Color(0.18f, 1f, 0.35f, 0.48f);
+            material.SetFloat("_Surface", 1f);
+            material.SetFloat("_Blend", 0f);
+            material.SetFloat("_ZWrite", 0f);
+            material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+            return material;
+        }
+
+        private void SpawnWave(int count)
+        {
+            if (path.Count < 2)
+            {
+                Debug.LogError("Cannot spawn a wave because no authored path waypoints are assigned.");
+                return;
+            }
+            Vector3 spawn = enemySpawnPoint != null ? enemySpawnPoint.position : path[0];
+            for (int i = 0; i < count; i++)
+            {
+                int currentWave = flow == null ? 1 : flow.Wave;
+                bool spawnElite = currentWave > 1 && currentWave % 4 == 0 && i == count - 1;
+                TDEnemyArchetype archetype = spawnElite ? TDEnemyArchetype.Elite : TDEnemyArchetype.Raider;
+                GameObject enemyObject = demonPrefab != null
+                    ? Instantiate(demonPrefab, spawn + Vector3.up * (0.25f + i * 0.02f) + Vector3.back * i * 0.75f, Quaternion.Euler(0f, 90f, 0f))
+                    : MakePrimitive("Demon fallback", PrimitiveType.Capsule, spawn + Vector3.back * i * 0.75f, Vector3.one, new Color(0.48f, 0.09f, 0.09f));
+                enemyObject.name = (spawnElite ? "Elite Demon Brute " : "Demon Raider ") + (i + 1);
+                enemyObject.transform.localScale = Vector3.one * archetype.Scale;
+                EnsureAnimator(enemyObject, "Demon");
+                ApplyFantasyPalette(enemyObject, false);
+                TDEnemyController enemy = enemyObject.AddComponent<TDEnemyController>();
+                enemy.Configure(path.ToArray(), (30f + currentWave * 5f) * archetype.HealthMultiplier, 1.2f + currentWave * 0.05f, state);
+                enemies.Add(enemy);
+            }
+        }
+
+        private static void EnsureAnimator(GameObject root, string controllerName)
+        {
+            Animator animator = root.GetComponentInChildren<Animator>();
+            if (animator == null) animator = root.AddComponent<Animator>();
+            string resourceName = controllerName == "Warrior" && Resources.Load<RuntimeAnimatorController>("TDAnnihilation/WarriorRpg") != null
+                ? "TDAnnihilation/WarriorRpg"
+                : "TDAnnihilation/" + controllerName;
+            animator.runtimeAnimatorController = Resources.Load<RuntimeAnimatorController>(resourceName);
+            animator.enabled = true;
+        }
+
+        private static void ApplyFantasyPalette(GameObject root, bool hero)
+        {
+            foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
+            {
+                string part = renderer.name.ToLowerInvariant();
+                Color color;
+                if (hero)
+                {
+                    color = part.Contains("face") ? new Color(0.82f, 0.49f, 0.30f) :
+                        part.Contains("sword") ? new Color(0.72f, 0.82f, 0.92f) :
+                        part.Contains("shoulder") ? new Color(0.86f, 0.58f, 0.16f) :
+                        new Color(0.12f, 0.28f, 0.42f);
+                }
+                else
+                {
+                    color = part.Contains("trident") ? new Color(0.16f, 0.13f, 0.18f) :
+                        new Color(0.48f, 0.08f, 0.08f);
+                }
+                renderer.material.color = color;
+            }
+        }
+
+        private static GameObject MakePrimitive(string objectName, PrimitiveType primitive, Vector3 position, Vector3 scale, Color color, Transform parent = null)
+        {
+            GameObject item = GameObject.CreatePrimitive(primitive);
+            item.name = objectName;
+            item.transform.position = position;
+            item.transform.localScale = scale;
+            if (parent != null) item.transform.SetParent(parent, true);
+            Renderer renderer = item.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                Material material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                material.color = color;
+                renderer.sharedMaterial = material;
+            }
+            return item;
+        }
+
+        public void RegisterEnemy(TDEnemyController enemy) => enemies.Remove(enemy);
+        public IReadOnlyList<Vector3> Path => path;
+        public TDResourceState State => state;
+        public void StartSoloStages()
+        {
+            state.gold = startingGold;
+            state.lives = startingLives;
+            state.defeated = 0;
+            flow.SelectSoloStages();
+        }
+
+        public void StartNextWave()
+        {
+            if (flow.Phase != TDGamePhase.Build) return;
+            flow.StartWave();
+            SpawnWave(4 + flow.Wave);
+        }
+
+        public void ReturnToMenu() => flow.ReturnToMenu();
+        public int CurrentWave => flow == null ? 0 : flow.Wave;
+        public TDGamePhase Phase => flow == null ? TDGamePhase.MainMenu : flow.Phase;
+    }
+
+    public sealed class TDResourceState : MonoBehaviour
+    {
+        public int gold;
+        public int lives;
+        public int defeated;
+    }
+
+    public sealed class TDEnemyController : MonoBehaviour
+    {
+        private Vector3[] path;
+        private TDResourceState state;
+        private float health;
+        private float speed;
+        private int waypoint;
+        private Animator animator;
+
+        public void Configure(Vector3[] route, float maxHealth, float moveSpeed, TDResourceState resourceState)
+        {
+            path = route;
+            health = maxHealth;
+            speed = moveSpeed;
+            state = resourceState;
+            animator = GetComponentInChildren<Animator>();
+            if (animator != null)
+            {
+                animator.applyRootMotion = false;
+                animator.speed = 1f;
+                animator.Play("Walk", 0, 0f);
+            }
+        }
+
+        private void Update()
+        {
+            if (path == null || waypoint >= path.Length) return;
+            Vector3 destination = path[waypoint];
+            transform.position = Vector3.MoveTowards(transform.position, destination, speed * Time.deltaTime);
+            Vector3 direction = destination - transform.position;
+            if (direction.sqrMagnitude > 0.05f) transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(direction), Time.deltaTime * 8f);
+            if (Vector3.Distance(transform.position, destination) < 0.18f)
+            {
+                waypoint++;
+                if (waypoint >= path.Length) ReachGate();
+            }
+        }
+
+        public void TakeDamage(float amount)
+        {
+            health -= amount;
+            if (health <= 0f) Defeat();
+        }
+
+        public int WaypointIndex => waypoint;
+        public float AnimatorNormalizedTime => animator == null ? -1f : animator.GetCurrentAnimatorStateInfo(0).normalizedTime;
+
+        private void ReachGate()
+        {
+            if (state != null) state.lives--;
+            Destroy(gameObject);
+        }
+
+        private void Defeat()
+        {
+            if (state != null)
+            {
+                state.defeated++;
+            }
+            SpawnCoin();
+            Destroy(gameObject);
+        }
+
+        private void SpawnCoin()
+        {
+            GameObject coin = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            coin.name = "Coin Drop";
+            coin.transform.position = transform.position + Vector3.up * 0.8f;
+            coin.transform.localScale = new Vector3(0.22f, 0.08f, 0.22f);
+            coin.GetComponent<Renderer>().sharedMaterial = MakeMaterial(new Color(1f, 0.72f, 0.1f));
+            coin.AddComponent<TDCoinPickup>().Configure(state, 12);
+        }
+
+        private static Material MakeMaterial(Color color)
+        {
+            Material material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            material.color = color;
+            return material;
+        }
+    }
+
+    public sealed class TDTowerController : MonoBehaviour
+    {
+        [HideInInspector] public TDResourceState state;
+        [HideInInspector] public Color projectileColor = Color.magenta;
+        [SerializeField] private float range = 8f;
+        [SerializeField] private float fireRate = 1.1f;
+        private float cooldown;
+
+        private void Update()
+        {
+            cooldown -= Time.deltaTime;
+            if (cooldown > 0f) return;
+            TDEnemyController[] targets = FindObjectsByType<TDEnemyController>();
+            TDEnemyController nearest = null;
+            float best = range * range;
+            foreach (TDEnemyController target in targets)
+            {
+                float distance = (target.transform.position - transform.position).sqrMagnitude;
+                if (distance < best) { best = distance; nearest = target; }
+            }
+            if (nearest == null) return;
+            cooldown = fireRate;
+            GameObject projectile = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            projectile.name = "Arcane Bolt";
+            projectile.transform.position = transform.position + Vector3.up * 2.4f;
+            projectile.transform.localScale = Vector3.one * 0.24f;
+            projectile.GetComponent<Renderer>().sharedMaterial = MakeMaterial(projectileColor);
+            projectile.AddComponent<TDProjectile>().Configure(nearest, 16f);
+        }
+
+        private static Material MakeMaterial(Color color)
+        {
+            Material material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            material.color = color;
+            return material;
+        }
+    }
+
+    public sealed class TDProjectile : MonoBehaviour
+    {
+        private TDEnemyController target;
+        private float damage;
+
+        public void Configure(TDEnemyController enemy, float hitDamage)
+        {
+            target = enemy;
+            damage = hitDamage;
+        }
+
+        private void Update()
+        {
+            if (target == null) { Destroy(gameObject); return; }
+            transform.position = Vector3.MoveTowards(transform.position, target.transform.position + Vector3.up, 13f * Time.deltaTime);
+            if (Vector3.Distance(transform.position, target.transform.position + Vector3.up) < 0.25f)
+            {
+                target.TakeDamage(damage);
+                Destroy(gameObject);
+            }
+        }
+    }
+
+    public sealed class TDCoinPickup : MonoBehaviour
+    {
+        [SerializeField] private float magnetRadius = 5.5f;
+        [SerializeField] private float magnetSpeed = 12f;
+        [SerializeField] private float magnetAcceleration = 30f;
+        private float lifetime = 8f;
+        private float currentSpeed;
+        private float collectTimer;
+        private bool collecting;
+        private Vector3 initialScale;
+        private TDResourceState state;
+        private int value;
+        private Transform hero;
+
+        public void Configure(TDResourceState resource, int coinValue)
+        {
+            state = resource;
+            value = coinValue;
+            initialScale = transform.localScale;
+        }
+
+        private void Update()
+        {
+            if (hero == null)
+            {
+                TDHeroController heroController = FindAnyObjectByType<TDHeroController>();
+                if (heroController != null) hero = heroController.transform;
+            }
+            if (collectTimer <= 0f && !collecting && hero != null && Vector3.Distance(transform.position, hero.position) <= magnetRadius) collecting = true;
+            if (collecting && hero != null)
+            {
+                currentSpeed = Mathf.MoveTowards(currentSpeed, magnetSpeed, magnetAcceleration * Time.deltaTime);
+                transform.position = Vector3.MoveTowards(transform.position, hero.position + Vector3.up * 0.7f, currentSpeed * Time.deltaTime);
+                if (Vector3.Distance(transform.position, hero.position + Vector3.up * 0.7f) <= 0.45f)
+                {
+                    collecting = false;
+                    collectTimer = 0.0001f;
+                    GetComponent<Collider>().enabled = false;
+                }
+            }
+            if (collectTimer > 0f)
+            {
+                collectTimer += Time.deltaTime;
+                float t = collectTimer < 0.08f ? collectTimer / 0.08f : 1f - Mathf.Clamp01((collectTimer - 0.08f) / 0.10f);
+                transform.localScale = initialScale * Mathf.Lerp(1f, 1.7f, Mathf.Clamp01(t));
+                if (collectTimer >= 0.18f)
+                {
+                    if (state != null) state.gold += value;
+                    SpawnBurst(transform.position);
+                    Destroy(gameObject);
+                }
+                return;
+            }
+            transform.Rotate(0f, 180f * Time.deltaTime, 0f);
+            transform.position += Vector3.up * Mathf.Sin(Time.time * 4f) * Time.deltaTime * 0.06f;
+            lifetime -= Time.deltaTime;
+            if (lifetime <= 0f) Destroy(gameObject);
+        }
+
+        private static void SpawnBurst(Vector3 position)
+        {
+            GameObject burst = new GameObject("Coin Pickup Burst");
+            burst.transform.position = position;
+            ParticleSystem particles = burst.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = particles.main;
+            main.playOnAwake = false;
+            main.duration = 0.2f;
+            main.startLifetime = 0.35f;
+            main.startSpeed = 3.2f;
+            main.startSize = 0.12f;
+            main.startColor = new Color(1f, 0.78f, 0.18f, 1f);
+            main.maxParticles = 12;
+            var emission = particles.emission;
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 8) });
+            var shape = particles.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 0.1f;
+            ParticleSystemRenderer renderer = burst.GetComponent<ParticleSystemRenderer>();
+            Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            if (shader == null) shader = Shader.Find("Unlit/Color");
+            renderer.material = new Material(shader);
+            renderer.material.color = new Color(1f, 0.78f, 0.18f, 1f);
+            particles.Play();
+            Destroy(burst, 0.6f);
+        }
+    }
+
+    public sealed class TDVerticalSliceHUD : MonoBehaviour
+    {
+        private TDVerticalSliceBootstrap game;
+        private void Start() => game = FindAnyObjectByType<TDVerticalSliceBootstrap>();
+
+        private void OnGUI()
+        {
+            if (game == null || game.State == null) return;
+            if (game.Phase == TDGamePhase.MainMenu)
+            {
+                DrawMainMenu();
+                return;
+            }
+            GUIStyle title = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold, normal = { textColor = Color.white } };
+            GUIStyle body = new GUIStyle(GUI.skin.label) { fontSize = 16, normal = { textColor = Color.white } };
+            GUI.Box(new Rect(18f, 18f, 280f, 128f), GUIContent.none);
+            GUI.Label(new Rect(34f, 28f, 250f, 30f), "GREENWARD WATCH", title);
+            GUI.Label(new Rect(34f, 64f, 250f, 24f), "Gold  " + game.State.gold + "     Lives  " + game.State.lives, body);
+            GUI.Label(new Rect(34f, 90f, 250f, 24f), "Wave  " + game.CurrentWave + "     Defeated  " + game.State.defeated, body);
+            GUI.Label(new Rect(34f, 116f, 250f, 24f), "Arcane tower online", body);
+            if (game.Phase == TDGamePhase.Build)
+            {
+                if (GUI.Button(new Rect(18f, 158f, 180f, 42f), "BUILD TOWER (B)")) game.TogglePlacementMode();
+                if (GUI.Button(new Rect(18f, 206f, 180f, 42f), "START NEXT WAVE")) game.StartNextWave();
+                GUI.Label(new Rect(210f, 169f, 190f, 30f), "Cost 40 gold", body);
+            }
+            if (game.Phase == TDGamePhase.Victory || game.Phase == TDGamePhase.Defeat)
+            {
+                string result = game.Phase == TDGamePhase.Victory ? "GREENWARD DEFENDED" : "GREENWARD HAS FALLEN";
+                GUI.Box(new Rect(Screen.width * 0.5f - 190f, Screen.height * 0.5f - 90f, 380f, 180f), GUIContent.none);
+                GUI.Label(new Rect(Screen.width * 0.5f - 145f, Screen.height * 0.5f - 55f, 310f, 38f), result, title);
+                if (GUI.Button(new Rect(Screen.width * 0.5f - 100f, Screen.height * 0.5f + 18f, 200f, 44f), "RETURN TO MENU")) game.ReturnToMenu();
+            }
+        }
+
+        private void DrawMainMenu()
+        {
+            float left = Screen.width * 0.5f - 240f;
+            float top = Screen.height * 0.5f - 170f;
+            GUIStyle heading = new GUIStyle(GUI.skin.label) { fontSize = 34, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold, normal = { textColor = new Color(1f, 0.78f, 0.32f) } };
+            GUIStyle copy = new GUIStyle(GUI.skin.label) { fontSize = 17, alignment = TextAnchor.MiddleCenter, normal = { textColor = Color.white } };
+            GUI.Box(new Rect(left, top, 480f, 340f), GUIContent.none);
+            GUI.Label(new Rect(left + 20f, top + 34f, 440f, 52f), "TD ANNIHILATION", heading);
+            GUI.Label(new Rect(left + 30f, top + 92f, 420f, 52f), "Defend the royal heart. Shape the battlefield. Hold the line.", copy);
+            if (GUI.Button(new Rect(left + 90f, top + 180f, 300f, 64f), "SOLO — GREENWARD STAGES")) game.StartSoloStages();
+            GUI.Label(new Rect(left + 50f, top + 270f, 380f, 30f), "Stages • Endless and progression coming next", copy);
+        }
+    }
+}
