@@ -8,6 +8,7 @@ namespace TDAnnihilation
         [SerializeField] private Vector3 shelterPosition;
         [SerializeField] private float returnSpeed = 0.85f;
         [SerializeField] private float fleeSpeed = 1.35f;
+        [SerializeField] private bool useFreshPrototype = true;
 
         private TDVerticalSliceBootstrap game;
         private Animator animator;
@@ -29,6 +30,18 @@ namespace TDAnnihilation
             hasSpeed = HasParameter("Speed", AnimatorControllerParameterType.Float);
             hasScared = HasParameter("Scared", AnimatorControllerParameterType.Bool);
             hasWorking = HasParameter("Working", AnimatorControllerParameterType.Bool);
+
+            if (useFreshPrototype && GetComponent<GreenwardVillagerPrototype>() == null)
+            {
+                if (animator != null)
+                {
+                    foreach (Renderer renderer in GetComponentsInChildren<Renderer>(true))
+                        renderer.enabled = false;
+                    animator.enabled = false;
+                }
+
+                gameObject.AddComponent<GreenwardVillagerPrototype>();
+            }
         }
 
         private void Start()
@@ -44,8 +57,9 @@ namespace TDAnnihilation
             if (wave != waveState)
             {
                 waveState = wave;
-                if (hasScared) animator.SetBool("Scared", wave);
+                if (hasScared && animator != null) animator.SetBool("Scared", wave);
             }
+
             Vector3 destination = wave ? shelterPosition : workPosition;
             Vector3 delta = destination - transform.position;
             delta.y = 0f;
@@ -58,8 +72,11 @@ namespace TDAnnihilation
                 transform.position = next;
                 transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(delta), Time.deltaTime * 6f);
             }
-            if (animator != null && hasSpeed) animator.SetFloat("Speed", moving ? (wave ? 1.2f : 0.6f) : 0f, 0.15f, Time.deltaTime);
-            if (animator != null && hasWorking) animator.SetBool("Working", !wave && !moving);
+
+            if (animator != null && animator.enabled && hasSpeed)
+                animator.SetFloat("Speed", moving ? (wave ? 1.2f : 0.6f) : 0f, 0.15f, Time.deltaTime);
+            if (animator != null && animator.enabled && hasWorking)
+                animator.SetBool("Working", !wave && !moving);
         }
 
         private bool HasParameter(string name, AnimatorControllerParameterType type)
