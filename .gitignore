@@ -1,0 +1,30 @@
+# Web dependencies and generated output
+node_modules/
+dist/
+.vite/
+.playwright-cli/
+.superpowers/
+output/
+*.tsbuildinfo
+
+# Unity generated state
+UnityProject/[Ll]ibrary/
+UnityProject/[Tt]emp/
+UnityProject/[Oo]bj/
+UnityProject/[Bb]uild/
+UnityProject/[Bb]uilds/
+UnityProject/[Ll]ogs/
+UnityProject/[Uu]ser[Ss]ettings/
+UnityProject/MemoryCaptures/
+UnityProject/Recordings/
+UnityProject/Assets/Innerverseinteractive/
+
+
+# IDE state
+.vs/
+.idea/
+.vscode/
+*.csproj
+*.sln
+*.suo
+*.user

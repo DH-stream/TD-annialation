@@ -1,0 +1,6 @@
+Quaternius Medieval Village Pack (December 2020)
+https://quaternius.com/packs/medievalvillage.html
+Mirror used for the original CC0 archive:
+https://opengameart.org/content/lowpoly-medieval-village-pack
+
+Imported 2026-09-09. Selected FBX files only; unused source formats and duplicate models were intentionally excluded.
