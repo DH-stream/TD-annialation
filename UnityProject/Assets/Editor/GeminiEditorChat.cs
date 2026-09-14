@@ -1,20 +1,109 @@
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.Networking;
-using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using System.Reflection;
 using System;
+using System.Linq;
+using System.Text;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
+[InitializeOnLoad]
 public class GeminiEditorChat : EditorWindow
 {
-    private string apiKey = "";
-    private string userInstruction = "";
-    private string chatHistory = "AI Agent redo! Jag har tillgång till hela Unity Editor API:et via C#-skript.\n";
+    [Serializable]
+    private class ChatTurn
+    {
+        public string role; // "user" or "model"
+        public string text;
+    }
+
+    [SerializeField] private string apiKey = "";
+    [SerializeField] private string userInstruction = "";
+    [SerializeField] private List<ChatTurn> conversation = new List<ChatTurn>();
+    [SerializeField] private string lastResponseText = "";
+    [SerializeField] private string lastRawResponseJson = "";
+    [SerializeField] private string lastPromptSent = "";
+
     private Vector2 scrollPosChat;
     private Vector2 scrollPosInput;
     private bool isWorking = false;
+
+    private const string SessionKeyPendingType = "GeminiPendingExecuteType";
+    private const string SessionKeyPendingFile = "GeminiPendingTempFile";
+
+    // [InitializeOnLoad] guarantees this static constructor re-runs after every
+    // domain reload, so this subscription is always restored even though plain
+    // event subscriptions do not survive a reload on their own.
+    static GeminiEditorChat()
+    {
+        AssemblyReloadEvents.afterAssemblyReload += RunPendingExecution;
+    }
+
+    private static void RunPendingExecution()
+    {
+        string pendingType = SessionState.GetString(SessionKeyPendingType, "");
+        if (string.IsNullOrEmpty(pendingType))
+        {
+            return;
+        }
+
+        SessionState.EraseString(SessionKeyPendingType);
+        string tempFilePath = SessionState.GetString(SessionKeyPendingFile, "");
+        SessionState.EraseString(SessionKeyPendingFile);
+
+        GeminiEditorChat window = Resources.FindObjectsOfTypeAll<GeminiEditorChat>().FirstOrDefault();
+
+        try
+        {
+            Type type = Type.GetType(pendingType);
+            if (type == null)
+            {
+                // Type.GetType only checks the calling assembly + mscorlib by default;
+                // search every loaded assembly too before giving up.
+                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    type = asm.GetType(pendingType);
+                    if (type != null)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            if (type == null)
+            {
+                window?.AppendMessage("model", "Koden kompilerades inte (typen hittades inte efter omladdning). Kolla Unity Console för exakta kompilatorfel.");
+                return;
+            }
+
+            MethodInfo method = type.GetMethod("Execute", BindingFlags.Public | BindingFlags.Static);
+            if (method == null)
+            {
+                window?.AppendMessage("model", "Hittade ingen Execute-metod i den genererade klassen.");
+                return;
+            }
+
+            method.Invoke(null, null);
+            window?.AppendMessage("model", "Åtgärden utfördes!");
+        }
+        catch (TargetInvocationException tie)
+        {
+            window?.AppendMessage("model", "Körningsfel: " + (tie.InnerException != null ? tie.InnerException.ToString() : tie.ToString()));
+        }
+        catch (Exception e)
+        {
+            window?.AppendMessage("model", "Körningsfel: " + e.Message);
+        }
+        finally
+        {
+            if (!string.IsNullOrEmpty(tempFilePath) && System.IO.File.Exists(tempFilePath))
+            {
+                AssetDatabase.DeleteAsset(tempFilePath);
+            }
+        }
+    }
 
     [MenuItem("Tools/Gemini AI Agent")]
     public static void ShowWindow()
@@ -25,13 +114,26 @@ public class GeminiEditorChat : EditorWindow
     private void OnEnable()
     {
         apiKey = EditorPrefs.GetString("Gemini_API_Key", "");
+        if (conversation == null)
+        {
+            conversation = new List<ChatTurn>();
+        }
+    }
+
+    private void AppendMessage(string role, string text)
+    {
+        conversation.Add(new ChatTurn { role = role, text = text });
+        if (role == "model")
+        {
+            lastResponseText = text;
+        }
+        Repaint();
     }
 
     private void OnGUI()
     {
         GUILayout.Label("Gemini Unity MCP Agent", EditorStyles.boldLabel);
 
-        // API Key Fält
         EditorGUI.BeginChangeCheck();
         apiKey = EditorGUILayout.PasswordField("API Key:", apiKey);
         if (EditorGUI.EndChangeCheck())
@@ -41,22 +143,31 @@ public class GeminiEditorChat : EditorWindow
 
         EditorGUILayout.Space();
 
-        // Chatt-historik (Expanderar för att fylla utrymmet)
+        // Plain chat log -- no pills/bubbles/borders, just a bold sender label above
+        // wrapped message text, similar to a normal AI chat transcript.
+        GUIStyle senderStyle = new GUIStyle(EditorStyles.boldLabel);
+        GUIStyle textStyle = new GUIStyle(EditorStyles.wordWrappedLabel) { richText = false };
+
         scrollPosChat = EditorGUILayout.BeginScrollView(scrollPosChat, GUILayout.ExpandHeight(true));
-        EditorGUILayout.TextArea(chatHistory, GUILayout.ExpandHeight(true));
+        if (conversation.Count == 0)
+        {
+            EditorGUILayout.LabelField("AI Agent redo! Jag har tillgång till hela Unity Editor API:et via C#-skript.", textStyle);
+        }
+        foreach (var turn in conversation)
+        {
+            string sender = turn.role == "user" ? "Du" : "AI";
+            EditorGUILayout.LabelField(sender, senderStyle);
+            EditorGUILayout.LabelField(turn.text, textStyle);
+            EditorGUILayout.Space(10);
+        }
         EditorGUILayout.EndScrollView();
 
         EditorGUILayout.Space();
 
-        // Expanderande Input-ruta
         GUILayout.Label("Instruktion till AI:", EditorStyles.label);
-        
-        GUIStyle textAreaStyle = new GUIStyle(EditorStyles.textArea) 
-        { 
-            wordWrap = true 
-        };
-        
-        // Beräkna höjden dynamiskt baserat på antal rader i texten (Mellan 50px och 150px)
+
+        GUIStyle textAreaStyle = new GUIStyle(EditorStyles.textArea) { wordWrap = true };
+
         int lineCount = userInstruction.Split('\n').Length;
         float calculatedHeight = Mathf.Clamp(lineCount * 18 + 25, 50, 150);
 
@@ -66,31 +177,63 @@ public class GeminiEditorChat : EditorWindow
 
         EditorGUILayout.Space();
 
-        // Knappen Verkställ
+        EditorGUILayout.BeginHorizontal();
+
         GUI.enabled = !isWorking && !string.IsNullOrEmpty(apiKey.Trim()) && !string.IsNullOrEmpty(userInstruction.Trim());
-        if (GUILayout.Button(isWorking ? "Tänker..." : "Verkställ i Unity", GUILayout.Height(30)))
+        if (GUILayout.Button(isWorking ? "Tänker..." : "Skicka", GUILayout.Height(30)))
         {
-            chatHistory += "\nDu: " + userInstruction + "\n";
             string currentPrompt = userInstruction;
             userInstruction = "";
-            GUI.FocusControl(null); // Töm fokus från textrutan
-            StartAsyncProcess(currentPrompt);
+            GUI.FocusControl(null);
+            AppendMessage("user", currentPrompt);
+            StartAsyncProcess();
         }
         GUI.enabled = true;
+
+        GUI.enabled = !string.IsNullOrEmpty(lastResponseText);
+        if (GUILayout.Button("Exportera senaste svar (JSON)", GUILayout.Height(30), GUILayout.Width(220)))
+        {
+            ExportLastResponseAsJson();
+        }
+        GUI.enabled = true;
+
+        EditorGUILayout.EndHorizontal();
     }
 
-    private void StartAsyncProcess(string prompt)
+    private void ExportLastResponseAsJson()
+    {
+        string path = EditorUtility.SaveFilePanel("Exportera senaste AI-svar", Application.dataPath, "gemini_last_response", "json");
+        if (string.IsNullOrEmpty(path))
+        {
+            return;
+        }
+
+        var export = new
+        {
+            timestamp = DateTime.UtcNow.ToString("o"),
+            prompt = lastPromptSent,
+            extractedResponse = lastResponseText,
+            rawApiResponse = lastRawResponseJson
+        };
+
+        string json = JsonConvert.SerializeObject(export, Formatting.Indented);
+        System.IO.File.WriteAllText(path, json);
+        EditorUtility.RevealInFinder(path);
+    }
+
+    private void StartAsyncProcess()
     {
         isWorking = true;
         Repaint();
 
-        // Rensa bort osynliga tecken och mellanslag som kan ge 404
         string cleanKey = apiKey.Trim();
-
         string sceneContext = GetSceneContext();
-        string systemPrompt = @"
-Du är en expertnivå-agent i Unity Editor. Du ska generera Ren C#-kod som ska exekveras direkt i Unity Editor.
+
+        string systemPrompt =
+@"Du är en expertnivå-agent i Unity Editor. Du för en pågående konversation med användaren
+och ska generera ren C#-kod som exekveras direkt i Unity Editor för varje uppgift.
 Svara BARA med giltig C#-kod omsluten av ```csharp och ```. Ingen annan förklarande text före eller efter.
+Använd tidigare meddelanden i konversationen som kontext när det är relevant för uppgiften.
 
 Koden MÅSTE följa denna struktur exakt:
 using UnityEngine;
@@ -107,18 +250,10 @@ public class TemporaryGeminiAction
 Nuvarande scen-status:
 " + sceneContext;
 
-        string fullPrompt = systemPrompt + "\n\nUppgift att utföra: " + prompt;
-        
-        // gemini-1.5-flash is no longer available for new API requests.
+        lastPromptSent = conversation.Count > 0 ? conversation[conversation.Count - 1].text : "";
+
         string url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + cleanKey;
-        
-        string escapedPrompt = fullPrompt.Replace("\\", "\\\\")
-                                         .Replace("\"", "\\\"")
-                                         .Replace("\n", "\\n")
-                                         .Replace("\r", "")
-                                         .Replace("\t", "\\t");
-                                         
-        string jsonBody = "{\"contents\":[{\"parts\":[{\"text\":\"" + escapedPrompt + "\"}]}]}";
+        string jsonBody = BuildRequestBody(systemPrompt);
 
         UnityWebRequest www = new UnityWebRequest(url, "POST");
         byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonBody);
@@ -129,21 +264,42 @@ Nuvarande scen-status:
         var asyncOp = www.SendWebRequest();
         asyncOp.completed += (op) =>
         {
+            lastRawResponseJson = www.downloadHandler != null ? www.downloadHandler.text : "";
+
             if (www.result == UnityWebRequest.Result.Success)
             {
-                string responseText = ExtractTextFromGeminiResponse(www.downloadHandler.text);
-                chatHistory += "AI: Genererade kod. Exekverar...\n";
+                string responseText = ExtractTextFromGeminiResponse(lastRawResponseJson);
+                AppendMessage("model", responseText);
                 ExecuteCSharpCode(responseText);
             }
             else
             {
-                string responseDetails = www.downloadHandler != null ? www.downloadHandler.text : "";
-                chatHistory += "AI Fel (" + www.responseCode + "): " + www.error + "\n" + responseDetails + "\n";
+                AppendMessage("model", "Fel (" + www.responseCode + "): " + www.error + "\n" + lastRawResponseJson);
             }
             www.Dispose();
             isWorking = false;
             Repaint();
         };
+    }
+
+    // Building the request via Newtonsoft.Json (instead of hand-escaped string
+    // concatenation) removes the whole class of "unterminated string" bugs we hit
+    // earlier -- the serializer handles every quote/newline/backslash correctly.
+    private string BuildRequestBody(string systemPrompt)
+    {
+        var contents = conversation.Select(t => new
+        {
+            role = t.role == "user" ? "user" : "model",
+            parts = new[] { new { text = t.text } }
+        }).ToArray();
+
+        var body = new
+        {
+            systemInstruction = new { parts = new[] { new { text = systemPrompt } } },
+            contents = contents
+        };
+
+        return JsonConvert.SerializeObject(body);
     }
 
     private string GetSceneContext()
@@ -161,20 +317,17 @@ Nuvarande scen-status:
     {
         try
         {
-            int textStartIndex = rawJson.IndexOf("\"text\": \"") + 9;
-            if (textStartIndex < 9) return "";
-            
-            int textEndIndex = rawJson.IndexOf("\"}\n", textStartIndex);
-            if (textEndIndex == -1) textEndIndex = rawJson.IndexOf("\"}", textStartIndex);
-
-            string text = rawJson.Substring(textStartIndex, textEndIndex - textStartIndex);
-            text = System.Text.RegularExpressions.Regex.Unescape(text);
+            JObject obj = JObject.Parse(rawJson);
+            string text = (string)obj["candidates"]?[0]?["content"]?["parts"]?[0]?["text"] ?? "";
 
             if (text.Contains("```csharp"))
             {
                 int codeStart = text.IndexOf("```csharp") + 9;
                 int codeEnd = text.IndexOf("```", codeStart);
-                text = text.Substring(codeStart, codeEnd - codeStart);
+                if (codeEnd > codeStart)
+                {
+                    text = text.Substring(codeStart, codeEnd - codeStart);
+                }
             }
             return text.Trim();
         }
@@ -189,7 +342,7 @@ Nuvarande scen-status:
     {
         if (string.IsNullOrEmpty(code))
         {
-            chatHistory += "AI: Koden var tom eller kunde inte tolkas.\n";
+            AppendMessage("model", "Koden var tom eller kunde inte tolkas.");
             return;
         }
 
@@ -197,26 +350,18 @@ Nuvarande scen-status:
         {
             string tempFilePath = "Assets/Editor/TempGeminiAction.cs";
             System.IO.File.WriteAllText(tempFilePath, code);
-            AssetDatabase.Refresh();
 
-            EditorApplication.delayCall += () =>
-            {
-                Type type = Type.GetType("TemporaryGeminiAction");
-                if (type != null)
-                {
-                    MethodInfo method = type.GetMethod("Execute", BindingFlags.Public | BindingFlags.Static);
-                    if (method != null)
-                    {
-                        method.Invoke(null, null);
-                        chatHistory += "AI: Åtgärden utfördes!\n";
-                    }
-                }
-                AssetDatabase.DeleteAsset(tempFilePath);
-            };
+            // Persist what to run once compilation + domain reload are truly finished --
+            // a plain delayCall fires after one frame, long before that's actually true.
+            SessionState.SetString(SessionKeyPendingType, "TemporaryGeminiAction");
+            SessionState.SetString(SessionKeyPendingFile, tempFilePath);
+
+            AppendMessage("model", "Kompilerar och kör efter omladdning...");
+            AssetDatabase.Refresh();
         }
         catch (Exception e)
         {
-            chatHistory += "Kompileringsfel: " + e.Message + "\n";
+            AppendMessage("model", "Genereringsfel: " + e.Message);
             Debug.LogError(e);
         }
     }
