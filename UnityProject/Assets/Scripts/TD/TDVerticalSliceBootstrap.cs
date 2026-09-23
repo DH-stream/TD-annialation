@@ -103,16 +103,66 @@ namespace TDAnnihilation
 
         private Transform SpawnHero()
         {
+            // Check if a hero already exists in the scene (placed by editor)
+            TDHeroController existingHero = FindAnyObjectByType<TDHeroController>();
+            if (existingHero != null)
+            {
+                Debug.Log("Found existing hero in scene: " + existingHero.gameObject.name);
+                return existingHero.transform;
+            }
+
             Vector3 heroPosition = heroSpawnPoint != null
                 ? heroSpawnPoint.position
                 : new Vector3(4f, GreenwardWorldLayout.HeightAt(4f, 4f) + 0.25f, 4f);
-            GameObject hero = warriorPrefab != null
-                ? Instantiate(warriorPrefab, heroPosition, Quaternion.Euler(0f, 25f, 0f))
-                : MakePrimitive("Hero fallback", PrimitiveType.Capsule, heroPosition + Vector3.up, Vector3.one, new Color(0.12f, 0.28f, 0.42f));
+            
+            GameObject hero = null;
+            
+            // Try to load the evenlowerpoly model first
+            #if UNITY_EDITOR
+            GameObject evenLowerPolyPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Main Char/evenlowerpoly.fbx");
+            if (evenLowerPolyPrefab != null)
+            {
+                hero = Instantiate(evenLowerPolyPrefab, heroPosition, Quaternion.Euler(0f, 25f, 0f));
+                Debug.Log("Spawned evenlowerpoly model as hero");
+            }
+            #endif
+            
+            // Fall back to warrior prefab if available
+            if (hero == null && warriorPrefab != null)
+            {
+                hero = Instantiate(warriorPrefab, heroPosition, Quaternion.Euler(0f, 25f, 0f));
+                Debug.Log("Spawned warrior prefab as hero");
+            }
+            
+            // Create fallback if neither is available
+            if (hero == null)
+            {
+                hero = MakePrimitive("Hero fallback", PrimitiveType.Capsule, heroPosition + Vector3.up, Vector3.one, new Color(0.12f, 0.28f, 0.42f));
+                Debug.LogWarning("Using capsule fallback for hero - no model found");
+            }
+            
             hero.name = "Hero - Warden of Greenward";
             hero.transform.localScale = Vector3.one * TDPresentationScale.Hero;
-            EnsureAnimator(hero, "Warrior");
-            if (hero.GetComponent<TDHeroController>() == null) hero.AddComponent<TDHeroController>();
+            
+            // Ensure hero has an Animator component (evenlowerpoly model may not have one)
+            Animator animator = hero.GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = hero.GetComponentInChildren<Animator>();
+                if (animator == null)
+                {
+                    animator = hero.AddComponent<Animator>();
+                    Debug.Log("Added Animator component to hero root");
+                }
+            }
+            
+            // Now add TDHeroController - it will initialize the animator in its Awake
+            if (hero.GetComponent<TDHeroController>() == null) 
+            {
+                hero.AddComponent<TDHeroController>();
+            }
+            
+            // Apply color palette while preserving existing materials
             ApplyFantasyPalette(hero, true);
             return hero.transform;
         }
@@ -304,6 +354,9 @@ namespace TDAnnihilation
 
         private static void ApplyFantasyPalette(GameObject root, bool hero)
         {
+            // For hero, preserve existing materials from imported models (e.g., evenlowerpoly)
+            if (hero) return;
+            
             foreach (Renderer renderer in root.GetComponentsInChildren<Renderer>(true))
             {
                 string part = renderer.name.ToLowerInvariant();
@@ -346,6 +399,11 @@ namespace TDAnnihilation
         public TDResourceState State => state;
         public void StartSoloStages()
         {
+            if (state == null || flow == null)
+            {
+                Debug.LogError("StartSoloStages called but state or flow is null. Game not initialized.");
+                return;
+            }
             state.gold = startingGold;
             state.lives = startingLives;
             state.defeated = 0;

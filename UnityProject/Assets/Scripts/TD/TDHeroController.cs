@@ -1,6 +1,11 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+#if UNITY_EDITOR
+using UnityEditor;
+using UnityEditor.Animations;
+#endif
+
 namespace TDAnnihilation
 {
     [RequireComponent(typeof(CharacterController))]
@@ -26,16 +31,127 @@ namespace TDAnnihilation
 
         private void Awake()
         {
-            animator = GetComponentInChildren<Animator>();
+            Debug.Log("TDHeroController initializing on: " + gameObject.name);
+            animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = GetComponentInChildren<Animator>();
+                if (animator != null) Debug.Log("Found animator in child: " + animator.gameObject.name);
+            }
+
             controller = GetComponent<CharacterController>();
+            if (controller == null)
+            {
+                controller = gameObject.AddComponent<CharacterController>();
+                Debug.Log("Added CharacterController to hero");
+            }
+
             controller.radius = 0.38f;
             controller.height = 1.65f;
             controller.center = new Vector3(0f, 0.82f, 0f);
             controller.stepOffset = 0.35f;
+            InitializeAnimatorSetup();
             hasSpeedParameter = HasParameter("Speed", AnimatorControllerParameterType.Float);
             hasGroundedParameter = HasParameter("Grounded", AnimatorControllerParameterType.Bool);
             hasJumpTrigger = HasParameter("Jump", AnimatorControllerParameterType.Trigger);
             hasAttackTrigger = HasParameter("Attack", AnimatorControllerParameterType.Trigger);
+            Debug.Log("TDHeroController initialized. Animator: " + (animator != null ? "present" : "MISSING"));
+        }
+
+        private void InitializeAnimatorSetup()
+        {
+            if (animator == null)
+            {
+                return;
+            }
+            if (animator.runtimeAnimatorController != null) return;
+
+
+#if UNITY_EDITOR
+            string controllerPath = "Assets/Animations/PlayerAnimatorController.controller";
+            AnimatorController controllerAsset = UnityEditor.AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);
+
+            // If the asset is missing, create it with basic parameters
+            if (controllerAsset == null)
+            {
+                controllerAsset = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+                Debug.Log("Created new PlayerAnimatorController at: " + controllerPath);
+            }
+
+            EnsureControllerParameters(controllerAsset);
+
+            if (animator.runtimeAnimatorController != controllerAsset)
+            {
+                animator.runtimeAnimatorController = controllerAsset;
+                Debug.Log("Assigned PlayerAnimatorController to animator");
+            }
+#else
+            // At runtime, try to load from Resources
+            if (animator.runtimeAnimatorController == null)
+            {
+                RuntimeAnimatorController rtController = Resources.Load<RuntimeAnimatorController>("Animations/PlayerAnimatorController");
+                if (rtController != null)
+                {
+                    animator.runtimeAnimatorController = rtController;
+                    Debug.Log("Loaded PlayerAnimatorController from Resources at runtime");
+                }
+                else if (animator.runtimeAnimatorController == null)
+                {
+                    Debug.LogWarning("No animator controller found! Hero movement may not animate.");
+                }
+            }
+#endif
+        }
+
+        private void EnsureControllerParameters(AnimatorController controllerAsset)
+        {
+            if (controllerAsset == null)
+            {
+                return;
+            }
+
+            if (System.Array.Exists(controllerAsset.parameters, p => p.name == "Speed" && p.type == AnimatorControllerParameterType.Float) == false)
+            {
+                controllerAsset.AddParameter("Speed", AnimatorControllerParameterType.Float);
+            }
+
+            if (System.Array.Exists(controllerAsset.parameters, p => p.name == "Grounded" && p.type == AnimatorControllerParameterType.Bool) == false)
+            {
+                controllerAsset.AddParameter("Grounded", AnimatorControllerParameterType.Bool);
+            }
+
+            if (System.Array.Exists(controllerAsset.parameters, p => p.name == "Jump" && p.type == AnimatorControllerParameterType.Trigger) == false)
+            {
+                controllerAsset.AddParameter("Jump", AnimatorControllerParameterType.Trigger);
+            }
+
+            if (System.Array.Exists(controllerAsset.parameters, p => p.name == "Attack" && p.type == AnimatorControllerParameterType.Trigger) == false)
+            {
+                controllerAsset.AddParameter("Attack", AnimatorControllerParameterType.Trigger);
+            }
+        }
+
+        private void EnsureControllerStates(AnimatorController controllerAsset)
+        {
+#if UNITY_EDITOR
+            if (controllerAsset == null) return;
+            var layers = controllerAsset.layers;
+            if (layers == null || layers.Length == 0 || layers[0] == null) return;
+            AnimatorStateMachine root = layers[0].stateMachine;
+            if (root == null) return;
+
+            var statesArr = root.states;
+            // Check if states already exist
+            bool hasAllStates = statesArr != null && 
+                System.Array.Exists(statesArr, s => s.state != null && s.state.name == "Idle") &&
+                System.Array.Exists(statesArr, s => s.state != null && s.state.name == "Walk") &&
+                System.Array.Exists(statesArr, s => s.state != null && s.state.name == "Run");
+            if (hasAllStates) return; // States already set up
+
+            // Note: Animation clips from FBX files need to be extracted as separate .anim assets.
+            // For now, we'll keep this method for manual setup only.
+            // Automatic clip loading is disabled to avoid legacy animation warnings.
+#endif
         }
 
         private void Update()
@@ -94,7 +210,7 @@ namespace TDAnnihilation
             if (attackTimer > 0f) return;
             attackTimer = attackCooldown;
             if (animator != null && hasAttackTrigger) animator.SetTrigger("Attack");
-            TDEnemyController[] enemies = FindObjectsByType<TDEnemyController>(FindObjectsSortMode.None);
+            TDEnemyController[] enemies = FindObjectsByType<TDEnemyController>();
             foreach (TDEnemyController enemy in enemies)
             {
                 if (enemy == null) continue;
@@ -121,8 +237,33 @@ namespace TDAnnihilation
         {
             if (animator == null) return false;
             foreach (AnimatorControllerParameter parameter in animator.parameters)
-                if (parameter.name == name && parameter.type == type) return true;
+                if (parameter.name == name && parameter.type == type)
+                {
+                    return true;
+                }
             return false;
+        }
+
+        // Runtime check - just verify parameters exist, don't try to add them
+        private void ValidateAnimatorParameters()
+        {
+            if (animator == null)
+            {
+                Debug.LogWarning("TDHeroController: Animator is null, cannot validate parameters");
+                return;
+            }
+
+            if (animator.parameters.Length == 0)
+            {
+                Debug.LogWarning("TDHeroController: Animator has no parameters. This is expected if controller is empty.");
+            }
+
+            // Just log what we find
+            Debug.Log("TDHeroController: Animator has " + animator.parameters.Length + " parameters");
+            foreach (var param in animator.parameters)
+            {
+                Debug.Log("  - " + param.name + " (" + param.type + ")");
+            }
         }
     }
 }

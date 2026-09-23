@@ -2,7 +2,7 @@ namespace TDAnnihilation
 {
     public static class TDPresentationScale
     {
-        public const float Hero = 0.72f;
+        public const float Hero = 1.5f;
     }
 
     public readonly struct TDEnemyArchetype

@@ -16,8 +16,8 @@ MonoBehaviour:
   m_AutoStart: 1
   m_WatchdogEnabled: 1
   m_WatchdogIntervalSeconds: 5
-  m_LogRequestsResponses: 0
+  m_LogRequestsResponses: 1
   m_EvalTelemetryEnabled: 1
   m_StoreEvalSource: 0
-  m_AllowBrowserClients: 0
+  m_AllowBrowserClients: 1
   m_HotReloadRepushOnConnect: 1
