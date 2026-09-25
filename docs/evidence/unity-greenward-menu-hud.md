@@ -78,6 +78,7 @@ was refused because the project is already open in the user's Unity Editor. The 
 - `unity recompile --project-path E:/TD-Annihilation-Unity-Git/UnityProject --format json`: passed with `compilationFailed=false`, errors=0 and warnings=0.
 - Sequential runtime and test assembly builds passed with 0 errors and 0 warnings. Editor assembly build passed with the existing `GeminiEditorChat.cs` UAC0005 warning.
 - UXML parsing confirmed all twelve new image/value element names. EditMode execution was attempted with `GreenwardGameplayPresentationTests` and refused because the project is already open in Unity Editor PID 27792.
+- All six imported PNGs were checked at 1448x1086 with transparent corner pixels (`cornerAlpha=0`).
 
 ## Command deck and village menu pass
 
