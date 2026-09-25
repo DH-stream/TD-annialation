@@ -184,7 +184,7 @@ namespace TDAnnihilation
             return hero.transform;
         }
 
-        private void SpawnTower(Vector3 position)
+        private void SpawnTower(Vector3 position, bool animateArrival = false)
         {
             GameObject towerRoot = new GameObject("Arcane Watchtower");
             towerRoot.transform.position = position;
@@ -194,6 +194,7 @@ namespace TDAnnihilation
             tower.state = state;
             tower.projectileColor = new Color(0.58f, 0.35f, 1f);
             placedTowers.Add(towerRoot.transform);
+            if (animateArrival) towerRoot.AddComponent<TDTowerPlacementAnimation>().Play();
         }
 
         private void HandlePlacementInput()
@@ -250,7 +251,7 @@ namespace TDAnnihilation
             SetPlacementGhost(worldPosition);
             if (!placementValid || state.gold < TowerCost) return false;
             state.gold -= TowerCost;
-            SpawnTower(placementGhost.transform.position);
+            SpawnTower(placementGhost.transform.position, true);
             ExitPlacementMode();
             return true;
         }

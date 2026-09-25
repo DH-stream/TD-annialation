@@ -87,5 +87,14 @@ namespace TDAnnihilation.Tests
             Assert.That(GreenwardWorldLayout.IsBuildableSurface(new Vector2(-3f, 3f), route), Is.False);
             Assert.That(GreenwardWorldLayout.IsBuildableSurface(new Vector2(32f, 0f), route), Is.False);
         }
+
+        [Test]
+        public void TowerPlacementRiseStartsLowOvershootsAndSettles()
+        {
+            Assert.That(TDTowerPlacementAnimation.EvaluateHeight(0f, 0.35f), Is.EqualTo(0f).Within(0.001f));
+            Assert.That(TDTowerPlacementAnimation.EvaluateHeight(0.21f, 0.35f), Is.GreaterThan(1f));
+            Assert.That(TDTowerPlacementAnimation.EvaluateHeight(0.35f, 0.35f), Is.EqualTo(1f).Within(0.001f));
+            Assert.That(TDTowerPlacementAnimation.EvaluateHeight(0.5f, 0.35f), Is.EqualTo(1f).Within(0.001f));
+        }
     }
 }
