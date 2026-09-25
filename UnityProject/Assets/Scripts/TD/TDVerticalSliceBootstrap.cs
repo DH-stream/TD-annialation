@@ -537,7 +537,7 @@ namespace TDAnnihilation
             projectile.transform.position = transform.position + Vector3.up * 2.4f;
             projectile.transform.localScale = Vector3.one * 0.24f;
             projectile.GetComponent<Renderer>().sharedMaterial = MakeMaterial(projectileColor);
-            projectile.AddComponent<TDProjectile>().Configure(nearest, 16f);
+            projectile.AddComponent<TDProjectile>().Configure(nearest, 16f, projectileColor);
         }
 
         private static Material MakeMaterial(Color color)
@@ -552,22 +552,93 @@ namespace TDAnnihilation
     {
         private TDEnemyController target;
         private float damage;
+        private Vector3 velocity;
+        private bool damageApplied;
 
-        public void Configure(TDEnemyController enemy, float hitDamage)
+        private const float InitialSpeed = 3.5f;
+        private const float MaxSpeed = 15f;
+        private const float Acceleration = 24f;
+        private const float Steering = 18f;
+
+        public void Configure(TDEnemyController enemy, float hitDamage, Color color)
         {
             target = enemy;
             damage = hitDamage;
+            velocity = transform.forward * InitialSpeed;
+
+            TrailRenderer trail = gameObject.AddComponent<TrailRenderer>();
+            trail.time = 0.28f;
+            trail.startWidth = 0.16f;
+            trail.endWidth = 0f;
+            trail.minVertexDistance = 0.04f;
+            trail.material = MakeParticleMaterial(color);
+
+            GameObject particlesObject = new GameObject("Arcane Bolt Trail");
+            particlesObject.transform.SetParent(transform, false);
+            ParticleSystem particles = particlesObject.AddComponent<ParticleSystem>();
+            var main = particles.main;
+            main.loop = true;
+            main.startLifetime = 0.35f;
+            main.startSpeed = 0.18f;
+            main.startSize = 0.08f;
+            main.startColor = color;
+            main.maxParticles = 40;
+            var emission = particles.emission;
+            emission.rateOverTime = 30f;
+            ParticleSystemRenderer renderer = particlesObject.GetComponent<ParticleSystemRenderer>();
+            renderer.material = MakeParticleMaterial(color);
         }
 
         private void Update()
         {
             if (target == null) { Destroy(gameObject); return; }
-            transform.position = Vector3.MoveTowards(transform.position, target.transform.position + Vector3.up, 13f * Time.deltaTime);
-            if (Vector3.Distance(transform.position, target.transform.position + Vector3.up) < 0.25f)
+            Vector3 targetPosition = target.transform.position + Vector3.up;
+            float currentSpeed = Mathf.MoveTowards(velocity.magnitude, MaxSpeed, Acceleration * Time.deltaTime);
+            Vector3 desiredVelocity = (targetPosition - transform.position).normalized * currentSpeed;
+            velocity = Vector3.MoveTowards(velocity, desiredVelocity, Steering * Time.deltaTime);
+            velocity += Vector3.down * 1.8f * Time.deltaTime;
+            velocity = Vector3.ClampMagnitude(velocity, MaxSpeed);
+            transform.position += velocity * Time.deltaTime;
+            if (velocity.sqrMagnitude > 0.01f) transform.rotation = Quaternion.LookRotation(velocity);
+            if (!damageApplied && Vector3.Distance(transform.position, targetPosition) < 0.25f)
             {
+                damageApplied = true;
                 target.TakeDamage(damage);
+                SpawnImpactBurst(transform.position, GetComponent<Renderer>().sharedMaterial.color);
                 Destroy(gameObject);
             }
+        }
+
+        private static Material MakeParticleMaterial(Color color)
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Unlit/Color");
+            Material material = new Material(shader);
+            material.color = color;
+            return material;
+        }
+
+        private static void SpawnImpactBurst(Vector3 position, Color color)
+        {
+            GameObject burst = new GameObject("Arcane Bolt Impact");
+            burst.transform.position = position;
+            ParticleSystem particles = burst.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = particles.main;
+            main.playOnAwake = false;
+            main.duration = 0.16f;
+            main.startLifetime = 0.35f;
+            main.startSpeed = 2.8f;
+            main.startSize = 0.1f;
+            main.startColor = color;
+            main.stopAction = ParticleSystemStopAction.Destroy;
+            var emission = particles.emission;
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 10) });
+            var shape = particles.shape;
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 0.08f;
+            ParticleSystemRenderer renderer = burst.GetComponent<ParticleSystemRenderer>();
+            renderer.material = MakeParticleMaterial(color);
+            particles.Play();
         }
     }
 
