@@ -420,6 +420,8 @@ namespace TDAnnihilation
         public void ReturnToMenu() => flow.ReturnToMenu();
         public int CurrentWave => flow == null ? 0 : flow.Wave;
         public TDGamePhase Phase => flow == null ? TDGamePhase.MainMenu : flow.Phase;
+        public string CurrentStageName => "GREENWARD";
+        public bool IsPlacementMode => placementMode;
     }
 
     public sealed class TDResourceState : MonoBehaviour
@@ -742,52 +744,4 @@ namespace TDAnnihilation
         }
     }
 
-    public sealed class TDVerticalSliceHUD : MonoBehaviour
-    {
-        private TDVerticalSliceBootstrap game;
-        private void Start() => game = FindAnyObjectByType<TDVerticalSliceBootstrap>();
-
-        private void OnGUI()
-        {
-            if (game == null || game.State == null) return;
-            if (game.Phase == TDGamePhase.MainMenu)
-            {
-                DrawMainMenu();
-                return;
-            }
-            GUIStyle title = new GUIStyle(GUI.skin.label) { fontSize = 22, fontStyle = FontStyle.Bold, normal = { textColor = Color.white } };
-            GUIStyle body = new GUIStyle(GUI.skin.label) { fontSize = 16, normal = { textColor = Color.white } };
-            GUI.Box(new Rect(18f, 18f, 280f, 128f), GUIContent.none);
-            GUI.Label(new Rect(34f, 28f, 250f, 30f), "GREENWARD WATCH", title);
-            GUI.Label(new Rect(34f, 64f, 250f, 24f), "Gold  " + game.State.gold + "     Lives  " + game.State.lives, body);
-            GUI.Label(new Rect(34f, 90f, 250f, 24f), "Wave  " + game.CurrentWave + "     Defeated  " + game.State.defeated, body);
-            GUI.Label(new Rect(34f, 116f, 250f, 24f), "Arcane tower online", body);
-            if (game.Phase == TDGamePhase.Build)
-            {
-                if (GUI.Button(new Rect(18f, 158f, 180f, 42f), "BUILD TOWER (B)")) game.TogglePlacementMode();
-                if (GUI.Button(new Rect(18f, 206f, 180f, 42f), "START NEXT WAVE")) game.StartNextWave();
-                GUI.Label(new Rect(210f, 169f, 190f, 30f), "Cost 40 gold", body);
-            }
-            if (game.Phase == TDGamePhase.Victory || game.Phase == TDGamePhase.Defeat)
-            {
-                string result = game.Phase == TDGamePhase.Victory ? "GREENWARD DEFENDED" : "GREENWARD HAS FALLEN";
-                GUI.Box(new Rect(Screen.width * 0.5f - 190f, Screen.height * 0.5f - 90f, 380f, 180f), GUIContent.none);
-                GUI.Label(new Rect(Screen.width * 0.5f - 145f, Screen.height * 0.5f - 55f, 310f, 38f), result, title);
-                if (GUI.Button(new Rect(Screen.width * 0.5f - 100f, Screen.height * 0.5f + 18f, 200f, 44f), "RETURN TO MENU")) game.ReturnToMenu();
-            }
-        }
-
-        private void DrawMainMenu()
-        {
-            float left = Screen.width * 0.5f - 240f;
-            float top = Screen.height * 0.5f - 170f;
-            GUIStyle heading = new GUIStyle(GUI.skin.label) { fontSize = 34, alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Bold, normal = { textColor = new Color(1f, 0.78f, 0.32f) } };
-            GUIStyle copy = new GUIStyle(GUI.skin.label) { fontSize = 17, alignment = TextAnchor.MiddleCenter, normal = { textColor = Color.white } };
-            GUI.Box(new Rect(left, top, 480f, 340f), GUIContent.none);
-            GUI.Label(new Rect(left + 20f, top + 34f, 440f, 52f), "TD ANNIHILATION", heading);
-            GUI.Label(new Rect(left + 30f, top + 92f, 420f, 52f), "Defend the royal heart. Shape the battlefield. Hold the line.", copy);
-            if (GUI.Button(new Rect(left + 90f, top + 180f, 300f, 64f), "SOLO — GREENWARD STAGES")) game.StartSoloStages();
-            GUI.Label(new Rect(left + 50f, top + 270f, 380f, 30f), "Stages • Endless and progression coming next", copy);
-        }
-    }
 }
