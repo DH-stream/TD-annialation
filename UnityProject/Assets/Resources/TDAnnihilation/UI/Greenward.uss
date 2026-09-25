@@ -1,0 +1,100 @@
+.greenward-root {
+    flex-grow: 1;
+    color: rgb(235, 221, 180);
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.screen {
+    display: none;
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+}
+
+.screen.is-visible { display: flex; }
+
+.menu-panel, .screen-panel, .hud-panel {
+    background-color: rgba(12, 29, 25, 0.92);
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+    border-top-color: rgb(132, 111, 67);
+    border-right-color: rgb(132, 111, 67);
+    border-bottom-color: rgb(132, 111, 67);
+    border-left-color: rgb(132, 111, 67);
+    padding: 28px;
+}
+
+.menu-panel { width: 460px; align-items: center; }
+.wide-panel { width: 900px; }
+.narrow-panel { width: 520px; }
+.skill-panel { width: 1000px; min-height: 560px; }
+.result-panel { width: 560px; align-items: center; }
+
+.title {
+    font-size: 38px;
+    color: rgb(238, 190, 74);
+    -unity-font-style: bold;
+    margin-bottom: 6px;
+}
+
+.subtitle, .screen-title {
+    font-size: 18px;
+    color: rgb(213, 195, 145);
+    -unity-font-style: bold;
+    margin-bottom: 24px;
+}
+
+.screen-title { font-size: 28px; }
+
+.primary-button, .secondary-button, .stage-card {
+    min-height: 48px;
+    margin-top: 6px;
+    margin-bottom: 6px;
+    border-radius: 0;
+    border-width: 1px;
+}
+
+.primary-button {
+    background-color: rgb(139, 93, 29);
+    color: rgb(255, 242, 202);
+    border-color: rgb(238, 190, 74);
+}
+
+.secondary-button {
+    background-color: rgb(34, 57, 48);
+    color: rgb(235, 221, 180);
+    border-color: rgb(105, 126, 104);
+}
+
+.primary-button:hover, .secondary-button:hover, .stage-card:hover { background-color: rgb(67, 91, 68); }
+.primary-button:disabled, .secondary-button:disabled, .stage-card:disabled {
+    color: rgb(111, 119, 106);
+    background-color: rgb(24, 31, 29);
+    border-color: rgb(66, 73, 66);
+}
+
+.stage-list { flex-direction: row; justify-content: space-between; }
+.stage-card { width: 250px; min-height: 140px; white-space: normal; }
+.stage-card-active { background-color: rgb(48, 89, 60); }
+.body-copy, .hud-caption { color: rgb(213, 195, 145); font-size: 15px; white-space: normal; }
+.hud-value { color: rgb(255, 242, 202); font-size: 18px; -unity-font-style: bold; }
+.hud-top-left { position: absolute; left: 24px; top: 24px; width: 220px; padding: 16px; }
+.hud-top-center { position: absolute; top: 24px; left: 43%; width: 180px; align-items: center; padding: 14px; }
+.hud-status { position: absolute; top: 112px; left: 35%; right: 35%; -unity-text-align: middle-center; color: rgb(238, 190, 74); }
+.minimap-frame { position: absolute; left: 24px; bottom: 24px; width: 190px; height: 150px; }
+.action-panel { position: absolute; left: 38%; bottom: 24px; width: 300px; height: 64px; }
+.build-panel { position: absolute; right: 24px; bottom: 24px; width: 230px; padding: 16px; }
+.compact-button { min-height: 38px; font-size: 13px; }
+.skill-graph { flex-grow: 1; flex-direction: row; justify-content: space-around; padding: 16px; }
+.skill-branch { flex-grow: 1; align-items: center; padding: 8px; }
+.skill-branch-title { color: rgb(238, 190, 74); font-size: 17px; -unity-font-style: bold; margin-bottom: 12px; }
+.skill-node { width: 180px; min-height: 62px; margin: 5px; border-radius: 0; background-color: rgb(34, 57, 48); border-color: rgb(105, 126, 104); color: rgb(235, 221, 180); }
+.skill-node.is-unlocked { background-color: rgb(48, 89, 60); border-color: rgb(238, 190, 74); }
+.skill-node.is-available { background-color: rgb(79, 61, 27); }
+.skill-node.is-selected { border-width: 2px; }
+.skill-details { width: 300px; padding: 16px; border-left-width: 1px; border-left-color: rgb(105, 126, 104); }
+.panel-title { color: rgb(238, 190, 74); -unity-font-style: bold; }
+.back-button { margin-top: 22px; }
