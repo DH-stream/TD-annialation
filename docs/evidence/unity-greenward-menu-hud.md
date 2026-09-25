@@ -52,3 +52,19 @@ was refused because the project is already open in the user's Unity Editor. The 
 - Skill nodes have session-local prerequisite state but no gameplay effects or permanent save.
 - Settings is a navigation shell until the settings/save contract is migrated.
 - The lower-left minimap frame is reserved; the full minimap system remains a separate implementation.
+
+## Steam UI and placement pass
+
+- Replaced the centered debug-style panels with a left-rail menu, authored stage/skill/result layouts and a compact gameplay HUD.
+- Preserved all existing runtime button names and menu callbacks; the rewritten UXML parsed successfully with all required names present.
+- Placement now creates a runtime MeshCollider for the authored terrain mesh, uses it for cursor ground sampling and ignores decoration colliders. Meadow remains buildable while road, riverbank, corruption and castle remain blocked.
+- Newly placed towers rise from a compressed state with a short overshoot/settle and an auto-destroying dust burst.
+- Scene inspection found active serialized `Grass Meadow Batch` objects and no gameplay code that disables them; Play Mode visual confirmation is still pending because the Unity Pipeline is unreachable.
+
+## Additional verification
+
+- `dotnet build UnityProject/Assembly-CSharp.csproj --no-restore`: passed with 0 errors and 0 warnings when run sequentially.
+- `dotnet build UnityProject/TDAnnihilation.EditModeTests.csproj --no-restore`: passed with 0 errors and 0 warnings when run sequentially.
+- `dotnet build UnityProject/Assembly-CSharp-Editor.csproj --no-restore`: passed with 0 errors and the existing `GeminiEditorChat.cs` warning UAC0005.
+- `unity recompile --project-path E:/TD-Annihilation-Unity-Git/UnityProject --format json`: passed; Unity reported `up_to_date`, no errors and no warnings.
+- Unity test execution remains blocked by the already-open Editor; the corrected CLI invocation reached the precondition and refused to run without closing it.
