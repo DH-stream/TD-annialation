@@ -66,7 +66,7 @@ public void SkillTreeRequiresPrerequisiteBeforeUnlock()
 Run:
 
 ~~~powershell
-unity test E:\TD-Annihilation-Unity-Git\UnityProject --editor-version 6000.6.0f1 --mode EditMode --test-filter TDMenuDefinitionsTests --report-format junit --output E:\TD-Annihilation-Unity-Git\td-menu-tests-red.xml --timeout 600
+unity test E:\TD-Annihilation-Unity-Git\UnityProject --editor-version 6000.6.0f1 --mode EditMode --filter TDMenuDefinitionsTests --report-format junit --output E:\TD-Annihilation-Unity-Git\td-menu-tests-red.xml --timeout 600
 ~~~
 
 Expected: compile failure because the definitions do not exist yet.
@@ -134,7 +134,7 @@ The required classes are screen, is-visible, menu-panel, screen-panel, primary-b
 Run:
 
 ~~~powershell
-unity recompile E:\TD-Annihilation-Unity-Git\UnityProject --editor-version 6000.6.0f1 --project-path E:\TD-Annihilation-Unity-Git\UnityProject --format json
+unity recompile --project-path E:\TD-Annihilation-Unity-Git\UnityProject --format json
 ~~~
 
 Expected: success true, no new compiler errors, and both assets imported below Assets/Resources/TDAnnihilation/UI.
@@ -210,8 +210,8 @@ public bool IsPlacementMode => placementMode;
 - [ ] Step 5: Recompile and run tests.
 
 ~~~powershell
-unity recompile E:\TD-Annihilation-Unity-Git\UnityProject --editor-version 6000.6.0f1 --project-path E:\TD-Annihilation-Unity-Git\UnityProject --format json
-unity test E:\TD-Annihilation-Unity-Git\UnityProject --editor-version 6000.6.0f1 --mode EditMode --test-filter TDMenuDefinitionsTests --report-format junit --output E:\TD-Annihilation-Unity-Git\td-menu-tests-runtime.xml --timeout 600
+unity recompile --project-path E:\TD-Annihilation-Unity-Git\UnityProject --format json
+unity test E:\TD-Annihilation-Unity-Git\UnityProject --editor-version 6000.6.0f1 --mode EditMode --filter TDMenuDefinitionsTests --report-format junit --output E:\TD-Annihilation-Unity-Git\td-menu-tests-runtime.xml --timeout 600
 ~~~
 
 Expected: no duplicate type error, successful compilation, and all menu-definition tests pass.
@@ -263,7 +263,7 @@ TDGreenwardUIAuthoring must:
 Discover the exact menu-item command name first. If the Editor exposes editor_execute_menu_item, run:
 
 ~~~powershell
-unity command editor_execute_menu_item "TD Annihilation/UI/Ensure Greenward UI" --project-path E:\TD-Annihilation-Unity-Git\UnityProject --format json
+unity command menu -- '{"path":"TD Annihilation/UI/Ensure Greenward UI"}' --project-path E:\TD-Annihilation-Unity-Git\UnityProject --format json
 ~~~
 
 If the command name differs, use the exposed equivalent rather than guessing.
