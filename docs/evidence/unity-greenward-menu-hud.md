@@ -87,3 +87,12 @@ was refused because the project is already open in the user's Unity Editor. The 
 - Replaced the lower gameplay text panel with a visual command deck for coins, Build, Attack, attack types and wave start. Build opens a centered radial selector; dragging/releasing on the active Arcane Watchtower card enters placement mode.
 - Increased tower placement dust visibility with a world-space cone burst, larger opaque particles and a slightly raised emitter position.
 - UXML name validation passed for the new logo, command deck and wheel controls. Unity recompile passed with 0 errors and 0 warnings; sequential runtime/test builds passed with 0 errors. Editor build retained the existing UAC0005 warning.
+
+## Arcane tower asset pass
+
+- Added the supplied `arcanetower.glb` under `Assets/Resources/TDAnnihilation/ArcaneTower.glb`.
+- Added Unity glTFast `6.19.0` so the GLB can be imported as a Unity asset after the open Editor session reloads packages.
+- The runtime now loads the imported model for the Arcane Watchtower and placement ghost, scales it to the existing tower footprint and preserves the procedural tower fallback if import is unavailable.
+- Placement validation, tower targeting, projectile behavior and the existing rise/bounce/dust animation remain unchanged.
+- `unity recompile --project-path E:/TD-Annihilation-Unity-Git/UnityProject --format json`: passed with `compilationFailed=false`, errors=0 and warnings=0.
+- The currently open Editor still reports the GLB as `DefaultImporter`; model import and Play Mode appearance remain pending an Editor restart/reimport.

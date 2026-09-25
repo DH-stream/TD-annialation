@@ -9,6 +9,7 @@ namespace TDAnnihilation
         [Header("Free Quaternius art")]
         [SerializeField] private GameObject warriorPrefab;
         [SerializeField] private GameObject demonPrefab;
+        [SerializeField] private GameObject arcaneTowerPrefab;
 
         [Header("Slice tuning")]
         [SerializeField] private int startingGold = 120;
@@ -85,6 +86,7 @@ namespace TDAnnihilation
         {
             if (warriorPrefab == null) warriorPrefab = Resources.Load<GameObject>("TDAnnihilation/Warrior");
             if (demonPrefab == null) demonPrefab = Resources.Load<GameObject>("TDAnnihilation/Demon");
+            if (arcaneTowerPrefab == null) arcaneTowerPrefab = Resources.Load<GameObject>("TDAnnihilation/ArcaneTower");
         }
 
         private void LoadAuthoredArena()
@@ -186,11 +188,20 @@ namespace TDAnnihilation
 
         private void SpawnTower(Vector3 position, bool animateArrival = false)
         {
-            GameObject towerRoot = new GameObject("Arcane Watchtower");
+            GameObject towerRoot = arcaneTowerPrefab != null
+                ? Instantiate(arcaneTowerPrefab, position, Quaternion.identity)
+                : new GameObject("Arcane Watchtower");
+            towerRoot.name = "Arcane Watchtower";
             towerRoot.transform.position = position;
-            MakePrimitive("Tower Base", PrimitiveType.Cylinder, towerRoot.transform.position + Vector3.up * 0.8f, new Vector3(1.5f, 1.6f, 1.5f), new Color(0.32f, 0.29f, 0.36f), towerRoot.transform);
-            MakePrimitive("Tower Rune", PrimitiveType.Sphere, towerRoot.transform.position + Vector3.up * 2.45f, Vector3.one * 0.75f, new Color(0.38f, 0.25f, 0.96f), towerRoot.transform);
-            tower = towerRoot.AddComponent<TDTowerController>();
+            if (arcaneTowerPrefab != null)
+                towerRoot.transform.localScale = Vector3.one * 3f;
+            else
+            {
+                MakePrimitive("Tower Base", PrimitiveType.Cylinder, towerRoot.transform.position + Vector3.up * 0.8f, new Vector3(1.5f, 1.6f, 1.5f), new Color(0.32f, 0.29f, 0.36f), towerRoot.transform);
+                MakePrimitive("Tower Rune", PrimitiveType.Sphere, towerRoot.transform.position + Vector3.up * 2.45f, Vector3.one * 0.75f, new Color(0.38f, 0.25f, 0.96f), towerRoot.transform);
+            }
+            tower = towerRoot.GetComponent<TDTowerController>();
+            if (tower == null) tower = towerRoot.AddComponent<TDTowerController>();
             tower.state = state;
             tower.projectileColor = new Color(0.58f, 0.35f, 1f);
             placedTowers.Add(towerRoot.transform);
@@ -308,6 +319,19 @@ namespace TDAnnihilation
         private void EnsurePlacementGhost()
         {
             if (placementGhost != null) return;
+            if (arcaneTowerPrefab != null)
+            {
+                placementGhost = Instantiate(arcaneTowerPrefab, Vector3.zero, Quaternion.identity);
+                placementGhost.name = "Arcane Watchtower Placement Ghost";
+                placementGhost.transform.localScale = Vector3.one * 3f;
+                placementMaterial = CreateGhostMaterial();
+                foreach (Renderer renderer in placementGhost.GetComponentsInChildren<Renderer>(true))
+                    renderer.sharedMaterial = placementMaterial;
+                foreach (Collider collider in placementGhost.GetComponentsInChildren<Collider>(true))
+                    Destroy(collider);
+                placementGhost.SetActive(false);
+                return;
+            }
             placementGhost = new GameObject("Arcane Watchtower Placement Ghost");
             GameObject basePart = MakePrimitive("Ghost Base", PrimitiveType.Cylinder, Vector3.up * 0.8f, new Vector3(1.5f, 1.6f, 1.5f), Color.white, placementGhost.transform);
             GameObject runePart = MakePrimitive("Ghost Rune", PrimitiveType.Sphere, Vector3.up * 2.45f, Vector3.one * 0.75f, Color.white, placementGhost.transform);
