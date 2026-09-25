@@ -69,6 +69,16 @@ was refused because the project is already open in the user's Unity Editor. The 
 - `unity recompile --project-path E:/TD-Annihilation-Unity-Git/UnityProject --format json`: passed; Unity reported `up_to_date`, no errors and no warnings.
 - Unity test execution remains blocked by the already-open Editor; the corrected CLI invocation reached the precondition and refused to run without closing it.
 
+## Supplied HUD asset pass
+
+- Imported six user-provided free PNG assets under `Assets/Resources/TDAnnihilation/UI/HUD/`: Attack, Coins, Mana, Health, HeavyAttack and MegaAttack.
+- Added top-left visual status zones for Coins, Mana and Health. Coins bind to `TDResourceState.gold`; Health uses the existing defensive lives value; Mana displays `FULL` until a mana system exists.
+- Added bottom-center visual action zones for Attack, Heavy Attack and Mega Attack. Attack is wired to the existing hero attack path; Heavy and Mega remain visibly locked and do not change gameplay state.
+- Kept Build/radial selection and Start Wave in the same command deck, with the supplied assets serving as the primary visual language.
+- `unity recompile --project-path E:/TD-Annihilation-Unity-Git/UnityProject --format json`: passed with `compilationFailed=false`, errors=0 and warnings=0.
+- Sequential runtime and test assembly builds passed with 0 errors and 0 warnings. Editor assembly build passed with the existing `GeminiEditorChat.cs` UAC0005 warning.
+- UXML parsing confirmed all twelve new image/value element names. EditMode execution was attempted with `GreenwardGameplayPresentationTests` and refused because the project is already open in Unity Editor PID 27792.
+
 ## Command deck and village menu pass
 
 - Added the provided TD Annihilation logo as a transparent, generated PNG under `Assets/Resources/TDAnnihilation/UI/TDAnnihilationLogo.png`; no paid or external asset dependency was added.
