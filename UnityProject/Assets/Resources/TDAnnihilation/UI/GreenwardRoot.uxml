@@ -5,8 +5,8 @@
 
         <ui:VisualElement name="main-menu-screen" class="screen main-menu-screen is-visible">
             <ui:VisualElement class="menu-rail">
-                <ui:Label text="TD ANNIHILATION" class="menu-kicker" />
-                <ui:Label text="GREENWARD" class="menu-title" />
+                <ui:Image name="game-logo" class="game-logo" />
+                <ui:Label text="GREENWARD VILLAGE" class="menu-location" />
                 <ui:Label text="THE VALLEY REMEMBERS" class="menu-subtitle" />
                 <ui:VisualElement class="menu-rule" />
                 <ui:Button name="play-button" text="BEGIN DEFENSE" class="primary-button menu-action" />
@@ -86,7 +86,6 @@
             <ui:VisualElement class="hud-resource-strip">
                 <ui:Label name="stage-value" text="GREENWARD" class="hud-stage" />
                 <ui:VisualElement class="hud-divider" />
-                <ui:Label name="gold-value" text="GOLD 120" class="hud-value hud-gold" />
                 <ui:Label name="lives-value" text="LIVES 20" class="hud-value" />
                 <ui:Label name="defeated-value" text="DEFEATED 0" class="hud-caption" />
             </ui:VisualElement>
@@ -99,19 +98,34 @@
                 <ui:Label text="GREENWARD" class="minimap-label" />
                 <ui:VisualElement class="minimap-path" />
             </ui:VisualElement>
-            <ui:VisualElement name="action-panel" class="action-panel">
-                <ui:Label text="WARDEN'S DECK" class="action-title" />
-                <ui:Label text="SELECT A DEFENSE TO PLACE" class="action-hint" />
-            </ui:VisualElement>
-            <ui:VisualElement name="build-panel" class="build-panel">
-                <ui:VisualElement class="tower-icon"><ui:Label text="✦" class="tower-icon-glyph" /></ui:VisualElement>
-                <ui:VisualElement class="build-copy">
-                    <ui:Label text="ARCANE WATCHTOWER" class="build-title" />
-                    <ui:Label text="Ranged magical defense" class="build-subtitle" />
-                    <ui:Label text="COST 40 GOLD" class="build-cost" />
+            <ui:VisualElement name="build-panel" class="command-deck">
+                <ui:VisualElement class="coin-zone">
+                    <ui:Label text="COINS" class="zone-label" />
+                    <ui:Label name="gold-value" text="120" class="coin-value" />
+                    <ui:Label text="AVAILABLE" class="zone-caption" />
                 </ui:VisualElement>
-                <ui:Button name="placement-button" text="BUILD  [B]" class="primary-button compact-button" />
-                <ui:Button name="wave-button" text="START WAVE  [SPACE]" class="secondary-button compact-button" />
+                <ui:Button name="build-button" text="✦  BUILD" class="command-card build-card" />
+                <ui:Button name="attack-button" text="⚔  ATTACK" class="command-card attack-card" />
+                <ui:VisualElement class="attack-types">
+                    <ui:Label text="ATTACK TYPES" class="zone-label" />
+                    <ui:Button name="attack-melee-button" text="STRIKE" class="attack-type active" />
+                    <ui:Button name="attack-arcane-button" text="ARCANE · LOCKED" class="attack-type" />
+                </ui:VisualElement>
+                <ui:Button name="wave-button" text="START WAVE · SPACE" class="phase-action secondary-button" />
+            </ui:VisualElement>
+            <ui:VisualElement name="build-wheel-overlay" class="build-wheel-overlay">
+                <ui:VisualElement name="build-wheel" class="build-wheel">
+                    <ui:VisualElement class="wheel-ring" />
+                    <ui:VisualElement name="wheel-center" class="wheel-center">
+                        <ui:Label text="BUILD" class="wheel-title" />
+                        <ui:Label text="DRAG TO SELECT" class="wheel-caption" />
+                    </ui:VisualElement>
+                    <ui:Button name="placement-button" text="✦ ARCANE WATCHTOWER · 40 COINS" class="wheel-option wheel-option-top primary-button" />
+                    <ui:Button name="wheel-ember-button" text="EMBER SPIRE · LOCKED" class="wheel-option wheel-option-right secondary-button" />
+                    <ui:Button name="wheel-frost-button" text="FROST SHRINE · LOCKED" class="wheel-option wheel-option-bottom secondary-button" />
+                    <ui:Button name="wheel-cancel" text="×" class="wheel-cancel quiet-button" />
+                    <ui:Label name="wheel-hint" text="RELEASE ON A CARD TO EQUIP" class="wheel-hint" />
+                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
 

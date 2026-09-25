@@ -17,6 +17,9 @@ namespace TDAnnihilation
         private float pitch = 24f;
         private float targetDistance;
         private Vector3 followVelocity;
+        private bool menuView;
+        private readonly Vector3 menuCameraPosition = new Vector3(17f, 12f, -23f);
+        private readonly Vector3 menuFocus = new Vector3(2f, 2.5f, -8f);
         private void Awake()
         {
             Camera cameraComponent = GetComponent<Camera>();
@@ -30,8 +33,16 @@ namespace TDAnnihilation
         }
         public void SetTarget(Transform value)
         {
+            menuView = false;
             target = value;
             targetDistance = distance;
+        }
+
+        public void SetMenuView()
+        {
+            menuView = true;
+            target = null;
+            followVelocity = Vector3.zero;
         }
         public static Vector3 CalculatePan(Vector2 input, float speed, float deltaTime)
         {
@@ -40,6 +51,13 @@ namespace TDAnnihilation
 
         private void LateUpdate()
         {
+            if (menuView)
+            {
+                transform.position = Vector3.SmoothDamp(transform.position, menuCameraPosition, ref followVelocity, 0.7f);
+                Quaternion menuRotation = Quaternion.LookRotation(menuFocus - transform.position, Vector3.up);
+                transform.rotation = Quaternion.Slerp(transform.rotation, menuRotation, Time.deltaTime * orbitSharpness);
+                return;
+            }
             if (target == null) return;
             Mouse mouse = Mouse.current;
             if (mouse != null && mouse.rightButton.isPressed)

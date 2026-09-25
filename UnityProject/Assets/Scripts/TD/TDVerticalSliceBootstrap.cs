@@ -59,7 +59,7 @@ namespace TDAnnihilation
             {
                 TDStrategicCamera strategic = camera.GetComponent<TDStrategicCamera>();
                 if (strategic == null) strategic = camera.gameObject.AddComponent<TDStrategicCamera>();
-                strategic.SetTarget(hero);
+                strategic.SetMenuView();
                 camera.fieldOfView = 62f;
             }
             GreenwardLightingBuilder.Configure(camera);
@@ -426,6 +426,7 @@ namespace TDAnnihilation
             state.lives = startingLives;
             state.defeated = 0;
             flow.SelectSoloStages();
+            Camera.main?.GetComponent<TDStrategicCamera>()?.SetTarget(heroController.transform);
         }
 
         public void StartNextWave()
@@ -435,7 +436,11 @@ namespace TDAnnihilation
             SpawnWave(4 + flow.Wave);
         }
 
-        public void ReturnToMenu() => flow.ReturnToMenu();
+        public void ReturnToMenu()
+        {
+            flow.ReturnToMenu();
+            Camera.main?.GetComponent<TDStrategicCamera>()?.SetMenuView();
+        }
         public int CurrentWave => flow == null ? 0 : flow.Wave;
         public TDGamePhase Phase => flow == null ? TDGamePhase.MainMenu : flow.Phase;
         public string CurrentStageName => "GREENWARD";

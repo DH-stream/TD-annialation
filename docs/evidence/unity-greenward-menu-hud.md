@@ -68,3 +68,11 @@ was refused because the project is already open in the user's Unity Editor. The 
 - `dotnet build UnityProject/Assembly-CSharp-Editor.csproj --no-restore`: passed with 0 errors and the existing `GeminiEditorChat.cs` warning UAC0005.
 - `unity recompile --project-path E:/TD-Annihilation-Unity-Git/UnityProject --format json`: passed; Unity reported `up_to_date`, no errors and no warnings.
 - Unity test execution remains blocked by the already-open Editor; the corrected CLI invocation reached the precondition and refused to run without closing it.
+
+## Command deck and village menu pass
+
+- Added the provided TD Annihilation logo as a transparent, generated PNG under `Assets/Resources/TDAnnihilation/UI/TDAnnihilationLogo.png`; no paid or external asset dependency was added.
+- Replaced the menu wordmark text with the logo and moved the live menu camera to the village area so villagers and authored scenery remain visible behind the menu.
+- Replaced the lower gameplay text panel with a visual command deck for coins, Build, Attack, attack types and wave start. Build opens a centered radial selector; dragging/releasing on the active Arcane Watchtower card enters placement mode.
+- Increased tower placement dust visibility with a world-space cone burst, larger opaque particles and a slightly raised emitter position.
+- UXML name validation passed for the new logo, command deck and wheel controls. Unity recompile passed with 0 errors and 0 warnings; sequential runtime/test builds passed with 0 errors. Editor build retained the existing UAC0005 warning.

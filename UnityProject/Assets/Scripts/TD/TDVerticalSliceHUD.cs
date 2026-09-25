@@ -19,7 +19,11 @@ namespace TDAnnihilation
         private VisualElement gameplayScreen;
         private VisualElement resultScreen;
         private VisualElement buildPanel;
+        private VisualElement buildWheelOverlay;
+        private VisualElement buildWheel;
         private VisualElement skillGraph;
+        private Image gameLogo;
+        private Button buildButton;
         private Label stageValue;
         private Label goldValue;
         private Label livesValue;
@@ -33,6 +37,8 @@ namespace TDAnnihilation
         private Label skillDetailsCopy;
         private TDMenuScreen currentScreen;
         private string selectedSkillId;
+        private bool wheelDragging;
+        private bool wheelSelected;
 
         private void Start()
         {
@@ -66,7 +72,14 @@ namespace TDAnnihilation
             if (style != null && !root.styleSheets.Contains(style)) root.styleSheets.Add(style);
             skillNodes = TDSkillTreeCatalog.CreateDefault();
             CacheElements();
+            Texture2D logo = Resources.Load<Texture2D>("TDAnnihilation/UI/TDAnnihilationLogo");
+            if (logo != null)
+            {
+                gameLogo.image = logo;
+                gameLogo.scaleMode = ScaleMode.ScaleToFit;
+            }
             RegisterCallbacks();
+            RegisterWheelInput();
             BuildSkillGraph();
             ShowMainMenu();
         }
@@ -131,7 +144,11 @@ namespace TDAnnihilation
             gameplayScreen = root.Q<VisualElement>("gameplay-screen");
             resultScreen = root.Q<VisualElement>("result-screen");
             buildPanel = root.Q<VisualElement>("build-panel");
+            buildWheelOverlay = root.Q<VisualElement>("build-wheel-overlay");
+            buildWheel = root.Q<VisualElement>("build-wheel");
             skillGraph = root.Q<VisualElement>("skill-graph");
+            gameLogo = root.Q<Image>("game-logo");
+            buildButton = root.Q<Button>("build-button");
             stageValue = root.Q<Label>("stage-value");
             goldValue = root.Q<Label>("gold-value");
             livesValue = root.Q<Label>("lives-value");
@@ -163,11 +180,44 @@ namespace TDAnnihilation
             root.Q<Button>("stage-select-back-button").clicked += ShowMainMenu;
             root.Q<Button>("skill-tree-back-button").clicked += ShowMainMenu;
             root.Q<Button>("settings-back-button").clicked += ShowMainMenu;
-            root.Q<Button>("placement-button").clicked += TogglePlacement;
+            buildButton.clicked += ToggleBuildWheel;
+            root.Q<Button>("placement-button").clicked += SelectArcaneTower;
+            root.Q<Button>("wheel-cancel").clicked += CloseBuildWheel;
             root.Q<Button>("wave-button").clicked += StartNextWave;
             root.Q<Button>("result-replay-button").clicked += Replay;
             root.Q<Button>("result-stage-select-button").clicked += OpenStageSelectFromResult;
             root.Q<Button>("result-menu-button").clicked += OpenMainMenuFromResult;
+        }
+
+        private void RegisterWheelInput()
+        {
+            if (buildWheel == null) return;
+            buildWheel.RegisterCallback<PointerDownEvent>(evt =>
+            {
+                wheelDragging = true;
+                UpdateWheelSelection(evt.position);
+                evt.StopPropagation();
+            });
+            buildWheel.RegisterCallback<PointerMoveEvent>(evt =>
+            {
+                if (!wheelDragging) return;
+                UpdateWheelSelection(evt.position);
+                evt.StopPropagation();
+            });
+            buildWheel.RegisterCallback<PointerUpEvent>(evt =>
+            {
+                if (wheelSelected) SelectArcaneTower();
+                else CloseBuildWheel();
+                evt.StopPropagation();
+            });
+        }
+
+        private void UpdateWheelSelection(Vector2 panelPosition)
+        {
+            Vector2 delta = panelPosition - buildWheel.worldBound.center;
+            wheelSelected = delta.y < -35f && Mathf.Abs(delta.x) < 118f;
+            if (wheelSelected) buildWheel.AddToClassList("has-selection");
+            else buildWheel.RemoveFromClassList("has-selection");
         }
 
         private void BuildSkillGraph()
@@ -213,10 +263,26 @@ namespace TDAnnihilation
             ShowGameplay();
         }
 
-        private void TogglePlacement()
+        private void ToggleBuildWheel()
         {
-            game.TogglePlacementMode();
+            if (game.Phase != TDGamePhase.Build || game.State.gold < 40) return;
+            buildWheelOverlay.style.display = DisplayStyle.Flex;
+            wheelDragging = false;
+            wheelSelected = false;
+        }
+
+        private void SelectArcaneTower()
+        {
+            CloseBuildWheel();
+            if (!game.IsPlacementMode) game.BeginPlacementMode();
             RefreshGameplayValues();
+        }
+
+        private void CloseBuildWheel()
+        {
+            wheelDragging = false;
+            wheelSelected = false;
+            if (buildWheelOverlay != null) buildWheelOverlay.style.display = DisplayStyle.None;
         }
 
         private void StartNextWave()
@@ -264,12 +330,14 @@ namespace TDAnnihilation
         {
             if (game.State == null || goldValue == null) return;
             stageValue.text = game.CurrentStageName;
-            goldValue.text = "GOLD  " + game.State.gold;
+            goldValue.text = game.State.gold.ToString();
             livesValue.text = "LIVES  " + game.State.lives;
             waveValue.text = "WAVE  " + game.CurrentWave;
             defeatedValue.text = "DEFEATED  " + game.State.defeated;
             phaseValue.text = game.Phase == TDGamePhase.Build ? "BUILD PHASE" : "WAVE PHASE";
-            buildPanel.style.display = game.Phase == TDGamePhase.Build ? DisplayStyle.Flex : DisplayStyle.None;
+            buildPanel.style.display = DisplayStyle.Flex;
+            buildButton.SetEnabled(game.Phase == TDGamePhase.Build && game.State.gold >= 40);
+            if (game.Phase != TDGamePhase.Build || currentScreen != TDMenuScreen.Gameplay) CloseBuildWheel();
             statusValue.text = game.IsPlacementMode
                 ? "CHOOSE A VALID BUILD SITE"
                 : game.Phase == TDGamePhase.Build ? "PREPARE THE DEFENSES" : "HOLD THE LINE";

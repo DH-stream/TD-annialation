@@ -41,26 +41,29 @@ namespace TDAnnihilation
         private static void SpawnDust(Vector3 position)
         {
             GameObject dust = new GameObject("Tower Placement Dust");
-            dust.transform.position = position + Vector3.up * 0.05f;
+            dust.transform.position = position + Vector3.up * 0.18f;
             ParticleSystem particles = dust.AddComponent<ParticleSystem>();
             var main = particles.main;
             main.loop = false;
             main.playOnAwake = false;
-            main.duration = 0.16f;
-            main.startLifetime = 0.32f;
-            main.startSpeed = 1.8f;
-            main.startSize = 0.11f;
-            main.startColor = new Color(0.38f, 0.25f, 0.13f, 0.82f);
+            main.duration = 0.22f;
+            main.startLifetime = 0.45f;
+            main.startSpeed = 2.3f;
+            main.startSize = 0.2f;
+            main.startColor = new Color(0.72f, 0.52f, 0.28f, 1f);
             main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.stopAction = ParticleSystemStopAction.Destroy;
             var emission = particles.emission;
-            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 14) });
+            emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 22) });
             var shape = particles.shape;
-            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 38f;
             shape.radius = 0.22f;
+            shape.length = 0.08f;
             ParticleSystemRenderer renderer = dust.GetComponent<ParticleSystemRenderer>();
             Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit") ?? Shader.Find("Unlit/Color");
-            renderer.material = new Material(shader) { color = new Color(0.38f, 0.25f, 0.13f, 0.82f) };
+            renderer.renderMode = ParticleSystemRenderMode.Billboard;
+            renderer.material = new Material(shader) { color = new Color(0.72f, 0.52f, 0.28f, 1f) };
             particles.Play();
         }
     }

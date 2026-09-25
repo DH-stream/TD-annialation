@@ -11,16 +11,17 @@
 .atmosphere-left { left: 0; top: 0; bottom: 0; width: 39%; }
 .atmosphere-bottom { left: 0; right: 0; bottom: 0; height: 18%; background-color: rgba(7, 15, 13, 0.42); }
 
-.menu-rail { width: 430px; height: 100%; padding-left: 68px; padding-right: 44px; padding-top: 84px; padding-bottom: 42px; background-color: rgba(7, 19, 17, 0.90); border-right-width: 1px; border-right-color: rgba(184, 151, 76, 0.62); }
+.menu-rail { width: 490px; height: 100%; padding-left: 52px; padding-right: 42px; padding-top: 54px; padding-bottom: 42px; background-color: rgba(7, 19, 17, 0.92); border-right-width: 1px; border-right-color: rgba(184, 151, 76, 0.62); }
 .menu-kicker, .screen-kicker, .scenery-kicker { color: rgb(193, 162, 83); font-size: 12px; -unity-font-style: bold; letter-spacing: 2px; }
-.menu-title { margin-top: 10px; color: rgb(247, 234, 197); font-size: 46px; -unity-font-style: bold; letter-spacing: 3px; }
+.game-logo { width: 350px; height: 250px; margin-bottom: 4px; -unity-background-scale-mode: scale-to-fit; }
+.menu-location { color: rgb(193, 162, 83); font-size: 14px; -unity-font-style: bold; letter-spacing: 2px; }
 .menu-subtitle { margin-top: 4px; color: rgb(139, 157, 133); font-size: 13px; letter-spacing: 1px; }
 .menu-rule, .detail-rule { height: 1px; background-color: rgba(193, 162, 83, 0.62); margin-top: 26px; margin-bottom: 24px; }
-.menu-action { width: 286px; height: 48px; margin-bottom: 8px; }
+.menu-action { width: 330px; height: 48px; margin-bottom: 8px; }
 .menu-footer { margin-top: auto; padding-top: 30px; border-top-width: 1px; border-top-color: rgba(133, 155, 131, 0.24); }
 .micro-copy { color: rgb(117, 137, 120); font-size: 10px; letter-spacing: 1px; margin-bottom: 6px; }
 .accent-copy { color: rgb(193, 162, 83); }
-.menu-scenery { position: absolute; left: 48%; bottom: 72px; width: 44%; }
+.menu-scenery { position: absolute; left: 54%; bottom: 72px; width: 40%; }
 .scenery-line { margin-top: 10px; color: rgba(235, 225, 195, 0.72); font-size: 18px; letter-spacing: 1px; }
 
 .primary-button, .secondary-button, .quiet-button, .stage-card, .skill-node { border-radius: 0; border-width: 1px; -unity-font-style: bold; transition-property: background-color, border-color, color; transition-duration: 120ms; }
@@ -64,7 +65,7 @@
 .settings-row:last-child { border-bottom-width: 0; }
 
 .gameplay-screen { background-color: rgba(4, 12, 11, 0.02); }
-.hud-resource-strip { position: absolute; left: 28px; top: 26px; height: 54px; min-width: 380px; padding: 11px 18px; flex-direction: row; align-items: center; background-color: rgba(8, 23, 20, 0.88); border-bottom-width: 2px; border-bottom-color: rgb(193, 162, 83); }
+.hud-resource-strip { position: absolute; left: 28px; top: 26px; height: 54px; min-width: 320px; padding: 11px 18px; flex-direction: row; align-items: center; background-color: rgba(8, 23, 20, 0.88); border-bottom-width: 2px; border-bottom-color: rgb(193, 162, 83); }
 .hud-stage { color: rgb(241, 224, 179); font-size: 13px; -unity-font-style: bold; letter-spacing: 1.5px; }
 .hud-divider { width: 1px; height: 24px; margin: 0 14px; background-color: rgba(193, 162, 83, 0.45); }
 .hud-value { margin-right: 16px; color: rgb(233, 221, 181); font-size: 13px; -unity-font-style: bold; letter-spacing: 1px; }
@@ -77,17 +78,32 @@
 .minimap-frame { position: absolute; left: 26px; bottom: 24px; width: 190px; height: 126px; padding: 12px; background-color: rgba(8, 23, 20, 0.78); border-top-width: 1px; border-left-width: 1px; border-color: rgba(137, 159, 130, 0.35); }
 .minimap-label { color: rgb(193, 162, 83); font-size: 10px; letter-spacing: 1.5px; }
 .minimap-path { width: 134px; height: 2px; margin-top: 50px; margin-left: 10px; background-color: rgba(220, 181, 91, 0.78); rotate: -12deg; }
-.action-panel { position: absolute; left: 39%; bottom: 28px; align-items: center; }
-.action-title { color: rgb(240, 226, 186); font-size: 12px; letter-spacing: 1.5px; -unity-font-style: bold; }
-.action-hint { margin-top: 6px; color: rgb(136, 157, 130); font-size: 10px; letter-spacing: 1px; }
-.build-panel { position: absolute; right: 28px; bottom: 24px; width: 390px; min-height: 126px; padding: 14px 16px; flex-direction: row; align-items: center; background-color: rgba(8, 23, 20, 0.93); border-left-width: 2px; border-left-color: rgb(193, 162, 83); }
-.tower-icon { width: 52px; height: 76px; align-items: center; justify-content: center; background-color: rgba(62, 42, 91, 0.70); border-width: 1px; border-color: rgba(183, 145, 242, 0.70); }
-.tower-icon-glyph { color: rgb(214, 176, 255); font-size: 25px; }
-.build-copy { flex-grow: 1; margin-left: 12px; }
-.build-title { color: rgb(244, 230, 190); font-size: 12px; -unity-font-style: bold; letter-spacing: 1px; }
-.build-subtitle { margin-top: 4px; color: rgb(143, 162, 138); font-size: 10px; }
-.build-cost { margin-top: 10px; color: rgb(239, 191, 78); font-size: 11px; -unity-font-style: bold; letter-spacing: 1px; }
-.compact-button { width: 150px; min-height: 34px; margin-left: 6px; font-size: 10px; letter-spacing: .5px; }
+.command-deck { position: absolute; left: 50%; bottom: 24px; translate: -50% 0; width: 790px; min-height: 96px; padding: 10px; flex-direction: row; align-items: stretch; background-color: rgba(7, 19, 17, 0.95); border-top-width: 1px; border-bottom-width: 2px; border-left-width: 1px; border-right-width: 1px; border-color: rgba(193, 162, 83, 0.82); }
+.coin-zone { width: 118px; padding: 7px 12px; justify-content: center; border-right-width: 1px; border-right-color: rgba(137, 159, 130, 0.28); }
+.zone-label { color: rgb(193, 162, 83); font-size: 9px; letter-spacing: 1.4px; -unity-font-style: bold; }
+.coin-value { margin-top: 2px; color: rgb(239, 191, 78); font-size: 23px; -unity-font-style: bold; }
+.zone-caption { margin-top: 1px; color: rgb(131, 151, 126); font-size: 8px; letter-spacing: 1px; }
+.command-card { width: 112px; height: 74px; margin-left: 8px; padding: 8px; border-radius: 0; border-width: 1px; -unity-font-style: bold; font-size: 14px; letter-spacing: 1px; -unity-text-align: middle-center; white-space: normal; }
+.build-card { background-color: rgba(63, 44, 86, 0.92); border-color: rgba(183, 145, 242, 0.82); color: rgb(225, 193, 255); }
+.attack-card { background-color: rgba(89, 42, 28, 0.92); border-color: rgba(220, 139, 77, 0.82); color: rgb(255, 211, 166); }
+.command-card:hover { background-color: rgb(84, 100, 65); border-color: rgb(238, 202, 106); color: rgb(255, 244, 211); }
+.attack-types { width: 170px; margin-left: 10px; padding: 7px 0; }
+.attack-type { height: 25px; margin-top: 5px; padding-left: 9px; -unity-text-align: middle-left; border-radius: 0; border-width: 1px; border-color: rgba(137, 159, 130, 0.42); background-color: rgba(22, 47, 39, 0.82); color: rgb(211, 212, 181); font-size: 9px; letter-spacing: .6px; }
+.attack-type.active { border-color: rgb(220, 181, 91); background-color: rgba(79, 61, 27, 0.88); color: rgb(255, 240, 190); }
+.phase-action { width: 118px; margin-left: 10px; padding: 7px; -unity-text-align: middle-center; white-space: normal; font-size: 10px; letter-spacing: 1px; }
+.build-wheel-overlay { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: none; align-items: center; justify-content: center; background-color: rgba(2, 8, 7, 0.60); }
+.build-wheel { position: relative; width: 360px; height: 360px; align-items: center; justify-content: center; background-color: rgba(8, 23, 20, 0.98); border-width: 2px; border-color: rgb(193, 162, 83); border-radius: 180px; }
+.wheel-ring { position: absolute; left: 20px; right: 20px; top: 20px; bottom: 20px; border-width: 1px; border-color: rgba(137, 159, 130, 0.42); border-radius: 160px; }
+.wheel-center { width: 126px; height: 82px; align-items: center; justify-content: center; background-color: rgba(21, 48, 39, 0.92); border-width: 1px; border-color: rgba(193, 162, 83, 0.58); }
+.wheel-title { color: rgb(247, 234, 197); font-size: 16px; -unity-font-style: bold; letter-spacing: 1.5px; }
+.wheel-caption { margin-top: 6px; color: rgb(143, 162, 138); font-size: 8px; letter-spacing: 1px; }
+.wheel-option { position: absolute; width: 148px; height: 62px; padding: 6px; border-radius: 0; -unity-text-align: middle-center; white-space: normal; font-size: 9px; letter-spacing: .5px; }
+.wheel-option-top { left: 104px; top: 26px; }
+.wheel-option-right { right: -28px; top: 145px; }
+.wheel-option-bottom { left: 104px; bottom: 26px; }
+.build-wheel.has-selection .wheel-option-top { background-color: rgb(174, 119, 40); border-color: rgb(255, 225, 126); color: rgb(255, 249, 224); }
+.wheel-cancel { position: absolute; right: 16px; top: 14px; width: 28px; height: 28px; padding: 0; font-size: 20px; }
+.wheel-hint { position: absolute; left: 0; right: 0; bottom: -32px; color: rgb(193, 162, 83); font-size: 9px; letter-spacing: 1.2px; -unity-text-align: middle-center; }
 
 .result-layout { width: 620px; align-self: center; margin-left: 92px; padding: 46px; background-color: rgba(8, 23, 20, 0.91); border-left-width: 2px; border-left-color: rgb(193, 162, 83); }
 .result-title { margin-top: 9px; color: rgb(247, 234, 197); font-size: 30px; -unity-font-style: bold; letter-spacing: 1.5px; }
