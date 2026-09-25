@@ -107,7 +107,7 @@ namespace TDAnnihilation
             const string controllerPath = "Assets/Resources/TDAnnihilation/Demon.controller";
             const string demonModelPath = "Assets/Art/ThirdParty/Quaternius/Monsters/Demon.fbx";
             const string hitModelPath = "Assets/Art/ThirdParty/Blink/Art/Animations/Animations_Starter_Pack/Combat/GetHit.fbx";
-            AnimationClip walk = LoadClip(demonModelPath, "CharacterArmature|Run");
+            AnimationClip walk = LoadClip(demonModelPath, "CharacterArmature|Walk");
             AnimationClip hit = LoadClip(hitModelPath, "GetHit");
             if (walk == null || hit == null)
             {

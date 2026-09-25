@@ -591,6 +591,8 @@ namespace TDAnnihilation
             main.startSize = 0.08f;
             main.startColor = color;
             main.maxParticles = 40;
+            main.simulationSpace = ParticleSystemSimulationSpace.Local;
+            main.stopAction = ParticleSystemStopAction.Destroy;
             var emission = particles.emission;
             emission.rateOverTime = 30f;
             ParticleSystemRenderer renderer = particlesObject.GetComponent<ParticleSystemRenderer>();
@@ -633,11 +635,13 @@ namespace TDAnnihilation
             particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = particles.main;
             main.playOnAwake = false;
+            main.loop = false;
             main.duration = 0.16f;
             main.startLifetime = 0.35f;
             main.startSpeed = 2.8f;
             main.startSize = 0.1f;
             main.startColor = color;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
             main.stopAction = ParticleSystemStopAction.Destroy;
             var emission = particles.emission;
             emission.SetBursts(new[] { new ParticleSystem.Burst(0f, 10) });
