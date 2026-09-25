@@ -24,3 +24,12 @@ Known environment issue: the Unity MCP package still reports failed local HTTP/W
 - First gameplay integration chain now owns explicit `MainMenu → Build → Wave → Victory/Defeat → MainMenu` transitions in C#.
 - Runtime verification: menu action entered Build, wave 1 spawned five enemies, enemies reached waypoint 5, three waves completed as Victory with 18 defeated, and Return to Menu reset the flow. Console remained empty.
 - Unity EditMode after integration: 4/4 tests passed.
+
+## UI Toolkit menu and HUD — 2026-09-25
+
+- Added the UI Toolkit foundation for Main Menu, Stage Select, Skill Tree, Gameplay HUD, Settings shell, and Result screens.
+- Greenward is selectable; The Ashen Pass and The Sunken Keep are visible as locked future stages.
+- Session-local Warden, Arcana, and Bastion skill-node state is wired with prerequisite checks but has no gameplay effects or persistence yet.
+- Replaced the legacy TDVerticalSliceHUD OnGUI rendering with UXML/USS and runtime binding to the existing game-flow methods.
+- Runtime and editor assemblies build with zero errors; the existing GeminiEditorChat analyzer warning remains unchanged.
+- Play Mode verification is pending because the open Unity Editor is not currently exposing a reachable Pipeline server to the Unity CLI test/command runner.
