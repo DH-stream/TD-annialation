@@ -28,7 +28,7 @@
 - `TDTowerController` continues selecting the nearest `TDEnemyController` and still deals `16f` damage.
 - `TDProjectile.Configure(TDEnemyController enemy, float hitDamage, Color color)` owns projectile movement, trail particles, impact burst, and one-time damage.
 
-- [ ] **Step 1: Record the current baseline**
+- [x] **Step 1: Record the current baseline**
 
 Run:
 
@@ -39,7 +39,7 @@ unity command run_tests --project-path E:\TD-Annihilation-Unity-Git\UnityProject
 
 Expected: no compile errors; the existing scale test may remain the known pre-existing failure (`Hero` is `1.5`).
 
-- [ ] **Step 2: Replace only the projectile construction call**
+- [x] **Step 2: Replace only the projectile construction call**
 
 Keep the tower's target selection and damage unchanged, but pass the existing `projectileColor` into the projectile:
 
@@ -47,15 +47,15 @@ Keep the tower's target selection and damage unchanged, but pass the existing `p
 projectile.AddComponent<TDProjectile>().Configure(nearest, 16f, projectileColor);
 ```
 
-- [ ] **Step 3: Add the minimum projectile visuals**
+- [x] **Step 3: Add the minimum projectile visuals**
 
 Keep the existing core sphere, then add a `TrailRenderer` and child `ParticleSystem` using URP materials created by the existing local material helper. Configure the trail and particles from `projectileColor`; use `StopAction.Destroy` for the impact burst so no effect object remains in the scene.
 
-- [ ] **Step 4: Add weighted movement without changing targeting rules**
+- [x] **Step 4: Add weighted movement without changing targeting rules**
 
 Start at a low speed, accelerate toward a capped speed, steer toward `target.transform.position + Vector3.up`, and add a small vertical arc. Preserve the existing impact distance threshold and guard the damage call with a private `damageApplied` flag.
 
-- [ ] **Step 5: Recompile and smoke-test**
+- [x] **Step 5: Recompile and smoke-test**
 
 Run:
 
@@ -66,7 +66,7 @@ unity command editor_play --project-path E:\TD-Annihilation-Unity-Git\UnityProje
 
 Observe one wave from the normal gameplay camera: the bolt has a visible trailing effect, does not teleport, reaches an enemy, applies one hit, and cleans itself up. Stop Play Mode after the check.
 
-- [ ] **Step 6: Commit the isolated projectile change**
+- [x] **Step 6: Commit the isolated projectile change**
 
 ```powershell
 git add -- UnityProject/Assets/Scripts/TD/TDVerticalSliceBootstrap.cs
@@ -84,11 +84,11 @@ git commit -m "Improve arcane projectile feedback"
 - `GreenwardSceneAuthoring.EnsureAnimationControllers()` authors `Assets/Resources/TDAnnihilation/Demon.controller` with `Walk`, `Hit`, a `Hit` trigger, and a return transition to `Walk`.
 - `TDEnemyController.TakeDamage(float amount)` remains the shared damage entry point and triggers `Hit` when the parameter exists.
 
-- [ ] **Step 1: Author the Demon controller through Unity’s API**
+- [x] **Step 1: Author the Demon controller through Unity’s API**
 
 Add a Demon-specific authoring method called by `EnsureAnimationControllers()`. Load the existing Demon walk clip from `Assets/Art/ThirdParty/Quaternius/Monsters/Demon.fbx`, load `GetHit` from `Assets/Art/ThirdParty/Blink/Art/Animations/Animations_Starter_Pack/Combat/GetHit.fbx`, add the `Hit` trigger, create the `Walk` and `Hit` states, add an Any State → Hit trigger transition, and add a Hit → Walk exit-time transition. Save the controller with `AssetDatabase.SaveAssets()`.
 
-- [ ] **Step 2: Trigger the animation from the shared damage path**
+- [x] **Step 2: Trigger the animation from the shared damage path**
 
 Cache whether the child Animator has a `Hit` trigger during `Configure()`. In `TakeDamage()`, reset and set that trigger before the existing health/defeat logic; do not change damage amounts, death behavior, route movement, or coin spawning.
 
@@ -100,7 +100,7 @@ if (hasHitTrigger)
 }
 ```
 
-- [ ] **Step 3: Recompile and run tests**
+- [x] **Step 3: Recompile and run tests**
 
 Run:
 
@@ -111,11 +111,11 @@ unity command run_tests --project-path E:\TD-Annihilation-Unity-Git\UnityProject
 
 Expected: no compile errors; the known scale assertion remains the only existing test failure unless it is independently fixed later.
 
-- [ ] **Step 4: Smoke-test repeated damage**
+- [x] **Step 4: Smoke-test repeated damage**
 
 Run the wave from the normal gameplay camera and confirm a hit enemy plays `GetHit`, resumes `Walk`, continues along the route, and does not remain stuck when struck again.
 
-- [ ] **Step 5: Commit the isolated hit-reaction change**
+- [x] **Step 5: Commit the isolated hit-reaction change**
 
 ```powershell
 git add -- UnityProject/Assets/Editor/GreenwardSceneAuthoring.cs UnityProject/Assets/Scripts/TD/TDVerticalSliceBootstrap.cs
@@ -124,8 +124,8 @@ git commit -m "Add enemy hit reaction animation"
 
 ## Final verification
 
-- [ ] `unity recompile --project-path E:\TD-Annihilation-Unity-Git\UnityProject --format json` reports `errors: 0`.
-- [ ] Pipeline `console_status` reports `consoleErrors: 0` and `compilationFailed: false`.
-- [ ] Existing EditMode tests are reported with the known scale assertion called out separately.
-- [ ] `git diff --check` passes for the implementation commits.
-- [ ] The four pre-existing Unity settings modifications remain uncommitted and untouched.
+- [x] `unity recompile --project-path E:\TD-Annihilation-Unity-Git\UnityProject --format json` reports `errors: 0`.
+- [x] Pipeline `console_status` reports `consoleErrors: 0` and `compilationFailed: false`.
+- [x] Existing EditMode tests are reported with the known scale assertion called out separately.
+- [x] `git diff --check` passes for the implementation commits.
+- [x] The four pre-existing Unity settings modifications remain uncommitted and untouched.
