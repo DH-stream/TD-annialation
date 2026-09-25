@@ -255,6 +255,8 @@ namespace TDAnnihilation
             for (int i = 0; i < screens.Count; i++)
                 if (screens[i] != null) screens[i].RemoveFromClassList("is-visible");
             visibleScreen.AddToClassList("is-visible");
+            visibleScreen.AddToClassList("is-entering");
+            visibleScreen.schedule.Execute(() => visibleScreen.RemoveFromClassList("is-entering")).StartingIn(16);
             currentScreen = screen;
         }
 
@@ -266,7 +268,7 @@ namespace TDAnnihilation
             livesValue.text = "LIVES  " + game.State.lives;
             waveValue.text = "WAVE  " + game.CurrentWave;
             defeatedValue.text = "DEFEATED  " + game.State.defeated;
-            phaseValue.text = game.Phase.ToString().ToUpperInvariant();
+            phaseValue.text = game.Phase == TDGamePhase.Build ? "BUILD PHASE" : "WAVE PHASE";
             buildPanel.style.display = game.Phase == TDGamePhase.Build ? DisplayStyle.Flex : DisplayStyle.None;
             statusValue.text = game.IsPlacementMode
                 ? "CHOOSE A VALID BUILD SITE"

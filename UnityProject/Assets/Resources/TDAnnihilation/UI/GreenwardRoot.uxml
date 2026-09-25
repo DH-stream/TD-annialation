@@ -1,77 +1,129 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
     <ui:VisualElement name="greenward-root" class="greenward-root">
-        <ui:VisualElement name="main-menu-screen" class="screen is-visible">
-            <ui:VisualElement class="menu-panel">
-                <ui:Label text="TD ANNIHILATION" class="title" />
-                <ui:Label text="DEFEND THE ROYAL HEART" class="subtitle" />
-                <ui:Button name="play-button" text="PLAY" class="primary-button" />
-                <ui:Button name="skill-tree-button" text="SKILL TREE" class="secondary-button" />
-                <ui:Button name="settings-button" text="SETTINGS" class="secondary-button" />
-                <ui:Button name="quit-button" text="QUIT" class="secondary-button" />
+        <ui:VisualElement class="atmosphere atmosphere-left" />
+        <ui:VisualElement class="atmosphere atmosphere-bottom" />
+
+        <ui:VisualElement name="main-menu-screen" class="screen main-menu-screen is-visible">
+            <ui:VisualElement class="menu-rail">
+                <ui:Label text="TD ANNIHILATION" class="menu-kicker" />
+                <ui:Label text="GREENWARD" class="menu-title" />
+                <ui:Label text="THE VALLEY REMEMBERS" class="menu-subtitle" />
+                <ui:VisualElement class="menu-rule" />
+                <ui:Button name="play-button" text="BEGIN DEFENSE" class="primary-button menu-action" />
+                <ui:Button name="skill-tree-button" text="SKILL TREE" class="secondary-button menu-action" />
+                <ui:Button name="settings-button" text="SETTINGS" class="secondary-button menu-action" />
+                <ui:Button name="quit-button" text="QUIT TO DESKTOP" class="quiet-button menu-action" />
+                <ui:VisualElement class="menu-footer">
+                    <ui:Label text="A STRATEGIC FANTASY DEFENSE" class="micro-copy" />
+                    <ui:Label text="BUILD · ADAPT · ENDURE" class="micro-copy accent-copy" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="menu-scenery">
+                <ui:Label text="THE GREENWARD FRONTIER" class="scenery-kicker" />
+                <ui:Label text="THE FIRST WATCHTOWER STILL STANDS." class="scenery-line" />
             </ui:VisualElement>
         </ui:VisualElement>
 
         <ui:VisualElement name="stage-select-screen" class="screen">
-            <ui:VisualElement class="screen-panel wide-panel">
-                <ui:Label text="CHOOSE YOUR BATTLEFIELD" class="screen-title" />
-                <ui:VisualElement name="stage-list" class="stage-list">
-                    <ui:Button name="stage-greenward-button" text="GREENWARD — ACTIVE" class="stage-card stage-card-active" />
-                    <ui:Button name="stage-two-button" text="THE ASHEN PASS — LOCKED" class="stage-card" />
-                    <ui:Button name="stage-three-button" text="THE SUNKEN KEEP — LOCKED" class="stage-card" />
+            <ui:VisualElement class="screen-layout">
+                <ui:VisualElement class="screen-heading">
+                    <ui:Label text="CAMPAIGN" class="screen-kicker" />
+                    <ui:Label text="CHOOSE YOUR BATTLEFIELD" class="screen-title" />
+                    <ui:Label text="Every valley has a story. Every defense leaves a mark." class="screen-intro" />
                 </ui:VisualElement>
-                <ui:Button name="stage-select-back-button" text="BACK" class="secondary-button back-button" />
+                <ui:VisualElement class="stage-layout">
+                    <ui:VisualElement name="stage-list" class="stage-list">
+                        <ui:Button name="stage-greenward-button" text="GREENWARD\nACTIVE FRONT" class="stage-card stage-card-active" />
+                        <ui:Button name="stage-two-button" text="THE ASHEN PASS\nLOCKED" class="stage-card" />
+                        <ui:Button name="stage-three-button" text="THE SUNKEN KEEP\nLOCKED" class="stage-card" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="stage-details">
+                        <ui:Label text="01 / 03" class="stage-index" />
+                        <ui:Label text="GREENWARD" class="stage-details-title" />
+                        <ui:Label text="A fertile valley at the edge of the old kingdom. The road cuts through meadow, river and village before the keep." class="body-copy" />
+                        <ui:VisualElement class="detail-rule" />
+                        <ui:Label text="THREAT" class="detail-label" />
+                        <ui:Label text="RAIDERS · BRUTES · BLIGHT" class="detail-value" />
+                        <ui:Label text="FIRST DEFENSE" class="detail-label" />
+                        <ui:Label text="ARCANE WATCHTOWER" class="detail-value" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Button name="stage-select-back-button" text="BACK" class="back-button quiet-button" />
             </ui:VisualElement>
         </ui:VisualElement>
 
         <ui:VisualElement name="skill-tree-screen" class="screen">
-            <ui:VisualElement class="screen-panel skill-panel">
-                <ui:Label text="SKILL TREE" class="screen-title" />
+            <ui:VisualElement class="screen-layout skill-layout">
+                <ui:VisualElement class="screen-heading">
+                    <ui:Label text="PROGRESSION" class="screen-kicker" />
+                    <ui:Label text="SKILL TREE" class="screen-title" />
+                    <ui:Label text="Shape the Warden before the next valley falls." class="screen-intro" />
+                </ui:VisualElement>
                 <ui:VisualElement name="skill-graph" class="skill-graph" />
                 <ui:VisualElement class="skill-details">
+                    <ui:Label text="SELECTED NODE" class="detail-label" />
                     <ui:Label name="skill-details-title" text="SELECT A NODE" class="panel-title" />
                     <ui:Label name="skill-details-copy" text="Choose a branch to inspect its future upgrades." class="body-copy" />
                 </ui:VisualElement>
-                <ui:Button name="skill-tree-back-button" text="BACK" class="secondary-button back-button" />
+                <ui:Button name="skill-tree-back-button" text="BACK" class="back-button quiet-button" />
             </ui:VisualElement>
         </ui:VisualElement>
 
         <ui:VisualElement name="settings-screen" class="screen">
-            <ui:VisualElement class="screen-panel narrow-panel">
+            <ui:VisualElement class="screen-layout narrow-layout">
+                <ui:Label text="SYSTEM" class="screen-kicker" />
                 <ui:Label text="SETTINGS" class="screen-title" />
-                <ui:Label text="Settings migration is reserved for a later pass." class="body-copy" />
-                <ui:Button name="settings-back-button" text="BACK" class="secondary-button back-button" />
+                <ui:VisualElement class="settings-list">
+                    <ui:VisualElement class="settings-row"><ui:Label text="DISPLAY" class="detail-label" /><ui:Label text="WINDOWED · 16:9" class="detail-value" /></ui:VisualElement>
+                    <ui:VisualElement class="settings-row"><ui:Label text="AUDIO" class="detail-label" /><ui:Label text="COMING SOON" class="detail-value muted-copy" /></ui:VisualElement>
+                    <ui:VisualElement class="settings-row"><ui:Label text="CONTROLS" class="detail-label" /><ui:Label text="MOUSE · B TO BUILD" class="detail-value" /></ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Button name="settings-back-button" text="BACK" class="back-button quiet-button" />
             </ui:VisualElement>
         </ui:VisualElement>
 
         <ui:VisualElement name="gameplay-screen" class="screen gameplay-screen">
-            <ui:VisualElement class="hud-panel hud-top-left">
-                <ui:Label name="stage-value" text="GREENWARD" class="hud-caption" />
-                <ui:Label name="gold-value" text="GOLD  120" class="hud-value" />
-                <ui:Label name="lives-value" text="LIVES  20" class="hud-value" />
-                <ui:Label name="defeated-value" text="DEFEATED  0" class="hud-caption" />
+            <ui:VisualElement class="hud-resource-strip">
+                <ui:Label name="stage-value" text="GREENWARD" class="hud-stage" />
+                <ui:VisualElement class="hud-divider" />
+                <ui:Label name="gold-value" text="GOLD 120" class="hud-value hud-gold" />
+                <ui:Label name="lives-value" text="LIVES 20" class="hud-value" />
+                <ui:Label name="defeated-value" text="DEFEATED 0" class="hud-caption" />
             </ui:VisualElement>
-            <ui:VisualElement class="hud-panel hud-top-center">
-                <ui:Label name="wave-value" text="WAVE  0" class="hud-value" />
-                <ui:Label name="phase-value" text="BUILD" class="hud-caption" />
+            <ui:VisualElement class="hud-wave-state">
+                <ui:Label name="phase-value" text="BUILD PHASE" class="hud-phase" />
+                <ui:Label name="wave-value" text="WAVE 0" class="hud-wave" />
             </ui:VisualElement>
-            <ui:Label name="status-value" text="" class="hud-status" />
-            <ui:VisualElement name="minimap-frame" class="hud-panel minimap-frame" />
-            <ui:VisualElement name="action-panel" class="hud-panel action-panel" />
-            <ui:VisualElement name="build-panel" class="hud-panel build-panel">
-                <ui:Label text="DEFENSE" class="panel-title" />
-                <ui:Button name="placement-button" text="BUILD TOWER" class="primary-button compact-button" />
-                <ui:Button name="wave-button" text="START NEXT WAVE" class="secondary-button compact-button" />
-                <ui:Label text="COST 40 GOLD" class="hud-caption" />
+            <ui:Label name="status-value" text="PREPARE THE DEFENSES" class="hud-status" />
+            <ui:VisualElement name="minimap-frame" class="minimap-frame">
+                <ui:Label text="GREENWARD" class="minimap-label" />
+                <ui:VisualElement class="minimap-path" />
+            </ui:VisualElement>
+            <ui:VisualElement name="action-panel" class="action-panel">
+                <ui:Label text="WARDEN'S DECK" class="action-title" />
+                <ui:Label text="SELECT A DEFENSE TO PLACE" class="action-hint" />
+            </ui:VisualElement>
+            <ui:VisualElement name="build-panel" class="build-panel">
+                <ui:VisualElement class="tower-icon"><ui:Label text="✦" class="tower-icon-glyph" /></ui:VisualElement>
+                <ui:VisualElement class="build-copy">
+                    <ui:Label text="ARCANE WATCHTOWER" class="build-title" />
+                    <ui:Label text="Ranged magical defense" class="build-subtitle" />
+                    <ui:Label text="COST 40 GOLD" class="build-cost" />
+                </ui:VisualElement>
+                <ui:Button name="placement-button" text="BUILD  [B]" class="primary-button compact-button" />
+                <ui:Button name="wave-button" text="START WAVE  [SPACE]" class="secondary-button compact-button" />
             </ui:VisualElement>
         </ui:VisualElement>
 
         <ui:VisualElement name="result-screen" class="screen result-screen">
-            <ui:VisualElement class="screen-panel result-panel">
-                <ui:Label name="result-title" text="GREENWARD DEFENDED" class="screen-title" />
-                <ui:Label name="result-copy" text="" class="body-copy" />
-                <ui:Button name="result-replay-button" text="REPLAY" class="primary-button" />
+            <ui:VisualElement class="result-layout">
+                <ui:Label text="AFTER ACTION" class="screen-kicker" />
+                <ui:Label name="result-title" text="GREENWARD DEFENDED" class="result-title" />
+                <ui:VisualElement class="detail-rule" />
+                <ui:Label name="result-copy" text="" class="body-copy result-copy" />
+                <ui:Button name="result-replay-button" text="REPLAY DEFENSE" class="primary-button" />
                 <ui:Button name="result-stage-select-button" text="STAGE SELECT" class="secondary-button" />
-                <ui:Button name="result-menu-button" text="MAIN MENU" class="secondary-button" />
+                <ui:Button name="result-menu-button" text="MAIN MENU" class="quiet-button" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

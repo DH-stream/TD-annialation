@@ -1,100 +1,95 @@
 .greenward-root {
     flex-grow: 1;
-    color: rgb(235, 221, 180);
-    background-color: rgba(0, 0, 0, 0);
+    color: rgb(235, 225, 195);
+    background-color: rgba(6, 16, 15, 0.08);
 }
 
-.screen {
-    display: none;
-    flex-grow: 1;
-    align-items: center;
-    justify-content: center;
-    padding: 32px;
-}
+.screen { display: none; flex-grow: 1; opacity: 0; transition-property: opacity; transition-duration: 180ms; transition-timing-function: ease-out; }
+.screen.is-visible { display: flex; opacity: 1; }
+.screen.is-entering { opacity: 0; }
+.atmosphere { position: absolute; background-color: rgba(20, 48, 39, 0.18); }
+.atmosphere-left { left: 0; top: 0; bottom: 0; width: 39%; }
+.atmosphere-bottom { left: 0; right: 0; bottom: 0; height: 18%; background-color: rgba(7, 15, 13, 0.42); }
 
-.screen.is-visible { display: flex; }
+.menu-rail { width: 430px; height: 100%; padding-left: 68px; padding-right: 44px; padding-top: 84px; padding-bottom: 42px; background-color: rgba(7, 19, 17, 0.90); border-right-width: 1px; border-right-color: rgba(184, 151, 76, 0.62); }
+.menu-kicker, .screen-kicker, .scenery-kicker { color: rgb(193, 162, 83); font-size: 12px; -unity-font-style: bold; letter-spacing: 2px; }
+.menu-title { margin-top: 10px; color: rgb(247, 234, 197); font-size: 46px; -unity-font-style: bold; letter-spacing: 3px; }
+.menu-subtitle { margin-top: 4px; color: rgb(139, 157, 133); font-size: 13px; letter-spacing: 1px; }
+.menu-rule, .detail-rule { height: 1px; background-color: rgba(193, 162, 83, 0.62); margin-top: 26px; margin-bottom: 24px; }
+.menu-action { width: 286px; height: 48px; margin-bottom: 8px; }
+.menu-footer { margin-top: auto; padding-top: 30px; border-top-width: 1px; border-top-color: rgba(133, 155, 131, 0.24); }
+.micro-copy { color: rgb(117, 137, 120); font-size: 10px; letter-spacing: 1px; margin-bottom: 6px; }
+.accent-copy { color: rgb(193, 162, 83); }
+.menu-scenery { position: absolute; left: 48%; bottom: 72px; width: 44%; }
+.scenery-line { margin-top: 10px; color: rgba(235, 225, 195, 0.72); font-size: 18px; letter-spacing: 1px; }
 
-.menu-panel, .screen-panel, .hud-panel {
-    background-color: rgba(12, 29, 25, 0.92);
-    border-top-width: 2px;
-    border-right-width: 2px;
-    border-bottom-width: 2px;
-    border-left-width: 2px;
-    border-top-color: rgb(132, 111, 67);
-    border-right-color: rgb(132, 111, 67);
-    border-bottom-color: rgb(132, 111, 67);
-    border-left-color: rgb(132, 111, 67);
-    padding: 28px;
-}
+.primary-button, .secondary-button, .quiet-button, .stage-card, .skill-node { border-radius: 0; border-width: 1px; -unity-font-style: bold; transition-property: background-color, border-color, color; transition-duration: 120ms; }
+.primary-button { background-color: rgb(143, 95, 34); border-color: rgb(220, 181, 91); color: rgb(255, 243, 207); }
+.secondary-button { background-color: rgba(30, 57, 47, 0.88); border-color: rgba(137, 159, 130, 0.58); color: rgb(229, 222, 191); }
+.quiet-button { background-color: rgba(0, 0, 0, 0); border-color: rgba(137, 159, 130, 0.30); color: rgb(157, 169, 144); }
+.primary-button:hover, .secondary-button:hover, .quiet-button:hover, .stage-card:hover, .skill-node:hover { background-color: rgb(66, 91, 63); border-color: rgb(220, 181, 91); color: rgb(255, 244, 211); }
+.primary-button:disabled, .secondary-button:disabled, .quiet-button:disabled, .stage-card:disabled { background-color: rgba(14, 24, 21, 0.76); border-color: rgba(80, 92, 79, 0.34); color: rgb(91, 103, 92); }
 
-.menu-panel { width: 460px; align-items: center; }
-.wide-panel { width: 900px; }
-.narrow-panel { width: 520px; }
-.skill-panel { width: 1000px; min-height: 560px; }
-.result-panel { width: 560px; align-items: center; }
+.screen-layout { width: 1120px; align-self: center; margin-left: 92px; padding-top: 52px; padding-bottom: 34px; }
+.narrow-layout { width: 620px; }
+.screen-heading { margin-bottom: 30px; }
+.screen-title { margin-top: 7px; color: rgb(247, 234, 197); font-size: 31px; -unity-font-style: bold; letter-spacing: 2px; }
+.screen-intro { margin-top: 8px; color: rgb(158, 173, 146); font-size: 14px; }
+.stage-layout { flex-direction: row; }
+.stage-list { width: 590px; }
+.stage-card { width: 550px; min-height: 74px; margin-bottom: 9px; padding-left: 22px; -unity-text-align: middle-left; white-space: normal; background-color: rgba(15, 34, 29, 0.82); color: rgb(216, 209, 178); }
+.stage-card-active { background-color: rgba(82, 73, 36, 0.90); border-color: rgb(220, 181, 91); color: rgb(255, 240, 190); }
+.stage-details { width: 360px; margin-left: 36px; padding: 20px 0 0 30px; border-left-width: 1px; border-left-color: rgba(137, 159, 130, 0.30); }
+.stage-index { color: rgb(193, 162, 83); font-size: 12px; letter-spacing: 2px; }
+.stage-details-title { margin-top: 14px; margin-bottom: 14px; color: rgb(247, 234, 197); font-size: 25px; -unity-font-style: bold; }
+.body-copy { color: rgb(184, 190, 164); font-size: 14px; white-space: normal; }
+.detail-label { margin-top: 14px; color: rgb(132, 155, 128); font-size: 10px; letter-spacing: 1.5px; -unity-font-style: bold; }
+.detail-value { margin-top: 4px; color: rgb(230, 213, 167); font-size: 13px; letter-spacing: 1px; }
+.muted-copy { color: rgb(116, 131, 115); }
+.back-button { width: 130px; height: 38px; margin-top: 26px; }
 
-.title {
-    font-size: 38px;
-    color: rgb(238, 190, 74);
-    -unity-font-style: bold;
-    margin-bottom: 6px;
-}
+.skill-layout { width: 1160px; }
+.skill-graph { flex-direction: row; min-height: 300px; padding: 16px 0 22px; border-top-width: 1px; border-bottom-width: 1px; border-color: rgba(137, 159, 130, 0.25); }
+.skill-branch { flex-grow: 1; padding: 6px 22px 6px 0; border-right-width: 1px; border-right-color: rgba(137, 159, 130, 0.20); }
+.skill-branch:last-child { border-right-width: 0; }
+.skill-branch-title { color: rgb(193, 162, 83); font-size: 12px; letter-spacing: 1.5px; -unity-font-style: bold; margin-bottom: 12px; }
+.skill-node { width: 220px; min-height: 55px; margin: 4px 0; background-color: rgba(22, 47, 39, 0.86); border-color: rgba(137, 159, 130, 0.52); color: rgb(218, 214, 182); -unity-text-align: middle-left; }
+.skill-node.is-unlocked { background-color: rgba(72, 94, 55, 0.92); border-color: rgb(220, 181, 91); }
+.skill-node.is-available { background-color: rgba(79, 61, 27, 0.88); }
+.skill-node.is-selected { border-left-width: 4px; border-left-color: rgb(220, 181, 91); }
+.skill-details { width: 460px; min-height: 104px; margin-top: 24px; padding: 16px 18px; background-color: rgba(9, 25, 22, 0.72); border-left-width: 2px; border-left-color: rgb(193, 162, 83); }
+.panel-title { margin-top: 6px; color: rgb(247, 234, 197); font-size: 18px; -unity-font-style: bold; }
+.settings-list { margin-top: 28px; border-top-width: 1px; border-bottom-width: 1px; border-color: rgba(137, 159, 130, 0.25); }
+.settings-row { min-height: 62px; padding: 10px 0; border-bottom-width: 1px; border-bottom-color: rgba(137, 159, 130, 0.18); }
+.settings-row:last-child { border-bottom-width: 0; }
 
-.subtitle, .screen-title {
-    font-size: 18px;
-    color: rgb(213, 195, 145);
-    -unity-font-style: bold;
-    margin-bottom: 24px;
-}
+.gameplay-screen { background-color: rgba(4, 12, 11, 0.02); }
+.hud-resource-strip { position: absolute; left: 28px; top: 26px; height: 54px; min-width: 380px; padding: 11px 18px; flex-direction: row; align-items: center; background-color: rgba(8, 23, 20, 0.88); border-bottom-width: 2px; border-bottom-color: rgb(193, 162, 83); }
+.hud-stage { color: rgb(241, 224, 179); font-size: 13px; -unity-font-style: bold; letter-spacing: 1.5px; }
+.hud-divider { width: 1px; height: 24px; margin: 0 14px; background-color: rgba(193, 162, 83, 0.45); }
+.hud-value { margin-right: 16px; color: rgb(233, 221, 181); font-size: 13px; -unity-font-style: bold; letter-spacing: 1px; }
+.hud-gold { color: rgb(239, 191, 78); }
+.hud-caption { color: rgb(142, 162, 135); font-size: 11px; letter-spacing: 1px; }
+.hud-wave-state { position: absolute; top: 28px; left: 44%; align-items: center; }
+.hud-phase { color: rgb(193, 162, 83); font-size: 11px; letter-spacing: 2px; -unity-font-style: bold; }
+.hud-wave { margin-top: 4px; color: rgb(245, 236, 204); font-size: 22px; -unity-font-style: bold; letter-spacing: 2px; }
+.hud-status { position: absolute; top: 88px; left: 28%; right: 28%; color: rgb(222, 207, 159); font-size: 14px; letter-spacing: 2px; -unity-text-align: middle-center; }
+.minimap-frame { position: absolute; left: 26px; bottom: 24px; width: 190px; height: 126px; padding: 12px; background-color: rgba(8, 23, 20, 0.78); border-top-width: 1px; border-left-width: 1px; border-color: rgba(137, 159, 130, 0.35); }
+.minimap-label { color: rgb(193, 162, 83); font-size: 10px; letter-spacing: 1.5px; }
+.minimap-path { width: 134px; height: 2px; margin-top: 50px; margin-left: 10px; background-color: rgba(220, 181, 91, 0.78); rotate: -12deg; }
+.action-panel { position: absolute; left: 39%; bottom: 28px; align-items: center; }
+.action-title { color: rgb(240, 226, 186); font-size: 12px; letter-spacing: 1.5px; -unity-font-style: bold; }
+.action-hint { margin-top: 6px; color: rgb(136, 157, 130); font-size: 10px; letter-spacing: 1px; }
+.build-panel { position: absolute; right: 28px; bottom: 24px; width: 390px; min-height: 126px; padding: 14px 16px; flex-direction: row; align-items: center; background-color: rgba(8, 23, 20, 0.93); border-left-width: 2px; border-left-color: rgb(193, 162, 83); }
+.tower-icon { width: 52px; height: 76px; align-items: center; justify-content: center; background-color: rgba(62, 42, 91, 0.70); border-width: 1px; border-color: rgba(183, 145, 242, 0.70); }
+.tower-icon-glyph { color: rgb(214, 176, 255); font-size: 25px; }
+.build-copy { flex-grow: 1; margin-left: 12px; }
+.build-title { color: rgb(244, 230, 190); font-size: 12px; -unity-font-style: bold; letter-spacing: 1px; }
+.build-subtitle { margin-top: 4px; color: rgb(143, 162, 138); font-size: 10px; }
+.build-cost { margin-top: 10px; color: rgb(239, 191, 78); font-size: 11px; -unity-font-style: bold; letter-spacing: 1px; }
+.compact-button { width: 150px; min-height: 34px; margin-left: 6px; font-size: 10px; letter-spacing: .5px; }
 
-.screen-title { font-size: 28px; }
-
-.primary-button, .secondary-button, .stage-card {
-    min-height: 48px;
-    margin-top: 6px;
-    margin-bottom: 6px;
-    border-radius: 0;
-    border-width: 1px;
-}
-
-.primary-button {
-    background-color: rgb(139, 93, 29);
-    color: rgb(255, 242, 202);
-    border-color: rgb(238, 190, 74);
-}
-
-.secondary-button {
-    background-color: rgb(34, 57, 48);
-    color: rgb(235, 221, 180);
-    border-color: rgb(105, 126, 104);
-}
-
-.primary-button:hover, .secondary-button:hover, .stage-card:hover { background-color: rgb(67, 91, 68); }
-.primary-button:disabled, .secondary-button:disabled, .stage-card:disabled {
-    color: rgb(111, 119, 106);
-    background-color: rgb(24, 31, 29);
-    border-color: rgb(66, 73, 66);
-}
-
-.stage-list { flex-direction: row; justify-content: space-between; }
-.stage-card { width: 250px; min-height: 140px; white-space: normal; }
-.stage-card-active { background-color: rgb(48, 89, 60); }
-.body-copy, .hud-caption { color: rgb(213, 195, 145); font-size: 15px; white-space: normal; }
-.hud-value { color: rgb(255, 242, 202); font-size: 18px; -unity-font-style: bold; }
-.hud-top-left { position: absolute; left: 24px; top: 24px; width: 220px; padding: 16px; }
-.hud-top-center { position: absolute; top: 24px; left: 43%; width: 180px; align-items: center; padding: 14px; }
-.hud-status { position: absolute; top: 112px; left: 35%; right: 35%; -unity-text-align: middle-center; color: rgb(238, 190, 74); }
-.minimap-frame { position: absolute; left: 24px; bottom: 24px; width: 190px; height: 150px; }
-.action-panel { position: absolute; left: 38%; bottom: 24px; width: 300px; height: 64px; }
-.build-panel { position: absolute; right: 24px; bottom: 24px; width: 230px; padding: 16px; }
-.compact-button { min-height: 38px; font-size: 13px; }
-.skill-graph { flex-grow: 1; flex-direction: row; justify-content: space-around; padding: 16px; }
-.skill-branch { flex-grow: 1; align-items: center; padding: 8px; }
-.skill-branch-title { color: rgb(238, 190, 74); font-size: 17px; -unity-font-style: bold; margin-bottom: 12px; }
-.skill-node { width: 180px; min-height: 62px; margin: 5px; border-radius: 0; background-color: rgb(34, 57, 48); border-color: rgb(105, 126, 104); color: rgb(235, 221, 180); }
-.skill-node.is-unlocked { background-color: rgb(48, 89, 60); border-color: rgb(238, 190, 74); }
-.skill-node.is-available { background-color: rgb(79, 61, 27); }
-.skill-node.is-selected { border-width: 2px; }
-.skill-details { width: 300px; padding: 16px; border-left-width: 1px; border-left-color: rgb(105, 126, 104); }
-.panel-title { color: rgb(238, 190, 74); -unity-font-style: bold; }
-.back-button { margin-top: 22px; }
+.result-layout { width: 620px; align-self: center; margin-left: 92px; padding: 46px; background-color: rgba(8, 23, 20, 0.91); border-left-width: 2px; border-left-color: rgb(193, 162, 83); }
+.result-title { margin-top: 9px; color: rgb(247, 234, 197); font-size: 30px; -unity-font-style: bold; letter-spacing: 1.5px; }
+.result-copy { margin-bottom: 24px; }
+.result-layout .primary-button, .result-layout .secondary-button, .result-layout .quiet-button { width: 300px; min-height: 42px; margin-bottom: 7px; }
