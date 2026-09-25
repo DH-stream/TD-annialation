@@ -436,6 +436,12 @@ namespace TDAnnihilation
             SpawnWave(4 + flow.Wave);
         }
 
+        public void AttackHero()
+        {
+            if (flow == null || flow.Phase != TDGamePhase.Wave) return;
+            heroController?.Attack();
+        }
+
         public void ReturnToMenu()
         {
             flow.ReturnToMenu();

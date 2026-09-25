@@ -86,8 +86,21 @@
             <ui:VisualElement class="hud-resource-strip">
                 <ui:Label name="stage-value" text="GREENWARD" class="hud-stage" />
                 <ui:VisualElement class="hud-divider" />
-                <ui:Label name="lives-value" text="LIVES 20" class="hud-value" />
                 <ui:Label name="defeated-value" text="DEFEATED 0" class="hud-caption" />
+            </ui:VisualElement>
+            <ui:VisualElement name="hud-status-deck" class="hud-status-deck">
+                <ui:VisualElement class="hud-asset-zone">
+                    <ui:Image name="hud-coins-image" class="hud-asset-frame" />
+                    <ui:Label name="hud-coins-value" text="120" class="hud-asset-value" />
+                </ui:VisualElement>
+                <ui:VisualElement class="hud-asset-zone">
+                    <ui:Image name="hud-mana-image" class="hud-asset-frame" />
+                    <ui:Label name="hud-mana-value" text="FULL" class="hud-asset-value" />
+                </ui:VisualElement>
+                <ui:VisualElement class="hud-asset-zone">
+                    <ui:Image name="hud-health-image" class="hud-asset-frame" />
+                    <ui:Label name="hud-health-value" text="20" class="hud-asset-value" />
+                </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement class="hud-wave-state">
                 <ui:Label name="phase-value" text="BUILD PHASE" class="hud-phase" />
@@ -98,20 +111,24 @@
                 <ui:Label text="GREENWARD" class="minimap-label" />
                 <ui:VisualElement class="minimap-path" />
             </ui:VisualElement>
-            <ui:VisualElement name="build-panel" class="command-deck">
-                <ui:VisualElement class="coin-zone">
-                    <ui:Label text="COINS" class="zone-label" />
-                    <ui:Label name="gold-value" text="120" class="coin-value" />
-                    <ui:Label text="AVAILABLE" class="zone-caption" />
+            <ui:VisualElement name="build-panel" class="command-deck hud-action-deck">
+                <ui:VisualElement class="hud-attack-zone primary">
+                    <ui:Image name="hud-attack-image" class="hud-action-frame" />
+                    <ui:Label name="hud-attack-value" text="READY" class="hud-action-value" />
+                    <ui:Button name="attack-button" text="" class="hud-asset-click-target" />
                 </ui:VisualElement>
-                <ui:Button name="build-button" text="✦  BUILD" class="command-card build-card" />
-                <ui:Button name="attack-button" text="⚔  ATTACK" class="command-card attack-card" />
-                <ui:VisualElement class="attack-types">
-                    <ui:Label text="ATTACK TYPES" class="zone-label" />
-                    <ui:Button name="attack-melee-button" text="STRIKE" class="attack-type active" />
-                    <ui:Button name="attack-arcane-button" text="ARCANE · LOCKED" class="attack-type" />
+                <ui:VisualElement class="hud-attack-zone disabled">
+                    <ui:Image name="hud-heavy-image" class="hud-action-frame" />
+                    <ui:Label name="hud-heavy-value" text="LOCKED" class="hud-action-value" />
                 </ui:VisualElement>
-                <ui:Button name="wave-button" text="START WAVE · SPACE" class="phase-action secondary-button" />
+                <ui:VisualElement class="hud-attack-zone disabled">
+                    <ui:Image name="hud-mega-image" class="hud-action-frame" />
+                    <ui:Label name="hud-mega-value" text="LOCKED" class="hud-action-value" />
+                </ui:VisualElement>
+                <ui:VisualElement class="action-tools">
+                    <ui:Button name="build-button" text="✦ BUILD" class="command-card build-card" />
+                    <ui:Button name="wave-button" text="START WAVE · SPACE" class="phase-action secondary-button" />
+                </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="build-wheel-overlay" class="build-wheel-overlay">
                 <ui:VisualElement name="build-wheel" class="build-wheel">

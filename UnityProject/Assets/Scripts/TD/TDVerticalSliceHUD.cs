@@ -23,14 +23,25 @@ namespace TDAnnihilation
         private VisualElement buildWheel;
         private VisualElement skillGraph;
         private Image gameLogo;
+        private Image hudCoinsImage;
+        private Image hudManaImage;
+        private Image hudHealthImage;
+        private Image hudAttackImage;
+        private Image hudHeavyImage;
+        private Image hudMegaImage;
         private Button buildButton;
+        private Button attackButton;
         private Label stageValue;
-        private Label goldValue;
-        private Label livesValue;
         private Label waveValue;
         private Label defeatedValue;
         private Label phaseValue;
         private Label statusValue;
+        private Label hudCoinsValue;
+        private Label hudManaValue;
+        private Label hudHealthValue;
+        private Label hudAttackValue;
+        private Label hudHeavyValue;
+        private Label hudMegaValue;
         private Label resultTitle;
         private Label resultCopy;
         private Label skillDetailsTitle;
@@ -78,6 +89,12 @@ namespace TDAnnihilation
                 gameLogo.image = logo;
                 gameLogo.scaleMode = ScaleMode.ScaleToFit;
             }
+            AssignHudImage(hudCoinsImage, "Coins");
+            AssignHudImage(hudManaImage, "Mana");
+            AssignHudImage(hudHealthImage, "Health");
+            AssignHudImage(hudAttackImage, "Attack");
+            AssignHudImage(hudHeavyImage, "HeavyAttack");
+            AssignHudImage(hudMegaImage, "MegaAttack");
             RegisterCallbacks();
             RegisterWheelInput();
             BuildSkillGraph();
@@ -148,14 +165,25 @@ namespace TDAnnihilation
             buildWheel = root.Q<VisualElement>("build-wheel");
             skillGraph = root.Q<VisualElement>("skill-graph");
             gameLogo = root.Q<Image>("game-logo");
+            hudCoinsImage = root.Q<Image>("hud-coins-image");
+            hudManaImage = root.Q<Image>("hud-mana-image");
+            hudHealthImage = root.Q<Image>("hud-health-image");
+            hudAttackImage = root.Q<Image>("hud-attack-image");
+            hudHeavyImage = root.Q<Image>("hud-heavy-image");
+            hudMegaImage = root.Q<Image>("hud-mega-image");
             buildButton = root.Q<Button>("build-button");
+            attackButton = root.Q<Button>("attack-button");
             stageValue = root.Q<Label>("stage-value");
-            goldValue = root.Q<Label>("gold-value");
-            livesValue = root.Q<Label>("lives-value");
             waveValue = root.Q<Label>("wave-value");
             defeatedValue = root.Q<Label>("defeated-value");
             phaseValue = root.Q<Label>("phase-value");
             statusValue = root.Q<Label>("status-value");
+            hudCoinsValue = root.Q<Label>("hud-coins-value");
+            hudManaValue = root.Q<Label>("hud-mana-value");
+            hudHealthValue = root.Q<Label>("hud-health-value");
+            hudAttackValue = root.Q<Label>("hud-attack-value");
+            hudHeavyValue = root.Q<Label>("hud-heavy-value");
+            hudMegaValue = root.Q<Label>("hud-mega-value");
             resultTitle = root.Q<Label>("result-title");
             resultCopy = root.Q<Label>("result-copy");
             skillDetailsTitle = root.Q<Label>("skill-details-title");
@@ -181,12 +209,26 @@ namespace TDAnnihilation
             root.Q<Button>("skill-tree-back-button").clicked += ShowMainMenu;
             root.Q<Button>("settings-back-button").clicked += ShowMainMenu;
             buildButton.clicked += ToggleBuildWheel;
+            attackButton.clicked += PerformAttack;
             root.Q<Button>("placement-button").clicked += SelectArcaneTower;
             root.Q<Button>("wheel-cancel").clicked += CloseBuildWheel;
             root.Q<Button>("wave-button").clicked += StartNextWave;
             root.Q<Button>("result-replay-button").clicked += Replay;
             root.Q<Button>("result-stage-select-button").clicked += OpenStageSelectFromResult;
             root.Q<Button>("result-menu-button").clicked += OpenMainMenuFromResult;
+        }
+
+        private static void AssignHudImage(Image target, string resourceName)
+        {
+            if (target == null) return;
+            Texture2D image = Resources.Load<Texture2D>("TDAnnihilation/UI/HUD/" + resourceName);
+            if (image == null)
+            {
+                Debug.LogWarning("Missing HUD texture: " + resourceName);
+                return;
+            }
+            target.image = image;
+            target.scaleMode = ScaleMode.ScaleToFit;
         }
 
         private void RegisterWheelInput()
@@ -291,6 +333,11 @@ namespace TDAnnihilation
             RefreshGameplayValues();
         }
 
+        private void PerformAttack()
+        {
+            if (game.Phase == TDGamePhase.Wave) game.AttackHero();
+        }
+
         private void Replay()
         {
             game.ReturnToMenu();
@@ -328,15 +375,20 @@ namespace TDAnnihilation
 
         private void RefreshGameplayValues()
         {
-            if (game.State == null || goldValue == null) return;
+            if (game.State == null || hudCoinsValue == null) return;
             stageValue.text = game.CurrentStageName;
-            goldValue.text = game.State.gold.ToString();
-            livesValue.text = "LIVES  " + game.State.lives;
+            hudCoinsValue.text = game.State.gold.ToString();
+            hudManaValue.text = "FULL";
+            hudHealthValue.text = game.State.lives.ToString();
             waveValue.text = "WAVE  " + game.CurrentWave;
             defeatedValue.text = "DEFEATED  " + game.State.defeated;
             phaseValue.text = game.Phase == TDGamePhase.Build ? "BUILD PHASE" : "WAVE PHASE";
             buildPanel.style.display = DisplayStyle.Flex;
             buildButton.SetEnabled(game.Phase == TDGamePhase.Build && game.State.gold >= 40);
+            attackButton.SetEnabled(game.Phase == TDGamePhase.Wave);
+            hudAttackValue.text = game.Phase == TDGamePhase.Wave ? "READY" : "WAIT";
+            hudHeavyValue.text = "LOCKED";
+            hudMegaValue.text = "LOCKED";
             if (game.Phase != TDGamePhase.Build || currentScreen != TDMenuScreen.Gameplay) CloseBuildWheel();
             statusValue.text = game.IsPlacementMode
                 ? "CHOOSE A VALID BUILD SITE"

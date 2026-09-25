@@ -65,12 +65,16 @@
 .settings-row:last-child { border-bottom-width: 0; }
 
 .gameplay-screen { background-color: rgba(4, 12, 11, 0.02); }
-.hud-resource-strip { position: absolute; left: 28px; top: 26px; height: 54px; min-width: 320px; padding: 11px 18px; flex-direction: row; align-items: center; background-color: rgba(8, 23, 20, 0.88); border-bottom-width: 2px; border-bottom-color: rgb(193, 162, 83); }
+.hud-resource-strip { position: absolute; right: 28px; top: 26px; height: 54px; min-width: 270px; padding: 11px 18px; flex-direction: row; align-items: center; justify-content: flex-end; background-color: rgba(8, 23, 20, 0.88); border-bottom-width: 2px; border-bottom-color: rgb(193, 162, 83); }
 .hud-stage { color: rgb(241, 224, 179); font-size: 13px; -unity-font-style: bold; letter-spacing: 1.5px; }
 .hud-divider { width: 1px; height: 24px; margin: 0 14px; background-color: rgba(193, 162, 83, 0.45); }
 .hud-value { margin-right: 16px; color: rgb(233, 221, 181); font-size: 13px; -unity-font-style: bold; letter-spacing: 1px; }
 .hud-gold { color: rgb(239, 191, 78); }
 .hud-caption { color: rgb(142, 162, 135); font-size: 11px; letter-spacing: 1px; }
+.hud-status-deck { position: absolute; left: 24px; top: 92px; width: 252px; }
+.hud-asset-zone { position: relative; width: 252px; height: 74px; margin-bottom: 5px; overflow: hidden; }
+.hud-asset-frame { position: absolute; left: 0; top: 0; width: 252px; height: 74px; -unity-background-scale-mode: scale-to-fit; }
+.hud-asset-value { position: absolute; left: 112px; right: 14px; bottom: 8px; height: 21px; color: rgb(255, 226, 146); font-size: 16px; -unity-font-style: bold; -unity-text-align: middle-center; -unity-text-outline-width: 1px; -unity-text-outline-color: rgba(40, 12, 5, 0.95); letter-spacing: 1px; }
 .hud-wave-state { position: absolute; top: 28px; left: 44%; align-items: center; }
 .hud-phase { color: rgb(193, 162, 83); font-size: 11px; letter-spacing: 2px; -unity-font-style: bold; }
 .hud-wave { margin-top: 4px; color: rgb(245, 236, 204); font-size: 22px; -unity-font-style: bold; letter-spacing: 2px; }
@@ -78,19 +82,21 @@
 .minimap-frame { position: absolute; left: 26px; bottom: 24px; width: 190px; height: 126px; padding: 12px; background-color: rgba(8, 23, 20, 0.78); border-top-width: 1px; border-left-width: 1px; border-color: rgba(137, 159, 130, 0.35); }
 .minimap-label { color: rgb(193, 162, 83); font-size: 10px; letter-spacing: 1.5px; }
 .minimap-path { width: 134px; height: 2px; margin-top: 50px; margin-left: 10px; background-color: rgba(220, 181, 91, 0.78); rotate: -12deg; }
-.command-deck { position: absolute; left: 50%; bottom: 24px; translate: -50% 0; width: 790px; min-height: 96px; padding: 10px; flex-direction: row; align-items: stretch; background-color: rgba(7, 19, 17, 0.95); border-top-width: 1px; border-bottom-width: 2px; border-left-width: 1px; border-right-width: 1px; border-color: rgba(193, 162, 83, 0.82); }
-.coin-zone { width: 118px; padding: 7px 12px; justify-content: center; border-right-width: 1px; border-right-color: rgba(137, 159, 130, 0.28); }
-.zone-label { color: rgb(193, 162, 83); font-size: 9px; letter-spacing: 1.4px; -unity-font-style: bold; }
-.coin-value { margin-top: 2px; color: rgb(239, 191, 78); font-size: 23px; -unity-font-style: bold; }
-.zone-caption { margin-top: 1px; color: rgb(131, 151, 126); font-size: 8px; letter-spacing: 1px; }
-.command-card { width: 112px; height: 74px; margin-left: 8px; padding: 8px; border-radius: 0; border-width: 1px; -unity-font-style: bold; font-size: 14px; letter-spacing: 1px; -unity-text-align: middle-center; white-space: normal; }
+.command-deck { position: absolute; left: 50%; bottom: 22px; translate: -50% 0; width: 950px; height: 116px; padding: 7px; flex-direction: row; align-items: stretch; background-color: rgba(7, 19, 17, 0.88); border-top-width: 1px; border-bottom-width: 2px; border-left-width: 1px; border-right-width: 1px; border-color: rgba(193, 162, 83, 0.82); }
+.hud-attack-zone { position: relative; height: 100px; margin-right: 5px; overflow: hidden; }
+.hud-attack-zone.primary { width: 300px; }
+.hud-attack-zone.disabled { width: 194px; opacity: 0.62; }
+.hud-action-frame { position: absolute; left: 0; top: 0; width: 100%; height: 100%; -unity-background-scale-mode: scale-to-fit; }
+.hud-action-value { position: absolute; left: 50%; right: 5%; bottom: 8px; height: 17px; color: rgb(255, 226, 146); font-size: 12px; -unity-font-style: bold; -unity-text-align: middle-center; -unity-text-outline-width: 1px; -unity-text-outline-color: rgba(40, 12, 5, 0.95); letter-spacing: 1px; }
+.hud-attack-zone.disabled .hud-action-value { left: 18%; right: 18%; color: rgb(188, 175, 151); font-size: 10px; }
+.hud-asset-click-target { position: absolute; left: 0; right: 0; top: 0; bottom: 0; padding: 0; background-color: rgba(0, 0, 0, 0); border-width: 0; }
+.hud-asset-click-target:hover { background-color: rgba(255, 218, 120, 0.08); border-width: 1px; border-color: rgba(255, 226, 146, 0.72); }
+.action-tools { width: 132px; height: 100px; margin-left: auto; justify-content: center; }
+.command-card { width: 124px; height: 40px; margin: 3px 0; padding: 8px; border-radius: 0; border-width: 1px; -unity-font-style: bold; font-size: 10px; letter-spacing: 1px; -unity-text-align: middle-center; white-space: normal; }
 .build-card { background-color: rgba(63, 44, 86, 0.92); border-color: rgba(183, 145, 242, 0.82); color: rgb(225, 193, 255); }
 .attack-card { background-color: rgba(89, 42, 28, 0.92); border-color: rgba(220, 139, 77, 0.82); color: rgb(255, 211, 166); }
 .command-card:hover { background-color: rgb(84, 100, 65); border-color: rgb(238, 202, 106); color: rgb(255, 244, 211); }
-.attack-types { width: 170px; margin-left: 10px; padding: 7px 0; }
-.attack-type { height: 25px; margin-top: 5px; padding-left: 9px; -unity-text-align: middle-left; border-radius: 0; border-width: 1px; border-color: rgba(137, 159, 130, 0.42); background-color: rgba(22, 47, 39, 0.82); color: rgb(211, 212, 181); font-size: 9px; letter-spacing: .6px; }
-.attack-type.active { border-color: rgb(220, 181, 91); background-color: rgba(79, 61, 27, 0.88); color: rgb(255, 240, 190); }
-.phase-action { width: 118px; margin-left: 10px; padding: 7px; -unity-text-align: middle-center; white-space: normal; font-size: 10px; letter-spacing: 1px; }
+.phase-action { width: 124px; height: 40px; margin: 3px 0; padding: 7px; -unity-text-align: middle-center; white-space: normal; font-size: 9px; letter-spacing: 1px; }
 .build-wheel-overlay { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: none; align-items: center; justify-content: center; background-color: rgba(2, 8, 7, 0.60); }
 .build-wheel { position: relative; width: 360px; height: 360px; align-items: center; justify-content: center; background-color: rgba(8, 23, 20, 0.98); border-width: 2px; border-color: rgb(193, 162, 83); border-radius: 180px; }
 .wheel-ring { position: absolute; left: 20px; right: 20px; top: 20px; bottom: 20px; border-width: 1px; border-color: rgba(137, 159, 130, 0.42); border-radius: 160px; }
