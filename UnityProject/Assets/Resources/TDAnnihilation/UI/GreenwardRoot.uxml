@@ -33,9 +33,9 @@
                 </ui:VisualElement>
                 <ui:VisualElement class="stage-layout">
                     <ui:VisualElement name="stage-list" class="stage-list">
-                        <ui:Button name="stage-greenward-button" text="GREENWARD\nACTIVE FRONT" class="stage-card stage-card-active" />
-                        <ui:Button name="stage-two-button" text="THE ASHEN PASS\nLOCKED" class="stage-card" />
-                        <ui:Button name="stage-three-button" text="THE SUNKEN KEEP\nLOCKED" class="stage-card" />
+                        <ui:Button name="stage-greenward-button" text="GREENWARD · ACTIVE FRONT" class="stage-card stage-card-active" />
+                        <ui:Button name="stage-two-button" text="THE ASHEN PASS · LOCKED" class="stage-card" />
+                        <ui:Button name="stage-three-button" text="THE SUNKEN KEEP · LOCKED" class="stage-card" />
                     </ui:VisualElement>
                     <ui:VisualElement class="stage-details">
                         <ui:Label text="01 / 03" class="stage-index" />
