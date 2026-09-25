@@ -77,5 +77,15 @@ namespace TDAnnihilation.Tests
             Assert.That(GreenwardGroundBuilder.ClampRoadsideOffset(0.4f), Is.GreaterThanOrEqualTo(2.6f));
             Assert.That(GreenwardGroundBuilder.ClampRoadsideOffset(-1.2f), Is.LessThanOrEqualTo(-2.6f));
         }
+
+        [Test]
+        public void PlacementAllowsMeadowButRejectsRoadAndCastle()
+        {
+            var route = GreenwardWorldLayout.CreateRoute();
+
+            Assert.That(GreenwardWorldLayout.IsBuildableSurface(new Vector2(0f, -10f), route), Is.True);
+            Assert.That(GreenwardWorldLayout.IsBuildableSurface(new Vector2(-3f, 3f), route), Is.False);
+            Assert.That(GreenwardWorldLayout.IsBuildableSurface(new Vector2(32f, 0f), route), Is.False);
+        }
     }
 }

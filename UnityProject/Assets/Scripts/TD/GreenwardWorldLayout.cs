@@ -83,5 +83,10 @@ namespace TDAnnihilation
             if (point.x > 28f) return GreenwardSurfaceRegion.Castle;
             return GreenwardSurfaceRegion.Meadow;
         }
+
+        public static bool IsBuildableSurface(Vector2 point, IReadOnlyList<Vector3> route)
+        {
+            return SurfaceRegionAt(point, route) == GreenwardSurfaceRegion.Meadow;
+        }
     }
 }

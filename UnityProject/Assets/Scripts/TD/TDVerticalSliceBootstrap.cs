@@ -33,6 +33,7 @@ namespace TDAnnihilation
         private readonly List<Transform> placedTowers = new List<Transform>();
         private GameObject placementGhost;
         private Material placementMaterial;
+        private Collider placementGroundCollider;
         private bool placementMode;
         private bool placementValid;
         private float previewOverrideTimer;
@@ -98,6 +99,22 @@ namespace TDAnnihilation
             if (path.Count < 2)
             {
                 Debug.LogError("Greenward authored scene is missing path waypoints. Use TD Annihilation/Greenward/Bake Static Scene.");
+            }
+            EnsurePlacementGroundCollider();
+        }
+
+        private void EnsurePlacementGroundCollider()
+        {
+            if (authoredWorldRoot == null) return;
+            MeshFilter[] meshes = authoredWorldRoot.GetComponentsInChildren<MeshFilter>(true);
+            for (int i = 0; i < meshes.Length; i++)
+            {
+                if (meshes[i] == null || meshes[i].sharedMesh == null || meshes[i].gameObject.name != "Sculpted Meadow Terrain") continue;
+                MeshCollider collider = meshes[i].GetComponent<MeshCollider>();
+                if (collider == null) collider = meshes[i].gameObject.AddComponent<MeshCollider>();
+                collider.sharedMesh = meshes[i].sharedMesh;
+                placementGroundCollider = collider;
+                return;
             }
         }
 
@@ -247,14 +264,18 @@ namespace TDAnnihilation
                 return;
             }
             Ray ray = Camera.main.ScreenPointToRay(mouse.position.ReadValue());
-            Plane plane = new Plane(Vector3.up, Vector3.zero);
-            if (!plane.Raycast(ray, out float distance))
+            if (placementGroundCollider != null && placementGroundCollider.Raycast(ray, out RaycastHit hit, 200f))
+            {
+                SetPlacementGhost(hit.point);
+                return;
+            }
+            Plane fallbackPlane = new Plane(Vector3.up, Vector3.zero);
+            if (fallbackPlane.Raycast(ray, out float distance)) SetPlacementGhost(ray.GetPoint(distance));
+            else
             {
                 placementGhost.SetActive(false);
                 placementValid = false;
-                return;
             }
-            SetPlacementGhost(ray.GetPoint(distance));
         }
 
         private void SetPlacementGhost(Vector3 worldPosition)
@@ -277,13 +298,9 @@ namespace TDAnnihilation
         private bool CanPlaceTower(Vector3 position)
         {
             Vector2 point = new Vector2(position.x, position.z);
-            GreenwardSurfaceRegion region = GreenwardWorldLayout.SurfaceRegionAt(point, path);
-            if (region == GreenwardSurfaceRegion.Road || region == GreenwardSurfaceRegion.Riverbank || region == GreenwardSurfaceRegion.Corruption || region == GreenwardSurfaceRegion.Castle) return false;
+            if (!GreenwardWorldLayout.IsBuildableSurface(point, path)) return false;
             foreach (Transform towerRoot in placedTowers)
                 if (towerRoot != null && Vector3.Distance(towerRoot.position, position) < 3.5f) return false;
-            Collider[] obstacles = Physics.OverlapSphere(position + Vector3.up * 1.2f, 1.5f);
-            foreach (Collider obstacle in obstacles)
-                if (obstacle != null && !obstacle.transform.IsChildOf(placementGhost.transform)) return false;
             return true;
         }
 
