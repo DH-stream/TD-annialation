@@ -22,7 +22,7 @@ namespace TDAnnihilation
                 return;
             }
 
-            TDVerticalSliceBootstrap bootstrap = Object.FindFirstObjectByType<TDVerticalSliceBootstrap>();
+            TDVerticalSliceBootstrap bootstrap = Object.FindAnyObjectByType<TDVerticalSliceBootstrap>();
             if (bootstrap == null)
             {
                 Debug.LogError("SampleScene needs a TDVerticalSliceBootstrap before baking Greenward static content.");
