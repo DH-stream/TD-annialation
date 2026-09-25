@@ -98,7 +98,37 @@ namespace TDAnnihilation
         {
             BuildController("Assets/Resources/TDAnnihilation/WarriorRpg.controller", false);
             BuildController("Assets/Resources/TDAnnihilation/VillagerRpg.controller", true);
+            BuildDemonController();
             AssetDatabase.SaveAssets();
+        }
+
+        private static void BuildDemonController()
+        {
+            const string controllerPath = "Assets/Resources/TDAnnihilation/Demon.controller";
+            const string demonModelPath = "Assets/Art/ThirdParty/Quaternius/Monsters/Demon.fbx";
+            const string hitModelPath = "Assets/Art/ThirdParty/Blink/Art/Animations/Animations_Starter_Pack/Combat/GetHit.fbx";
+            AnimationClip walk = LoadClip(demonModelPath, "CharacterArmature|Run");
+            AnimationClip hit = LoadClip(hitModelPath, "GetHit");
+            if (walk == null || hit == null)
+            {
+                Debug.LogError("Demon animation clips could not be loaded.");
+                return;
+            }
+
+            AnimatorController controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(controllerPath);
+            if (controller == null) controller = AnimatorController.CreateAnimatorControllerAtPath(controllerPath);
+            AddParameter(controller, "Hit", AnimatorControllerParameterType.Trigger);
+            AnimatorStateMachine machine = controller.layers[0].stateMachine;
+            foreach (ChildAnimatorState child in machine.states) machine.RemoveState(child.state);
+            foreach (AnimatorStateTransition transition in machine.anyStateTransitions) machine.RemoveAnyStateTransition(transition);
+            AnimatorState walkState = machine.AddState("Walk");
+            walkState.motion = walk;
+            AnimatorState hitState = machine.AddState("Hit");
+            hitState.motion = hit;
+            machine.defaultState = walkState;
+            AddTriggerTransition(machine, hitState, "Hit");
+            AddExitTransition(hitState, walkState, 0.85f);
+            EditorUtility.SetDirty(controller);
         }
 
         private static void BuildController(string assetPath, bool villager)
@@ -184,6 +214,16 @@ namespace TDAnnihilation
                 if (fallback != null) return fallback;
             }
             Debug.LogWarning("Blink animation clip not found: " + clipName);
+            return null;
+        }
+
+        private static AnimationClip LoadClip(string assetPath, string clipName)
+        {
+            foreach (Object asset in AssetDatabase.LoadAllAssetsAtPath(assetPath))
+            {
+                if (!(asset is AnimationClip clip) || clip.name.StartsWith("__preview__")) continue;
+                if (clip.name == clipName) return clip;
+            }
             return null;
         }
 

@@ -437,6 +437,7 @@ namespace TDAnnihilation
         private float speed;
         private int waypoint;
         private Animator animator;
+        private bool hasHitTrigger;
 
         public void Configure(Vector3[] route, float maxHealth, float moveSpeed, TDResourceState resourceState)
         {
@@ -447,6 +448,8 @@ namespace TDAnnihilation
             animator = GetComponentInChildren<Animator>();
             if (animator != null)
             {
+                foreach (AnimatorControllerParameter parameter in animator.parameters)
+                    if (parameter.name == "Hit" && parameter.type == AnimatorControllerParameterType.Trigger) hasHitTrigger = true;
                 animator.applyRootMotion = false;
                 animator.speed = 1f;
                 animator.Play("Walk", 0, 0f);
@@ -469,6 +472,11 @@ namespace TDAnnihilation
 
         public void TakeDamage(float amount)
         {
+            if (hasHitTrigger)
+            {
+                animator.ResetTrigger("Hit");
+                animator.SetTrigger("Hit");
+            }
             health -= amount;
             if (health <= 0f) Defeat();
         }
