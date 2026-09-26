@@ -29,6 +29,7 @@
 **Files:**
 - Create `UnityProject/Assets/Scripts/TD/TDAttackKeyBindings.cs`
 - Create `UnityProject/Assets/Tests/EditMode/TDAttackKeyBindingsTests.cs`
+- Modify `UnityProject/Assets/Tests/EditMode/TDAnnihilation.EditModeTests.asmdef` to reference the already-installed `Unity.InputSystem` assembly
 
 **Interfaces:** `GetKey(TDAttackType)`, `TrySetKey(TDAttackType, Key)`, `Save()`, and `static Load()`; defaults are Light=F, Heavy=Q, Mega=E.
 
@@ -36,7 +37,7 @@
 - [ ] Run the focused test filter and verify it fails because the binding model is absent.
 - [ ] Implement the small model using `UnityEngine.InputSystem.Key` and PlayerPrefs; store three integer enum values under one namespaced key, validate on load, and never change unrelated actions.
 - [ ] Run the focused tests; clear only the test-owned PlayerPrefs key during setup/teardown.
-- [ ] Commit only the two task files.
+- [ ] Commit only the binding model, focused test, generated metadata, and test-assembly reference.
 
 ### Task 2: Expose the existing Greenward data and test minimap projection
 
