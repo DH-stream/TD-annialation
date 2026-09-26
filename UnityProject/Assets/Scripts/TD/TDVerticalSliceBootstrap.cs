@@ -475,6 +475,12 @@ namespace TDAnnihilation
         public TDGamePhase Phase => flow == null ? TDGamePhase.MainMenu : flow.Phase;
         public string CurrentStageName => "GREENWARD";
         public bool IsPlacementMode => placementMode;
+        public IReadOnlyList<Vector3> Route => path;
+        public Bounds PlayableBounds => buildArea;
+        public Transform Goal => castleTarget;
+        public Transform Hero => heroController == null ? null : heroController.transform;
+        public IReadOnlyList<TDEnemyController> ActiveEnemies => enemies;
+        public IReadOnlyList<Transform> PlacedTowers => placedTowers;
     }
 
     public sealed class TDResourceState : MonoBehaviour
