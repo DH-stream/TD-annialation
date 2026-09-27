@@ -47,7 +47,7 @@ namespace TDAnnihilation
                 if (existing != null && existing.shader != null) return existing;
                 Materials.Remove(key);
             }
-            Shader shader = Shader.Find(key == "Leaves" ? "Universal Render Pipeline/Unlit" : "Universal Render Pipeline/Lit");
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
             if (shader == null || !shader.isSupported) shader = Shader.Find("Unlit/Color");
             if (shader == null)
             {
@@ -75,7 +75,12 @@ namespace TDAnnihilation
             }
             material.mainTexture = texture;
             material.SetFloat("_Smoothness", smoothness);
-            if (key == "Leaves") material.SetFloat("_Cull", 0f);
+            if (key == "Leaves")
+            {
+                if (material.HasProperty("_Cull")) material.SetFloat("_Cull", 0f);
+                if (material.HasProperty("_Smoothness")) material.SetFloat("_Smoothness", 0.06f);
+                if (material.HasProperty("_SpecularHighlights")) material.SetFloat("_SpecularHighlights", 0f);
+            }
             material.enableInstancing = true;
             Materials.Add(key, material);
             return material;
