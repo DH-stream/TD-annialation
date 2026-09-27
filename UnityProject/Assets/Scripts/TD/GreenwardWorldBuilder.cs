@@ -190,8 +190,35 @@ namespace TDAnnihilation
                 Material material=new Material(shader){name="Darth Artisan Tree URP"};
                 if(source!=null)
                 {
-                    if(source.mainTexture!=null)material.SetTexture("_BaseMap",source.mainTexture);
-                    material.SetColor("_BaseColor",source.color);
+                    Texture baseMap = null;
+                    if(source.HasProperty("_BaseMap")) baseMap = source.GetTexture("_BaseMap");
+                    if(baseMap==null && source.HasProperty("_MainTex")) baseMap = source.GetTexture("_MainTex");
+                    if(baseMap==null) baseMap = source.mainTexture;
+                    if(baseMap!=null) material.SetTexture("_BaseMap",baseMap);
+
+                    Color baseColor = source.HasProperty("_BaseColor") ? source.GetColor("_BaseColor") : source.color;
+                    material.SetColor("_BaseColor",baseColor);
+
+                    Texture normal = source.HasProperty("_BumpMap") ? source.GetTexture("_BumpMap") : null;
+                    if(normal!=null)
+                    {
+                        material.SetTexture("_BumpMap",normal);
+                        material.EnableKeyword("_NORMALMAP");
+                        if(source.HasProperty("_BumpScale")) material.SetFloat("_BumpScale",source.GetFloat("_BumpScale"));
+                    }
+
+                    float smoothness = source.HasProperty("_Smoothness") ? source.GetFloat("_Smoothness") :
+                        source.HasProperty("_Glossiness") ? source.GetFloat("_Glossiness") : .08f;
+                    material.SetFloat("_Smoothness",Mathf.Min(smoothness,.18f));
+
+                    float cutoff = source.HasProperty("_Cutoff") ? source.GetFloat("_Cutoff") : .35f;
+                    if(source.renderQueue >= (int)UnityEngine.Rendering.RenderQueue.AlphaTest || baseColor.a < .999f)
+                    {
+                        material.SetFloat("_AlphaClip",1f);
+                        material.SetFloat("_Cutoff",cutoff);
+                        material.EnableKeyword("_ALPHATEST_ON");
+                        material.renderQueue=(int)UnityEngine.Rendering.RenderQueue.AlphaTest;
+                    }
                 }
                 renderer.sharedMaterial=material;
             }
