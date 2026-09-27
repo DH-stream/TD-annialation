@@ -57,7 +57,8 @@ namespace TDAnnihilation
             Transform enemySpawn = CreateMarker(references.transform, "Enemy Spawn Point", route[0]);
             Transform castleTarget = CreateMarker(references.transform, "Castle Target", route[route.Count - 1]);
 
-            GreenwardLightingBuilder.Configure(Camera.main);
+            // Presentation settings (lighting, sky, fog, post-processing) are intentionally preserved.
+            // Bake Static Scene only rebuilds world geometry/gameplay references.
             GreenwardBoundaryMist.CreateForEditor(world.transform);
             SerializedObject serializedBootstrap = new SerializedObject(bootstrap);
             serializedBootstrap.FindProperty("authoredWorldRoot").objectReferenceValue = world.transform;
@@ -83,6 +84,22 @@ namespace TDAnnihilation
         private static bool ValidateBakeStaticScene()
         {
             return SceneManager.GetActiveScene().IsValid();
+        }
+
+        [MenuItem("TD Annihilation/Greenward/Reset Lighting To Defaults")]
+        public static void ResetLightingToDefaults()
+        {
+            Scene scene = SceneManager.GetActiveScene();
+            if (!scene.IsValid())
+            {
+                Debug.LogError("Open the Greenward scene before resetting lighting.");
+                return;
+            }
+
+            GreenwardLightingBuilder.Configure(Camera.main);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            Debug.Log("Reset Greenward lighting to project defaults. Further tuning should be done directly in the Unity Editor.");
         }
 
         private static Transform CreateMarker(Transform parent, string name, Vector3 position)
