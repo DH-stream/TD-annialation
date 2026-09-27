@@ -89,7 +89,7 @@ namespace TDAnnihilation
                 strategic.SetMenuView();
                 camera.fieldOfView = 62f;
             }
-            GreenwardLightingBuilder.Configure(camera);
+            // Lighting and atmosphere are authored in the Unity scene. Do not overwrite artist-tuned values at runtime.
             if (GetComponent<TDVerticalSliceHUD>() == null) gameObject.AddComponent<TDVerticalSliceHUD>();
         }
 
