@@ -122,14 +122,14 @@ namespace TDAnnihilation
             Prim("Beacon Brass Crown",PrimitiveType.Cylinder,center+Vector3.up*(y+7.65f),new Vector3(1.8f,.22f,1.8f),new Color(.55f,.36f,.12f),parent);
             Shader shader=Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
             Material cyan=new Material(shader){name="Sunspire Beacon Cyan"};
-            cyan.SetColor("_BaseColor",new Color(.04f,1.25f,1.6f));
+            cyan.SetColor("_BaseColor",new Color(.02f,.62f,.88f));
             Material core=new Material(shader){name="Sunspire Beacon Core"};
-            core.SetColor("_BaseColor",new Color(.56f,1.5f,1.7f));
-            var focus=Prim("Beacon Cyan Focus",PrimitiveType.Sphere,center+Vector3.up*(y+8.4f),new Vector3(1.15f,1.55f,1.15f),Color.white,parent);
+            core.SetColor("_BaseColor",new Color(.42f,1.05f,1.25f));
+            var focus=Prim("Beacon Cyan Focus",PrimitiveType.Sphere,center+Vector3.up*(y+8.25f),new Vector3(.72f,.92f,.72f),Color.white,parent);
             focus.GetComponent<Renderer>().sharedMaterial=cyan;
             for(int i=0;i<2;i++)
             {
-                var beam=Prim(i==0?"Cyan Beacon Shaft":"Beacon White Core",PrimitiveType.Cylinder,center+Vector3.up*(y+23.3f),new Vector3(i==0?.85f:.31f,14.5f,i==0?.85f:.31f),Color.white,parent);
+                var beam=Prim(i==0?"Cyan Beacon Shaft":"Beacon White Core",PrimitiveType.Cylinder,center+Vector3.up*(y+14.5f),new Vector3(i==0?.24f:.075f,6.0f,i==0?.24f:.075f),Color.white,parent);
                 beam.GetComponent<Renderer>().sharedMaterial=i==0?cyan:core;
                 var motion=beam.AddComponent<GreenwardAmbientMotion>();
                 motion.pulse=true;
@@ -143,14 +143,14 @@ namespace TDAnnihilation
         {
             Shader shader=Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
             Material aura=new Material(shader){name="Sunspire Beacon Aura"};
-            aura.SetColor("_BaseColor",new Color(.02f,.8f,1.2f,.18f));
+            aura.SetColor("_BaseColor",new Color(.02f,.55f,.85f,.10f));
             aura.SetFloat("_Surface",1f);
             aura.SetFloat("_SrcBlend",(float)UnityEngine.Rendering.BlendMode.SrcAlpha);
             aura.SetFloat("_DstBlend",(float)UnityEngine.Rendering.BlendMode.One);
             aura.SetFloat("_ZWrite",0f);
             aura.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
             aura.renderQueue=(int)UnityEngine.Rendering.RenderQueue.Transparent;
-            var beam=Prim("Beacon Energy Aura",PrimitiveType.Cylinder,new Vector3(39f,y+23.3f,4f),new Vector3(2.1f,14.5f,2.1f),Color.white,parent);
+            var beam=Prim("Beacon Energy Aura",PrimitiveType.Cylinder,new Vector3(39f,y+14.5f,4f),new Vector3(.62f,6.1f,.62f),Color.white,parent);
             beam.GetComponent<Renderer>().sharedMaterial=aura;
             var motion=beam.AddComponent<GreenwardAmbientMotion>();
             motion.pulse=true;
@@ -196,7 +196,7 @@ namespace TDAnnihilation
                 renderer.sharedMaterial=material;
             }
         }
-        static void Atmosphere(){RenderSettings.skybox=null;RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Linear;RenderSettings.fogColor=new Color(.36f,.46f,.45f);RenderSettings.fogStartDistance=48f;RenderSettings.fogEndDistance=105f;RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.42f,.52f,.56f);RenderSettings.ambientEquatorColor=new Color(.28f,.34f,.30f);RenderSettings.ambientGroundColor=new Color(.18f,.16f,.12f);}
+        static void Atmosphere(){RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Linear;RenderSettings.fogColor=new Color(.22f,.29f,.34f);RenderSettings.fogStartDistance=38f;RenderSettings.fogEndDistance=92f;RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.30f,.40f,.50f);RenderSettings.ambientEquatorColor=new Color(.22f,.29f,.25f);RenderSettings.ambientGroundColor=new Color(.10f,.09f,.08f);}
         static void BuildRiverRibbon(Transform p)
         {
             const int count=25;
