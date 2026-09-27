@@ -1,26 +1,19 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
     <ui:VisualElement name="greenward-root" class="greenward-root">
-        <ui:VisualElement class="atmosphere atmosphere-left" />
-        <ui:VisualElement class="atmosphere atmosphere-bottom" />
-
         <ui:VisualElement name="main-menu-screen" class="screen main-menu-screen is-visible">
+            <ui:VisualElement class="atmosphere atmosphere-left" />
+            <ui:VisualElement class="atmosphere atmosphere-bottom" />
             <ui:VisualElement class="menu-rail">
                 <ui:Image name="game-logo" class="game-logo" />
-                <ui:Label text="GREENWARD VILLAGE" class="menu-location" />
-                <ui:Label text="THE VALLEY REMEMBERS" class="menu-subtitle" />
-                <ui:VisualElement class="menu-rule" />
-                <ui:Button name="play-button" text="BEGIN DEFENSE" class="primary-button menu-action" />
-                <ui:Button name="skill-tree-button" text="SKILL TREE" class="secondary-button menu-action" />
-                <ui:Button name="settings-button" text="SETTINGS" class="secondary-button menu-action" />
-                <ui:Button name="quit-button" text="QUIT TO DESKTOP" class="quiet-button menu-action" />
-                <ui:VisualElement class="menu-footer">
-                    <ui:Label text="A STRATEGIC FANTASY DEFENSE" class="micro-copy" />
-                    <ui:Label text="BUILD · ADAPT · ENDURE" class="micro-copy accent-copy" />
-                </ui:VisualElement>
-            </ui:VisualElement>
-            <ui:VisualElement class="menu-scenery">
-                <ui:Label text="THE GREENWARD FRONTIER" class="scenery-kicker" />
-                <ui:Label text="THE FIRST WATCHTOWER STILL STANDS." class="scenery-line" />
+                <ui:Label text="FORTRESS OF RUIN" class="menu-subtitle" />
+                <ui:Button name="play-button" text="⚔     PLAY                                          ›" class="primary-button menu-action" />
+                <ui:Button name="continue-button" class="secondary-button menu-action menu-continue">
+                    <ui:Label text="♜     CONTINUE                                  ›" class="menu-action-heading" />
+                    <ui:Label name="continue-detail" text="WAVE 1 · GREENWARD" class="menu-action-detail" />
+                </ui:Button>
+                <ui:Button name="skill-tree-button" text="◇     FORTRESS PROGRESSION         ›" class="secondary-button menu-action" />
+                <ui:Button name="settings-button" text="⚙     OPTIONS                                    ›" class="secondary-button menu-action" />
+                <ui:Button name="quit-button" text="↪     QUIT                                           ›" class="quiet-button menu-action" />
             </ui:VisualElement>
         </ui:VisualElement>
 
@@ -33,7 +26,8 @@
                 </ui:VisualElement>
                 <ui:VisualElement class="stage-layout">
                     <ui:VisualElement name="stage-list" class="stage-list">
-                        <ui:Button name="stage-greenward-button" text="GREENWARD · ACTIVE FRONT" class="stage-card stage-card-active" />
+                        <ui:Button name="stage-greenward-button" text="GREENWARD · NORMAL · ACTIVE FRONT" class="stage-card stage-card-active" />
+                        <ui:Button name="stage-greenward-endless-button" text="GREENWARD · ENDLESS" class="stage-card stage-card-endless" />
                         <ui:Button name="stage-two-button" text="THE ASHEN PASS · LOCKED" class="stage-card" />
                         <ui:Button name="stage-three-button" text="THE SUNKEN KEEP · LOCKED" class="stage-card" />
                     </ui:VisualElement>
@@ -55,17 +49,31 @@
         <ui:VisualElement name="skill-tree-screen" class="screen">
             <ui:VisualElement class="screen-layout skill-layout">
                 <ui:VisualElement class="screen-heading">
-                    <ui:Label text="PROGRESSION" class="screen-kicker" />
+                    <ui:Label text="FORTRESS PROGRESSION" class="screen-kicker" />
                     <ui:Label text="SKILL TREE" class="screen-title" />
-                    <ui:Label text="Shape the Warden before the next valley falls." class="screen-intro" />
+                    <ui:Label text="Choose a path. Shape the defense of Greenward." class="screen-intro" />
+                    <ui:Label name="skill-currency" text="☠  0 SKULLS  ·  FORTRESS PATHS" class="skill-currency" />
                 </ui:VisualElement>
                 <ui:VisualElement name="skill-graph" class="skill-graph" />
-                <ui:VisualElement class="skill-details">
-                    <ui:Label text="SELECTED NODE" class="detail-label" />
-                    <ui:Label name="skill-details-title" text="SELECT A NODE" class="panel-title" />
-                    <ui:Label name="skill-details-copy" text="Choose a branch to inspect its future upgrades." class="body-copy" />
+                <ui:VisualElement class="skill-legend">
+                    <ui:Label text="◆  ACTIVE PATH" class="skill-legend-purchased" />
+                    <ui:Label text="◇  BRANCH NODE" class="skill-legend-available" />
+                    <ui:Label text="○  PLANNED NODE" class="skill-legend-next" />
+                    <ui:Label text="?  VEILED" class="skill-legend-hidden" />
                 </ui:VisualElement>
-                <ui:Button name="skill-tree-back-button" text="BACK" class="back-button quiet-button" />
+                <ui:VisualElement class="skill-details">
+                    <ui:VisualElement class="skill-detail-main">
+                        <ui:Label text="SELECTED NODE" class="detail-label" />
+                        <ui:Label name="skill-details-title" text="SELECT A NODE" class="panel-title" />
+                        <ui:Label name="skill-details-copy" text="Select a node to inspect its fortress upgrade." class="body-copy" />
+                    </ui:VisualElement>
+                    <ui:VisualElement class="skill-detail-meta">
+                        <ui:Label name="skill-details-cost" text="COST · 1 SKULL" class="detail-value" />
+                        <ui:Label name="skill-details-effect" text="EFFECT" class="detail-value" />
+                    </ui:VisualElement>
+                    <ui:Button name="skill-purchase-button" text="PURCHASE NODE" class="secondary-button" />
+                </ui:VisualElement>
+                <ui:Button name="skill-tree-back-button" text="←  BACK" class="back-button quiet-button" />
             </ui:VisualElement>
         </ui:VisualElement>
 
@@ -76,7 +84,11 @@
                 <ui:VisualElement class="settings-list">
                     <ui:VisualElement class="settings-row"><ui:Label text="DISPLAY" class="detail-label" /><ui:Label text="WINDOWED · 16:9" class="detail-value" /></ui:VisualElement>
                     <ui:VisualElement class="settings-row"><ui:Label text="AUDIO" class="detail-label" /><ui:Label text="COMING SOON" class="detail-value muted-copy" /></ui:VisualElement>
-                    <ui:VisualElement class="settings-row"><ui:Label text="CONTROLS" class="detail-label" /><ui:Label text="MOUSE · B TO BUILD" class="detail-value" /></ui:VisualElement>
+                    <ui:Label text="ATTACK KEYS" class="detail-label settings-key-heading" />
+                    <ui:VisualElement class="settings-row keybind-row"><ui:Label text="LIGHT ATTACK" class="detail-value" /><ui:Button name="bind-light-button" text="F" class="keybind-button secondary-button" /></ui:VisualElement>
+                    <ui:VisualElement class="settings-row keybind-row"><ui:Label text="HEAVY ATTACK" class="detail-value" /><ui:Button name="bind-heavy-button" text="Q" class="keybind-button secondary-button" /></ui:VisualElement>
+                    <ui:VisualElement class="settings-row keybind-row"><ui:Label text="MEGA ATTACK" class="detail-value" /><ui:Button name="bind-mega-button" text="E" class="keybind-button secondary-button" /></ui:VisualElement>
+                    <ui:Label name="keybind-status" text="SELECT A KEY TO REMAP · ESC TO CANCEL" class="muted-copy" />
                 </ui:VisualElement>
                 <ui:Button name="settings-back-button" text="BACK" class="back-button quiet-button" />
             </ui:VisualElement>
@@ -84,20 +96,26 @@
 
         <ui:VisualElement name="gameplay-screen" class="screen gameplay-screen">
             <ui:VisualElement class="hud-resource-strip">
-                <ui:Label name="stage-value" text="GREENWARD" class="hud-stage" />
-                <ui:VisualElement class="hud-divider" />
-                <ui:Label name="defeated-value" text="DEFEATED 0" class="hud-caption" />
+                <ui:Label text="♜" class="hud-stage-crest" />
+                <ui:VisualElement class="hud-stage-stack">
+                    <ui:Label name="stage-value" text="GREENWARD" class="hud-stage" />
+                    <ui:VisualElement class="hud-stage-subline">
+                        <ui:Label name="stage-wave-value" text="WAVE 0" class="hud-caption" />
+                        <ui:VisualElement class="hud-divider" />
+                        <ui:Label name="defeated-value" text="DEFEATED 0" class="hud-caption" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="hud-status-deck" class="hud-status-deck">
-                <ui:VisualElement class="hud-asset-zone">
+                <ui:VisualElement name="hud-coins-zone" class="hud-asset-zone">
                     <ui:Image name="hud-coins-image" class="hud-asset-frame" />
                     <ui:Label name="hud-coins-value" text="120" class="hud-asset-value" />
                 </ui:VisualElement>
-                <ui:VisualElement class="hud-asset-zone">
+                <ui:VisualElement name="hud-mana-zone" class="hud-asset-zone">
                     <ui:Image name="hud-mana-image" class="hud-asset-frame" />
                     <ui:Label name="hud-mana-value" text="FULL" class="hud-asset-value" />
                 </ui:VisualElement>
-                <ui:VisualElement class="hud-asset-zone">
+                <ui:VisualElement name="hud-health-zone" class="hud-asset-zone">
                     <ui:Image name="hud-health-image" class="hud-asset-frame" />
                     <ui:Label name="hud-health-value" text="20" class="hud-asset-value" />
                 </ui:VisualElement>
@@ -109,25 +127,56 @@
             <ui:Label name="status-value" text="PREPARE THE DEFENSES" class="hud-status" />
             <ui:VisualElement name="minimap-frame" class="minimap-frame">
                 <ui:Label text="GREENWARD" class="minimap-label" />
-                <ui:VisualElement class="minimap-path" />
+                <ui:VisualElement name="minimap-canvas" class="minimap-canvas" />
             </ui:VisualElement>
             <ui:VisualElement name="build-panel" class="command-deck hud-action-deck">
-                <ui:VisualElement class="hud-attack-zone primary">
-                    <ui:Image name="hud-attack-image" class="hud-action-frame" />
+                <ui:VisualElement class="hud-attack-zone primary light">
+                    <ui:VisualElement class="hud-action-emblem"><ui:Image name="hud-attack-image" class="hud-action-frame" /></ui:VisualElement>
+                    <ui:VisualElement name="light-cooldown-ring" class="hud-cooldown-ring light-ring" />
+                    <ui:VisualElement class="hud-action-copy">
+                        <ui:Label text="ATTACK" class="hud-action-title" />
+                        <ui:Label text="Quick strike" class="hud-action-description" />
+                        <ui:VisualElement name="light-charge-row" class="hud-charge-row" />
+                    </ui:VisualElement>
                     <ui:Label name="hud-attack-value" text="READY" class="hud-action-value" />
+                    <ui:Label name="light-keycap" text="F" class="hud-keycap" />
                     <ui:Button name="attack-button" text="" class="hud-asset-click-target" />
                 </ui:VisualElement>
-                <ui:VisualElement class="hud-attack-zone disabled">
-                    <ui:Image name="hud-heavy-image" class="hud-action-frame" />
-                    <ui:Label name="hud-heavy-value" text="LOCKED" class="hud-action-value" />
+                <ui:VisualElement class="hud-attack-zone heavy">
+                    <ui:VisualElement class="hud-action-emblem"><ui:Image name="hud-heavy-image" class="hud-action-frame" /></ui:VisualElement>
+                    <ui:VisualElement name="heavy-cooldown-ring" class="hud-cooldown-ring heavy-ring" />
+                    <ui:VisualElement class="hud-action-copy">
+                        <ui:Label text="HEAVY ATTACK" class="hud-action-title" />
+                        <ui:Label text="Armor breaker" class="hud-action-description" />
+                        <ui:VisualElement name="heavy-charge-row" class="hud-charge-row" />
+                    </ui:VisualElement>
+                    <ui:Label name="hud-heavy-value" text="READY" class="hud-action-value" />
+                    <ui:Label name="heavy-keycap" text="Q" class="hud-keycap" />
+                    <ui:Button name="heavy-attack-button" text="" class="hud-asset-click-target" />
                 </ui:VisualElement>
-                <ui:VisualElement class="hud-attack-zone disabled">
-                    <ui:Image name="hud-mega-image" class="hud-action-frame" />
-                    <ui:Label name="hud-mega-value" text="LOCKED" class="hud-action-value" />
+                <ui:VisualElement class="hud-attack-zone mega">
+                    <ui:VisualElement class="hud-action-emblem"><ui:Image name="hud-mega-image" class="hud-action-frame" /></ui:VisualElement>
+                    <ui:VisualElement name="mega-cooldown-ring" class="hud-cooldown-ring mega-ring" />
+                    <ui:VisualElement class="hud-action-copy">
+                        <ui:Label text="MEGA ATTACK" class="hud-action-title" />
+                        <ui:Label text="Burst finisher" class="hud-action-description" />
+                        <ui:VisualElement name="mega-charge-row" class="hud-charge-row" />
+                    </ui:VisualElement>
+                    <ui:Label name="hud-mega-value" text="READY" class="hud-action-value" />
+                    <ui:Label name="mega-keycap" text="E" class="hud-keycap" />
+                    <ui:Button name="mega-attack-button" text="" class="hud-asset-click-target" />
                 </ui:VisualElement>
                 <ui:VisualElement class="action-tools">
                     <ui:Button name="build-button" text="✦ BUILD" class="command-card build-card" />
                     <ui:Button name="wave-button" text="START WAVE · SPACE" class="phase-action secondary-button" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="pause-overlay" class="pause-overlay">
+                <ui:VisualElement class="pause-panel">
+                    <ui:Label text="DEFENSE PAUSED" class="screen-title" />
+                    <ui:Label text="The valley waits for your command." class="screen-intro" />
+                    <ui:Button name="pause-resume-button" text="RESUME · ESC" class="primary-button pause-action" />
+                    <ui:Button name="pause-menu-button" text="RETURN TO MAIN MENU" class="secondary-button pause-action" />
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="build-wheel-overlay" class="build-wheel-overlay">
@@ -138,7 +187,7 @@
                         <ui:Label text="DRAG TO SELECT" class="wheel-caption" />
                     </ui:VisualElement>
                     <ui:Button name="placement-button" text="✦ ARCANE WATCHTOWER · 40 COINS" class="wheel-option wheel-option-top primary-button" />
-                    <ui:Button name="wheel-ember-button" text="EMBER SPIRE · LOCKED" class="wheel-option wheel-option-right secondary-button" />
+                    <ui:Button name="wheel-archer-button" text="⌁ ARCHER WATCHTOWER · 40 COINS" class="wheel-option wheel-option-right secondary-button" />
                     <ui:Button name="wheel-frost-button" text="FROST SHRINE · LOCKED" class="wheel-option wheel-option-bottom secondary-button" />
                     <ui:Button name="wheel-cancel" text="×" class="wheel-cancel quiet-button" />
                     <ui:Label name="wheel-hint" text="RELEASE ON A CARD TO EQUIP" class="wheel-hint" />

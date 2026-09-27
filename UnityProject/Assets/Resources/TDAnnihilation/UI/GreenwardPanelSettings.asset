@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: GreenwardPanelSettings
   m_EditorClassIdentifier: 
   themeUss: {fileID: 0}
-  m_DisableNoThemeWarning: 0
+  m_DisableNoThemeWarning: 1
   m_TargetTexture: {fileID: 0}
   m_RenderMode: 0
   m_ColliderUpdateMode: 0

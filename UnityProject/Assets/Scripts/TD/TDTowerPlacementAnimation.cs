@@ -6,6 +6,7 @@ namespace TDAnnihilation
     {
         private const float Duration = 0.35f;
         private Vector3 fullScale;
+        private int riseAxis;
         private float elapsed;
         private bool playing;
 
@@ -21,9 +22,13 @@ namespace TDAnnihilation
         public void Play()
         {
             fullScale = transform.localScale;
+            Vector3 localUp = transform.InverseTransformDirection(Vector3.up);
+            riseAxis = Mathf.Abs(localUp.x) > Mathf.Abs(localUp.y)
+                ? (Mathf.Abs(localUp.x) > Mathf.Abs(localUp.z) ? 0 : 2)
+                : (Mathf.Abs(localUp.y) > Mathf.Abs(localUp.z) ? 1 : 2);
             elapsed = 0f;
             playing = true;
-            transform.localScale = new Vector3(fullScale.x, fullScale.y * 0.12f, fullScale.z);
+            transform.localScale = ScaleForRise(fullScale, riseAxis, 0.12f);
             SpawnDust(transform.position);
         }
 
@@ -32,10 +37,18 @@ namespace TDAnnihilation
             if (!playing) return;
             elapsed += Time.deltaTime;
             float height = EvaluateHeight(elapsed, Duration);
-            transform.localScale = new Vector3(fullScale.x, fullScale.y * height, fullScale.z);
+            transform.localScale = ScaleForRise(fullScale, riseAxis, height);
             if (elapsed < Duration) return;
             transform.localScale = fullScale;
             playing = false;
+        }
+
+        private static Vector3 ScaleForRise(Vector3 scale, int axis, float height)
+        {
+            if (axis == 0) scale.x *= height;
+            else if (axis == 1) scale.y *= height;
+            else scale.z *= height;
+            return scale;
         }
 
         private static void SpawnDust(Vector3 position)

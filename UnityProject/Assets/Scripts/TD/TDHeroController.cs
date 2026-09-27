@@ -8,6 +8,13 @@ using UnityEditor.Animations;
 
 namespace TDAnnihilation
 {
+    public enum TDAttackType
+    {
+        Light,
+        Heavy,
+        Mega
+    }
+
     [RequireComponent(typeof(CharacterController))]
     public sealed class TDHeroController : MonoBehaviour
     {
@@ -19,10 +26,16 @@ namespace TDAnnihilation
         [SerializeField] private float attackArc = 110f;
         [SerializeField] private float attackDamage = 24f;
         [SerializeField] private float attackCooldown = 0.55f;
+        [SerializeField] private TDHeroEquipment equipment = TDHeroEquipment.Unarmed;
+        private const float HeavyCooldown = 3.2f;
+        private const float MegaCooldown = 8.4f;
         private Animator animator;
         private CharacterController controller;
         private float verticalVelocity;
-        private float attackTimer;
+        private float lightAttackTimer;
+        private float heavyAttackTimer;
+        private float megaAttackTimer;
+        private TDSkillModifiers skillModifiers = new TDSkillModifiers();
         private bool grounded;
         private bool hasSpeedParameter;
         private bool hasGroundedParameter;
@@ -156,6 +169,7 @@ namespace TDAnnihilation
 
         private void Update()
         {
+            if (Time.timeScale == 0f) return;
             Keyboard keyboard = Keyboard.current;
             if (keyboard == null) return;
             Vector2 input = new Vector2(
@@ -201,24 +215,100 @@ namespace TDAnnihilation
                 if (hasSpeedParameter) animator.SetFloat("Speed", animationSpeed, 0.12f, deltaTime);
                 if (hasGroundedParameter) animator.SetBool("Grounded", grounded);
             }
-            attackTimer -= deltaTime;
-            if (keyboard.fKey.wasPressedThisFrame) Attack();
+            lightAttackTimer = Mathf.Max(0f, lightAttackTimer - deltaTime);
+            heavyAttackTimer = Mathf.Max(0f, heavyAttackTimer - deltaTime);
+            megaAttackTimer = Mathf.Max(0f, megaAttackTimer - deltaTime);
         }
 
-        public void Attack()
+        public void Attack() => TryAttack(TDAttackType.Light);
+
+        public TDHeroEquipment Equipment => equipment;
+
+        public void Equip(TDHeroEquipment newEquipment)
         {
-            if (attackTimer > 0f) return;
-            attackTimer = attackCooldown;
-            if (animator != null && hasAttackTrigger) animator.SetTrigger("Attack");
+            if (!System.Enum.IsDefined(typeof(TDHeroEquipment), newEquipment))
+                throw new System.ArgumentOutOfRangeException(nameof(newEquipment));
+            equipment = newEquipment;
+        }
+
+        public float EffectiveAttackDamage => attackDamage * (1f + skillModifiers.HeroDamageBonus);
+        public float EffectiveAttackRange => attackRange * (1f + skillModifiers.HeroRangeBonus);
+        public float EffectiveMegaRadius => 7.5f * (1f + skillModifiers.MegaRadiusBonus);
+        public float EffectiveHeavyDamageMultiplier => 2.2f + skillModifiers.HeavyDamageBonus;
+
+        public void ApplySkillModifiers(TDSkillModifiers modifiers)
+        {
+            skillModifiers = modifiers ?? new TDSkillModifiers();
+        }
+
+        public float AttackCooldownRemaining(TDAttackType type)
+        {
+            switch (type)
+            {
+                case TDAttackType.Heavy: return heavyAttackTimer;
+                case TDAttackType.Mega: return megaAttackTimer;
+                default: return lightAttackTimer;
+            }
+        }
+
+        public float AttackCooldownDuration(TDAttackType type)
+        {
+            switch (type)
+            {
+                case TDAttackType.Heavy: return EffectiveCooldown(HeavyCooldown);
+                case TDAttackType.Mega: return EffectiveCooldown(MegaCooldown);
+                default: return EffectiveCooldown(attackCooldown);
+            }
+        }
+
+        private float EffectiveCooldown(float baseline) => Mathf.Max(0.01f, baseline * (1f - skillModifiers.HeroCooldownReduction));
+
+        public bool TryAttack(TDAttackType type)
+        {
+            if (AttackCooldownRemaining(type) > 0f) return false;
+            switch (type)
+            {
+                case TDAttackType.Heavy: heavyAttackTimer = EffectiveCooldown(HeavyCooldown); break;
+                case TDAttackType.Mega: megaAttackTimer = EffectiveCooldown(MegaCooldown); break;
+                default: lightAttackTimer = EffectiveCooldown(attackCooldown); break;
+            }
+            PlayAttackAnimation();
             TDEnemyController[] enemies = FindObjectsByType<TDEnemyController>();
             foreach (TDEnemyController enemy in enemies)
             {
                 if (enemy == null) continue;
                 Vector3 direction = enemy.transform.position - transform.position;
                 direction.y = 0f;
-                if (direction.sqrMagnitude > attackRange * attackRange) continue;
-                if (Vector3.Angle(transform.forward, direction) <= attackArc * 0.5f) enemy.TakeDamage(attackDamage);
+                if (type == TDAttackType.Mega)
+                {
+                    if (direction.sqrMagnitude <= EffectiveMegaRadius * EffectiveMegaRadius) enemy.TakeDamage(CalculateDamage(2.5f));
+                    continue;
+                }
+                float range = type == TDAttackType.Heavy ? EffectiveAttackRange * 1.3f : EffectiveAttackRange;
+                float arc = type == TDAttackType.Heavy ? 150f : attackArc;
+                if (direction.sqrMagnitude > range * range) continue;
+                if (Vector3.Angle(transform.forward, direction) <= arc * 0.5f)
+                    enemy.TakeDamage(CalculateDamage(type == TDAttackType.Heavy ? EffectiveHeavyDamageMultiplier : 1f));
             }
+            return true;
+        }
+
+        private float CalculateDamage(float multiplier)
+        {
+            float damage = EffectiveAttackDamage * multiplier;
+            return Random.value < skillModifiers.HeroCriticalChance ? damage * 2f : damage;
+        }
+
+        private void PlayAttackAnimation()
+        {
+            if (animator == null) return;
+            string state = equipment == TDHeroEquipment.Melee ? "MeleeAttack" :
+                equipment == TDHeroEquipment.Staff ? "StaffAttack" : "UnarmedAttack";
+            int stateHash = Animator.StringToHash("Base Layer." + state);
+            if (animator.HasState(0, stateHash))
+                animator.CrossFadeInFixedTime(stateHash, 0.06f, 0, 0f);
+            else if (hasAttackTrigger)
+                animator.SetTrigger("Attack");
         }
 
         private Vector3 CameraRelativeMovement(Vector2 input)

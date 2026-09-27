@@ -15,9 +15,9 @@ namespace TDAnnihilation
                 sun.type = LightType.Directional;
                 sun.transform.rotation = Quaternion.Euler(48f, -32f, 0f);
                 sun.color = new Color(1f, 0.88f, 0.72f);
-                sun.intensity = 1.55f;
+                sun.intensity = 1.2f;
                 sun.shadows = LightShadows.Soft;
-                sun.shadowStrength = 0.68f;
+                sun.shadowStrength = 0.78f;
                 sun.shadowBias = 0.08f;
                 sun.shadowNormalBias = 0.35f;
                 RenderSettings.sun = sun;
@@ -27,7 +27,7 @@ namespace TDAnnihilation
             RenderSettings.ambientSkyColor = new Color(0.64f, 0.72f, 0.78f);
             RenderSettings.ambientEquatorColor = new Color(0.43f, 0.49f, 0.39f);
             RenderSettings.ambientGroundColor = new Color(0.28f, 0.25f, 0.19f);
-            RenderSettings.ambientIntensity = 1.15f;
+            RenderSettings.ambientIntensity = 0.7f;
             RenderSettings.reflectionIntensity = 0.78f;
 
             GameObject lighting = GameObject.Find(LightingRootName);

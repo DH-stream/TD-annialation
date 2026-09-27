@@ -18,8 +18,8 @@ namespace TDAnnihilation
         private float targetDistance;
         private Vector3 followVelocity;
         private bool menuView;
-        private readonly Vector3 menuCameraPosition = new Vector3(17f, 12f, -23f);
-        private readonly Vector3 menuFocus = new Vector3(2f, 2.5f, -8f);
+        private readonly Vector3 menuCameraPosition = new Vector3(-10f, 17f, -34f);
+        private readonly Vector3 menuFocus = new Vector3(17f, 4f, 4f);
         private void Awake()
         {
             Camera cameraComponent = GetComponent<Camera>();

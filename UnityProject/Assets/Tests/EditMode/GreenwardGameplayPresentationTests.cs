@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace TDAnnihilation.Tests
 {
@@ -28,6 +29,30 @@ namespace TDAnnihilation.Tests
             Vector3 movement = TDStrategicCamera.CalculatePan(new Vector2(1f, -0.5f), 10f, 0.25f);
             Assert.That(movement.y, Is.EqualTo(0f));
             Assert.That(movement.sqrMagnitude, Is.GreaterThan(0f));
+        }
+
+        [Test]
+        public void SkillTreeCatalogContainsAllElevenBranches()
+        {
+            var branches = new System.Collections.Generic.HashSet<TDSkillBranch>();
+            foreach (TDSkillNodeDefinition node in TDSkillTreeCatalog.CreateDefault())
+                branches.Add(node.Branch);
+
+            Assert.That(branches.Count, Is.EqualTo(11));
+        }
+
+        [Test]
+        public void ProgressionUIExposesNodePurchaseAndConditionalEndlessControls()
+        {
+            VisualTreeAsset tree = Resources.Load<VisualTreeAsset>("TDAnnihilation/UI/GreenwardRoot");
+            Assert.That(tree, Is.Not.Null);
+            VisualElement root = tree.CloneTree();
+
+            Assert.That(root.Q<Label>("skill-currency"), Is.Not.Null);
+            Assert.That(root.Q<Label>("skill-details-cost"), Is.Not.Null);
+            Assert.That(root.Q<Label>("skill-details-effect"), Is.Not.Null);
+            Assert.That(root.Q<Button>("skill-purchase-button"), Is.Not.Null);
+            Assert.That(root.Q<Button>("stage-greenward-endless-button"), Is.Not.Null);
         }
 
         [Test]
@@ -67,7 +92,7 @@ namespace TDAnnihilation.Tests
         [Test]
         public void GameplayCharactersPreserveWorldScale()
         {
-            Assert.That(TDPresentationScale.Hero, Is.LessThanOrEqualTo(0.9f));
+            Assert.That(TDPresentationScale.Hero, Is.EqualTo(1.5f));
             Assert.That(TDEnemyArchetype.Raider.Scale, Is.LessThan(TDPresentationScale.Hero));
         }
 
@@ -95,6 +120,25 @@ namespace TDAnnihilation.Tests
             Assert.That(TDTowerPlacementAnimation.EvaluateHeight(0.21f, 0.35f), Is.GreaterThan(1f));
             Assert.That(TDTowerPlacementAnimation.EvaluateHeight(0.35f, 0.35f), Is.EqualTo(1f).Within(0.001f));
             Assert.That(TDTowerPlacementAnimation.EvaluateHeight(0.5f, 0.35f), Is.EqualTo(1f).Within(0.001f));
+        }
+
+        [Test]
+        public void TowerPlacementRiseUsesTheModelAxisThatPointsUpward()
+        {
+            var tower = new GameObject("Sideways-import test tower");
+            try
+            {
+                tower.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+                tower.transform.localScale = Vector3.one * 3f;
+                tower.AddComponent<TDTowerPlacementAnimation>().Play();
+
+                Assert.That(tower.transform.localScale.y, Is.EqualTo(3f).Within(0.001f));
+                Assert.That(tower.transform.localScale.z, Is.EqualTo(0.36f).Within(0.001f));
+            }
+            finally
+            {
+                Object.DestroyImmediate(tower);
+            }
         }
     }
 }

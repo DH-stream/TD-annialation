@@ -10,11 +10,17 @@ namespace TDAnnihilation
         [SerializeField] private GameObject warriorPrefab;
         [SerializeField] private GameObject demonPrefab;
         [SerializeField] private GameObject arcaneTowerPrefab;
+        [SerializeField] private GameObject archerTowerPrefab;
 
         [Header("Slice tuning")]
         [SerializeField] private int startingGold = 120;
         [SerializeField] private int startingLives = 20;
         [SerializeField] private int stageWaveCount = 3;
+        [SerializeField] private int firstClearSkulls = 10;
+        [SerializeField] private int repeatClearSkulls = 3;
+        [SerializeField] private int endlessBaseSkulls = 1;
+        [SerializeField] private int endlessSkullsPerWave = 1;
+        [SerializeField] private string mapId = "greenward";
 
         [Header("Authored scene references")]
         [SerializeField] private Transform authoredWorldRoot;
@@ -31,14 +37,33 @@ namespace TDAnnihilation
         private TDGameFlow flow;
         private TDHeroController heroController;
         private bool ready;
+        private TDSkillTreeState progression;
+        private int runSkullsEarned;
         private readonly List<Transform> placedTowers = new List<Transform>();
         private GameObject placementGhost;
         private Material placementMaterial;
         private Collider placementGroundCollider;
         private bool placementMode;
         private bool placementValid;
+        private bool placementArcher;
         private float previewOverrideTimer;
-        private const int TowerCost = 40;
+        private const int BaseTowerCost = 40;
+        private TDSkillModifiers activeModifiers = new TDSkillModifiers();
+        private const string SavedRunKey = "TDAnnihilation.Greenward.BuildCheckpoint.v1";
+        [System.Serializable] private sealed class TowerCheckpoint { public Vector3 position; public bool archer; }
+        [System.Serializable] private sealed class RunCheckpoint
+        {
+            public string map;
+            public int wave;
+            public int gold;
+            public int lives;
+            public int defeated;
+            public int skullsEarned;
+            public TDRunMode mode;
+            public Vector3 heroPosition;
+            public List<TowerCheckpoint> towers = new List<TowerCheckpoint>();
+        }
+        private int CurrentTowerCost => Mathf.Max(1, BaseTowerCost - activeModifiers.TowerCostReduction);
 
         private void Awake()
         {
@@ -47,6 +72,7 @@ namespace TDAnnihilation
             ready = true;
             state = gameObject.AddComponent<TDResourceState>();
             flow = new TDGameFlow(stageWaveCount);
+            progression = TDSkillTreeState.Load();
             state.gold = startingGold;
             state.lives = startingLives;
             LoadArtIfNeeded();
@@ -54,7 +80,7 @@ namespace TDAnnihilation
             Transform hero = SpawnHero();
             heroController = hero.GetComponent<TDHeroController>();
             SpawnTower(new Vector3(-5f, GreenwardWorldLayout.HeightAt(-5f, -2f) + 0.3f, -2f));
-            SpawnTower(new Vector3(22f, GreenwardWorldLayout.HeightAt(22f, 3f) + 0.3f, 3f));
+            SpawnTower(new Vector3(22f, GreenwardWorldLayout.HeightAt(22f, 3f) + 0.3f, 3f), useArcher: true);
             Camera camera = Camera.main;
             if (camera != null)
             {
@@ -71,15 +97,25 @@ namespace TDAnnihilation
         {
             enemies.RemoveAll(enemy => enemy == null);
             if (state == null || flow == null) return;
+            if (Time.timeScale == 0f) return;
             HandlePlacementInput();
             if (!placementMode && flow.Phase == TDGamePhase.Wave && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
                 heroController?.Attack();
             if (state.lives <= 0)
             {
                 flow.Lose();
+                PlayerPrefs.DeleteKey(SavedRunKey);
                 return;
             }
-            if (flow.Phase == TDGamePhase.Wave && enemies.Count == 0) flow.CompleteWave();
+            if (flow.Phase == TDGamePhase.Wave && enemies.Count == 0 && flow.CompleteWave())
+            {
+                if (flow.RunMode == TDRunMode.Endless)
+                    runSkullsEarned += progression.AwardEndlessWave(flow.Wave, endlessBaseSkulls, endlessSkullsPerWave);
+                else if (flow.Phase == TDGamePhase.Victory)
+                    runSkullsEarned += progression.AwardMapClear(mapId, firstClearSkulls, repeatClearSkulls);
+                if (flow.Phase == TDGamePhase.Build) SaveBuildCheckpoint();
+                else PlayerPrefs.DeleteKey(SavedRunKey);
+            }
         }
 
         private void LoadArtIfNeeded()
@@ -87,6 +123,7 @@ namespace TDAnnihilation
             if (warriorPrefab == null) warriorPrefab = Resources.Load<GameObject>("TDAnnihilation/Warrior");
             if (demonPrefab == null) demonPrefab = Resources.Load<GameObject>("TDAnnihilation/Demon");
             if (arcaneTowerPrefab == null) arcaneTowerPrefab = Resources.Load<GameObject>("TDAnnihilation/ArcaneTower");
+            if (archerTowerPrefab == null) archerTowerPrefab = Resources.Load<GameObject>("TDAnnihilation/ArcherTower");
         }
 
         private void LoadAuthoredArena()
@@ -126,6 +163,7 @@ namespace TDAnnihilation
             TDHeroController existingHero = FindAnyObjectByType<TDHeroController>();
             if (existingHero != null)
             {
+                RestoreHeroAppearance(existingHero.gameObject);
                 Debug.Log("Found existing hero in scene: " + existingHero.gameObject.name);
                 return existingHero.transform;
             }
@@ -135,11 +173,14 @@ namespace TDAnnihilation
                 : new Vector3(4f, GreenwardWorldLayout.HeightAt(4f, 4f) + 0.25f, 4f);
             
             GameObject hero = null;
+            GameObject authoredHeroPrefab = Resources.Load<GameObject>("TDAnnihilation/GreenwardHero");
+            if (authoredHeroPrefab != null)
+                hero = Instantiate(authoredHeroPrefab, heroPosition, Quaternion.Euler(0f, 25f, 0f));
             
             // Try to load the evenlowerpoly model first
             #if UNITY_EDITOR
             GameObject evenLowerPolyPrefab = UnityEditor.AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Main Char/evenlowerpoly.fbx");
-            if (evenLowerPolyPrefab != null)
+            if (hero == null && evenLowerPolyPrefab != null)
             {
                 hero = Instantiate(evenLowerPolyPrefab, heroPosition, Quaternion.Euler(0f, 25f, 0f));
                 Debug.Log("Spawned evenlowerpoly model as hero");
@@ -162,6 +203,7 @@ namespace TDAnnihilation
             
             hero.name = "Hero - Warden of Greenward";
             hero.transform.localScale = Vector3.one * TDPresentationScale.Hero;
+            RestoreHeroAppearance(hero);
             
             // Ensure hero has an Animator component (evenlowerpoly model may not have one)
             Animator animator = hero.GetComponent<Animator>();
@@ -186,15 +228,27 @@ namespace TDAnnihilation
             return hero.transform;
         }
 
-        private void SpawnTower(Vector3 position, bool animateArrival = false)
+        private static void RestoreHeroAppearance(GameObject hero)
         {
-            GameObject towerRoot = arcaneTowerPrefab != null
-                ? Instantiate(arcaneTowerPrefab, position, Quaternion.identity)
-                : new GameObject("Arcane Watchtower");
-            towerRoot.name = "Arcane Watchtower";
+            Material material = Resources.Load<Material>("TDAnnihilation/GreenwardHeroMaterial");
+            if (material == null) return;
+            foreach (SkinnedMeshRenderer renderer in hero.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+                renderer.sharedMaterial = material;
+        }
+
+        private void SpawnTower(Vector3 position, bool animateArrival = false, bool useArcher = false)
+        {
+            GameObject selectedPrefab = useArcher && archerTowerPrefab != null ? archerTowerPrefab : arcaneTowerPrefab;
+            GameObject towerRoot = new GameObject(useArcher ? "Archer Watchtower" : "Arcane Watchtower");
             towerRoot.transform.position = position;
-            if (arcaneTowerPrefab != null)
-                towerRoot.transform.localScale = Vector3.one * 3f;
+            if (selectedPrefab != null)
+            {
+                GameObject visualRoot = Instantiate(selectedPrefab, towerRoot.transform);
+                visualRoot.name = selectedPrefab.name;
+                visualRoot.transform.localPosition = Vector3.zero;
+                visualRoot.transform.localRotation = selectedPrefab.transform.localRotation;
+                visualRoot.transform.localScale = Vector3.one * 3f;
+            }
             else
             {
                 MakePrimitive("Tower Base", PrimitiveType.Cylinder, towerRoot.transform.position + Vector3.up * 0.8f, new Vector3(1.5f, 1.6f, 1.5f), new Color(0.32f, 0.29f, 0.36f), towerRoot.transform);
@@ -203,7 +257,8 @@ namespace TDAnnihilation
             tower = towerRoot.GetComponent<TDTowerController>();
             if (tower == null) tower = towerRoot.AddComponent<TDTowerController>();
             tower.state = state;
-            tower.projectileColor = new Color(0.58f, 0.35f, 1f);
+            tower.projectileColor = useArcher ? new Color(0.66f, 0.46f, 0.24f) : new Color(0.58f, 0.35f, 1f);
+            tower.ApplySkillModifiers(activeModifiers, useArcher);
             placedTowers.Add(towerRoot.transform);
             if (animateArrival) towerRoot.AddComponent<TDTowerPlacementAnimation>().Play();
         }
@@ -231,9 +286,17 @@ namespace TDAnnihilation
             else BeginPlacementMode();
         }
 
-        public void BeginPlacementMode()
+        public void BeginPlacementMode(bool useArcher = false)
         {
-            if (flow == null || flow.Phase != TDGamePhase.Build || state.gold < TowerCost) return;
+            if (flow == null || flow.Phase != TDGamePhase.Build || state.gold < CurrentTowerCost) return;
+            if (useArcher && archerTowerPrefab == null) return;
+            if (placementGhost != null && placementArcher != useArcher)
+            {
+                Destroy(placementGhost);
+                placementGhost = null;
+                if (placementMaterial != null) Destroy(placementMaterial);
+            }
+            placementArcher = useArcher;
             placementMode = true;
             EnsurePlacementGhost();
             placementGhost.SetActive(false);
@@ -260,10 +323,11 @@ namespace TDAnnihilation
             if (!placementMode) BeginPlacementMode();
             if (!placementMode) return false;
             SetPlacementGhost(worldPosition);
-            if (!placementValid || state.gold < TowerCost) return false;
-            state.gold -= TowerCost;
-            SpawnTower(placementGhost.transform.position, true);
+            if (!placementValid || state.gold < CurrentTowerCost) return false;
+            state.gold -= CurrentTowerCost;
+            SpawnTower(placementGhost.transform.position, true, placementArcher);
             ExitPlacementMode();
+            SaveBuildCheckpoint();
             return true;
         }
 
@@ -319,11 +383,14 @@ namespace TDAnnihilation
         private void EnsurePlacementGhost()
         {
             if (placementGhost != null) return;
-            if (arcaneTowerPrefab != null)
+            GameObject selectedPrefab = placementArcher ? archerTowerPrefab : arcaneTowerPrefab;
+            if (selectedPrefab != null)
             {
-                placementGhost = Instantiate(arcaneTowerPrefab, Vector3.zero, Quaternion.identity);
-                placementGhost.name = "Arcane Watchtower Placement Ghost";
-                placementGhost.transform.localScale = Vector3.one * 3f;
+                placementGhost = new GameObject((placementArcher ? "Archer" : "Arcane") + " Watchtower Placement Ghost");
+                GameObject ghostVisual = Instantiate(selectedPrefab, placementGhost.transform);
+                ghostVisual.transform.localPosition = Vector3.zero;
+                ghostVisual.transform.localRotation = selectedPrefab.transform.localRotation;
+                ghostVisual.transform.localScale = Vector3.one * 3f;
                 placementMaterial = CreateGhostMaterial();
                 foreach (Renderer renderer in placementGhost.GetComponentsInChildren<Renderer>(true))
                     renderer.sharedMaterial = placementMaterial;
@@ -439,18 +506,113 @@ namespace TDAnnihilation
         public void RegisterEnemy(TDEnemyController enemy) => enemies.Remove(enemy);
         public IReadOnlyList<Vector3> Path => path;
         public TDResourceState State => state;
-        public void StartSoloStages()
+        public int StartingLives => startingLives;
+        public int MaxLives => startingLives + activeModifiers.StartingLivesBonus;
+        public TDSkillTreeState Progression => progression;
+        public TDRunMode RunMode => flow == null ? TDRunMode.Normal : flow.RunMode;
+        public int RunSkullsEarned => runSkullsEarned;
+        public bool IsEndlessUnlocked => progression != null && progression.IsEndlessUnlocked(mapId);
+        public int TowerBuildCost => CurrentTowerCost;
+
+        public void StartSoloStages(TDRunMode mode = TDRunMode.Normal)
         {
             if (state == null || flow == null)
             {
                 Debug.LogError("StartSoloStages called but state or flow is null. Game not initialized.");
                 return;
             }
-            state.gold = startingGold;
-            state.lives = startingLives;
+            if (mode == TDRunMode.Endless && !IsEndlessUnlocked)
+            {
+                Debug.LogWarning("Endless is locked until this map has been cleared in Normal mode.");
+                return;
+            }
+            activeModifiers = progression.GetModifiers(TDSkillTreeCatalog.CreateDefault());
+            heroController?.ApplySkillModifiers(activeModifiers);
+            ClearRunActors(true);
+            SpawnTower(new Vector3(-5f, GreenwardWorldLayout.HeightAt(-5f, -2f) + 0.3f, -2f));
+            SpawnTower(new Vector3(22f, GreenwardWorldLayout.HeightAt(22f, 3f) + 0.3f, 3f), useArcher: true);
+            state.gold = startingGold + activeModifiers.StartingGoldBonus;
+            state.lives = startingLives + activeModifiers.StartingLivesBonus;
             state.defeated = 0;
-            flow.SelectSoloStages();
+            runSkullsEarned = 0;
+            flow.SelectSoloStages(mode);
             Camera.main?.GetComponent<TDStrategicCamera>()?.SetTarget(heroController.transform);
+            SaveBuildCheckpoint();
+        }
+
+        public bool HasSavedRun => ReadBuildCheckpoint() != null;
+        public string SavedRunLabel
+        {
+            get
+            {
+                RunCheckpoint save = ReadBuildCheckpoint();
+                return save == null ? "" : "WAVE " + (save.wave + 1) + " · GREENWARD";
+            }
+        }
+
+        public bool ContinueSavedRun()
+        {
+            RunCheckpoint save = ReadBuildCheckpoint();
+            if (save == null) return false;
+            ClearRunActors(true);
+            activeModifiers = progression.GetModifiers(TDSkillTreeCatalog.CreateDefault());
+            heroController?.ApplySkillModifiers(activeModifiers);
+            foreach (TowerCheckpoint savedTower in save.towers)
+                SpawnTower(savedTower.position, useArcher: savedTower.archer);
+            if (heroController != null) heroController.transform.position = save.heroPosition;
+            state.gold = save.gold;
+            state.lives = save.lives;
+            state.defeated = save.defeated;
+            runSkullsEarned = save.skullsEarned;
+            flow.ResumeBuildPhase(save.wave, save.mode);
+            Camera.main?.GetComponent<TDStrategicCamera>()?.SetTarget(heroController.transform);
+            return true;
+        }
+
+        private void ClearRunActors(bool clearTowers)
+        {
+            ExitPlacementMode();
+            foreach (TDEnemyController enemy in enemies)
+                if (enemy != null) Destroy(enemy.gameObject);
+            enemies.Clear();
+            if (!clearTowers) return;
+            foreach (Transform placed in placedTowers)
+                if (placed != null) Destroy(placed.gameObject);
+            placedTowers.Clear();
+        }
+
+        private RunCheckpoint ReadBuildCheckpoint()
+        {
+            string json = PlayerPrefs.GetString(SavedRunKey, "");
+            if (string.IsNullOrEmpty(json)) return null;
+            try
+            {
+                RunCheckpoint save = JsonUtility.FromJson<RunCheckpoint>(json);
+                return save != null && save.map == mapId && save.wave >= 0 && save.lives > 0 && save.towers != null
+                    && (save.mode == TDRunMode.Normal || save.mode == TDRunMode.Endless)
+                    && (save.mode != TDRunMode.Normal || save.wave < stageWaveCount)
+                    && (save.mode != TDRunMode.Endless || IsEndlessUnlocked) ? save : null;
+            }
+            catch (System.ArgumentException) { return null; }
+        }
+
+        private void SaveBuildCheckpoint()
+        {
+            if (flow == null || flow.Phase != TDGamePhase.Build || state == null) return;
+            var save = new RunCheckpoint
+            {
+                map = mapId, wave = flow.Wave, mode = flow.RunMode, gold = state.gold,
+                lives = state.lives, defeated = state.defeated, skullsEarned = runSkullsEarned,
+                heroPosition = heroController == null ? Vector3.zero : heroController.transform.position
+            };
+            foreach (Transform placed in placedTowers)
+            {
+                if (placed == null) continue;
+                TDTowerController controller = placed.GetComponent<TDTowerController>();
+                save.towers.Add(new TowerCheckpoint { position = placed.position, archer = controller != null && controller.IsArcher });
+            }
+            PlayerPrefs.SetString(SavedRunKey, JsonUtility.ToJson(save));
+            PlayerPrefs.Save();
         }
 
         public void StartNextWave()
@@ -460,14 +622,18 @@ namespace TDAnnihilation
             SpawnWave(4 + flow.Wave);
         }
 
-        public void AttackHero()
+        public void AttackHero(TDAttackType type = TDAttackType.Light)
         {
             if (flow == null || flow.Phase != TDGamePhase.Wave) return;
-            heroController?.Attack();
+            heroController?.TryAttack(type);
         }
+
+        public float AttackCooldownRemaining(TDAttackType type) => heroController == null ? 0f : heroController.AttackCooldownRemaining(type);
+        public float AttackCooldownDuration(TDAttackType type) => heroController == null ? 1f : heroController.AttackCooldownDuration(type);
 
         public void ReturnToMenu()
         {
+            ClearRunActors(false);
             flow.ReturnToMenu();
             Camera.main?.GetComponent<TDStrategicCamera>()?.SetMenuView();
         }
@@ -475,6 +641,7 @@ namespace TDAnnihilation
         public TDGamePhase Phase => flow == null ? TDGamePhase.MainMenu : flow.Phase;
         public string CurrentStageName => "GREENWARD";
         public bool IsPlacementMode => placementMode;
+        public bool IsPlacingArcher => placementMode && placementArcher;
         public IReadOnlyList<Vector3> Route => path;
         public Bounds PlayableBounds => buildArea;
         public Transform Goal => castleTarget;
@@ -563,12 +730,7 @@ namespace TDAnnihilation
 
         private void SpawnCoin()
         {
-            GameObject coin = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            coin.name = "Coin Drop";
-            coin.transform.position = transform.position + Vector3.up * 0.8f;
-            coin.transform.localScale = new Vector3(0.22f, 0.08f, 0.22f);
-            coin.GetComponent<Renderer>().sharedMaterial = MakeMaterial(new Color(1f, 0.72f, 0.1f));
-            coin.AddComponent<TDCoinPickup>().Configure(state, 12);
+            TDCoinPickup.Spawn(state, 12, transform.position + Vector3.up * 0.8f);
         }
 
         private static Material MakeMaterial(Color color)
@@ -586,27 +748,53 @@ namespace TDAnnihilation
         [SerializeField] private float range = 8f;
         [SerializeField] private float fireRate = 1.1f;
         private float cooldown;
+        private TDArcherTowerDrawAnimation archerAnimation;
+        private TDSkillModifiers skillModifiers = new TDSkillModifiers();
+        private bool isArcher;
+
+        public bool IsArcher => isArcher;
+        public float EffectiveRange => range * (1f + (isArcher ? skillModifiers.ArcherRangeBonus : 0f));
+        public float EffectiveDamage => 16f * (1f + (isArcher ? skillModifiers.ArcherDamageBonus : skillModifiers.ArcaneDamageBonus));
+        public float EffectiveFireInterval => Mathf.Max(0.05f, fireRate * (1f - (isArcher ? 0f : skillModifiers.ArcaneFireIntervalReduction)));
+
+        public void ApplySkillModifiers(TDSkillModifiers modifiers, bool archer)
+        {
+            skillModifiers = modifiers ?? new TDSkillModifiers();
+            isArcher = archer;
+        }
+
+        private void Awake()
+        {
+            archerAnimation = GetComponentInChildren<TDArcherTowerDrawAnimation>();
+        }
 
         private void Update()
         {
             cooldown -= Time.deltaTime;
-            if (cooldown > 0f) return;
             TDEnemyController[] targets = FindObjectsByType<TDEnemyController>();
             TDEnemyController nearest = null;
-            float best = range * range;
+            float best = EffectiveRange * EffectiveRange;
             foreach (TDEnemyController target in targets)
             {
                 float distance = (target.transform.position - transform.position).sqrMagnitude;
                 if (distance < best) { best = distance; nearest = target; }
             }
             if (nearest == null) return;
-            cooldown = fireRate;
+            if (archerAnimation != null)
+            {
+                archerAnimation.AimAt(nearest.transform.position + Vector3.up);
+            }
+            if (cooldown > 0f) return;
+            cooldown = EffectiveFireInterval;
+            archerAnimation?.PlayShot();
+            bool isArrow = archerAnimation != null;
             GameObject projectile = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            projectile.name = "Arcane Bolt";
-            projectile.transform.position = transform.position + Vector3.up * 2.4f;
-            projectile.transform.localScale = Vector3.one * 0.24f;
+            projectile.name = isArrow ? "Archer Bolt" : "Arcane Bolt";
+            projectile.transform.position = isArrow ? archerAnimation.ShotPosition : transform.position + Vector3.up * 2.4f;
+            if (isArrow) projectile.transform.rotation = archerAnimation.ShotRotation;
+            projectile.transform.localScale = isArrow ? Vector3.one * 0.06f : Vector3.one * 0.24f;
             projectile.GetComponent<Renderer>().sharedMaterial = MakeMaterial(projectileColor);
-            projectile.AddComponent<TDProjectile>().Configure(nearest, 16f, projectileColor);
+            projectile.AddComponent<TDProjectile>().Configure(nearest, EffectiveDamage, projectileColor, isArrow);
         }
 
         private static Material MakeMaterial(Color color)
@@ -623,17 +811,21 @@ namespace TDAnnihilation
         private float damage;
         private Vector3 velocity;
         private bool damageApplied;
+        private Color projectileColor;
 
         private const float InitialSpeed = 3.5f;
         private const float MaxSpeed = 15f;
         private const float Acceleration = 24f;
         private const float Steering = 18f;
 
-        public void Configure(TDEnemyController enemy, float hitDamage, Color color)
+        public void Configure(TDEnemyController enemy, float hitDamage, Color color, bool arrow = false)
         {
             target = enemy;
             damage = hitDamage;
+            projectileColor = color;
             velocity = transform.forward * InitialSpeed;
+
+            if (arrow) CreateArrowVisual();
 
             TrailRenderer trail = gameObject.AddComponent<TrailRenderer>();
             trail.time = 0.28f;
@@ -675,9 +867,31 @@ namespace TDAnnihilation
             {
                 damageApplied = true;
                 target.TakeDamage(damage);
-                SpawnImpactBurst(transform.position, GetComponent<Renderer>().sharedMaterial.color);
+                SpawnImpactBurst(transform.position, projectileColor);
                 Destroy(gameObject);
             }
+        }
+
+        private void CreateArrowVisual()
+        {
+            GetComponent<Renderer>().enabled = false;
+            Material shaftMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(0.42f, 0.25f, 0.11f) };
+            Material tipMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit")) { color = new Color(0.78f, 0.66f, 0.42f) };
+            GameObject shaft = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            shaft.name = "Arrow shaft";
+            shaft.transform.SetParent(transform, false);
+            shaft.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            shaft.transform.localScale = new Vector3(0.035f, 0.22f, 0.035f);
+            shaft.GetComponent<Renderer>().sharedMaterial = shaftMaterial;
+            Destroy(shaft.GetComponent<Collider>());
+
+            GameObject tip = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            tip.name = "Arrowhead";
+            tip.transform.SetParent(transform, false);
+            tip.transform.localPosition = Vector3.forward * 0.25f;
+            tip.transform.localScale = new Vector3(0.075f, 0.075f, 0.14f);
+            tip.GetComponent<Renderer>().sharedMaterial = tipMaterial;
+            Destroy(tip.GetComponent<Collider>());
         }
 
         private static Material MakeParticleMaterial(Color color)
@@ -717,6 +931,7 @@ namespace TDAnnihilation
 
     public sealed class TDCoinPickup : MonoBehaviour
     {
+        private const float MergeRadius = 1.6f;
         [SerializeField] private float magnetRadius = 5.5f;
         [SerializeField] private float magnetSpeed = 12f;
         [SerializeField] private float magnetAcceleration = 30f;
@@ -728,12 +943,72 @@ namespace TDAnnihilation
         private TDResourceState state;
         private int value;
         private Transform hero;
+        private GameObject visual;
+        private bool collected;
+
+        public int Value => value;
+
+        public static TDCoinPickup Spawn(TDResourceState resource, int coinValue, Vector3 position)
+        {
+            foreach (TDCoinPickup pickup in FindObjectsByType<TDCoinPickup>())
+            {
+                if (pickup.state != resource || pickup.collecting || pickup.collectTimer > 0f || pickup.collected) continue;
+                Vector3 offset = pickup.transform.position - position;
+                if (offset.sqrMagnitude > MergeRadius * MergeRadius) continue;
+                pickup.value += coinValue;
+                pickup.lifetime = 8f;
+                pickup.RefreshVisual();
+                return pickup;
+            }
+
+            GameObject coin = new GameObject("Coin Drop");
+            coin.transform.position = position;
+            TDCoinPickup created = coin.AddComponent<TDCoinPickup>();
+            created.Configure(resource, coinValue);
+            return created;
+        }
 
         public void Configure(TDResourceState resource, int coinValue)
         {
             state = resource;
             value = coinValue;
             initialScale = transform.localScale;
+            RefreshVisual();
+        }
+
+        private void RefreshVisual()
+        {
+            bool stack = value > 10;
+            string prefabPath = stack ? "TDAnnihilation/CoinStackVisual" : "TDAnnihilation/CoinVisual";
+            GameObject prefab = Resources.Load<GameObject>(prefabPath);
+            if (prefab == null)
+            {
+                Debug.LogError("Coin pickup visual missing: " + prefabPath);
+                return;
+            }
+            if (visual != null)
+            {
+                if (Application.isPlaying) Destroy(visual);
+                else DestroyImmediate(visual);
+            }
+            visual = Instantiate(prefab, transform);
+            visual.name = prefab.name;
+            visual.transform.localPosition = Vector3.zero;
+            visual.transform.localRotation = Quaternion.identity;
+            foreach (Collider collider in visual.GetComponentsInChildren<Collider>(true)) collider.enabled = false;
+            gameObject.name = stack ? "Coin Stack Drop" : "Coin Drop";
+        }
+
+        public void Collect()
+        {
+            if (collected) return;
+            collected = true;
+            if (state != null) state.gold += value;
+            if (Application.isPlaying)
+            {
+                SpawnBurst(transform.position);
+                Destroy(gameObject);
+            }
         }
 
         private void Update()
@@ -743,7 +1018,10 @@ namespace TDAnnihilation
                 TDHeroController heroController = FindAnyObjectByType<TDHeroController>();
                 if (heroController != null) hero = heroController.transform;
             }
-            if (collectTimer <= 0f && !collecting && hero != null && Vector3.Distance(transform.position, hero.position) <= magnetRadius) collecting = true;
+            if (collectTimer <= 0f && !collecting && hero != null && Vector3.Distance(transform.position, hero.position) <= magnetRadius)
+            {
+                collecting = true;
+            }
             if (collecting && hero != null)
             {
                 currentSpeed = Mathf.MoveTowards(currentSpeed, magnetSpeed, magnetAcceleration * Time.deltaTime);
@@ -752,7 +1030,6 @@ namespace TDAnnihilation
                 {
                     collecting = false;
                     collectTimer = 0.0001f;
-                    GetComponent<Collider>().enabled = false;
                 }
             }
             if (collectTimer > 0f)
@@ -762,9 +1039,7 @@ namespace TDAnnihilation
                 transform.localScale = initialScale * Mathf.Lerp(1f, 1.7f, Mathf.Clamp01(t));
                 if (collectTimer >= 0.18f)
                 {
-                    if (state != null) state.gold += value;
-                    SpawnBurst(transform.position);
-                    Destroy(gameObject);
+                    Collect();
                 }
                 return;
             }

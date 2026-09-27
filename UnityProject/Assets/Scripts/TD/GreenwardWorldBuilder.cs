@@ -53,7 +53,8 @@ namespace TDAnnihilation
             Model("Mill",new Vector3(16,0,14),1.55f,185,v.transform);
             Model("Well",new Vector3(5,0,7),2.1f,0,v.transform);
             Model("Cart",new Vector3(-1,0,8.5f),1.55f,32,v.transform);
-            Model("Bonfire_Lit",new Vector3(10,0,4),1.5f,0,v.transform);
+            GameObject bonfire=Model("Bonfire_Lit",new Vector3(10,0,4),1.5f,0,v.transform);
+            if(bonfire!=null) Fire(v.transform,new Vector3(10,GreenwardWorldLayout.HeightAt(10,4)+.9f,4),2f,.45f);
             for(int i=0;i<4;i++)Model(i%2==0?"Barrel":"Crate",new Vector3(-5+i*1.1f,0,-8.8f),1.4f,i*23,v.transform);
             for(int i=0;i<14;i++){float x=-7+i*1.1f;Prim("Farm Crop",PrimitiveType.Capsule,new Vector3(x,.45f,18+(i%2)),new Vector3(.18f,.45f,.18f),new Color(.55f,.62f,.12f),v.transform);}
         }
@@ -93,8 +94,69 @@ namespace TDAnnihilation
             for(int i=0;i<3;i++)
             {
                 var b=Prim("Royal Banner",PrimitiveType.Cube,new Vector3(32.2f,y+3.8f,-1f+i*4f),new Vector3(.10f,2.2f,1.1f),new Color(.12f,.28f,.65f),c.transform);
-                b.AddComponent<GreenwardAmbientMotion>().sway=5;
+                var motion=b.AddComponent<GreenwardAmbientMotion>();
+                motion.cloth=true;
+                motion.speed=48f;
             }
+            for(int i=0;i<2;i++)
+            {
+                float z=i==0?-1.8f:7.2f;
+                Prim("Gate Brazier",PrimitiveType.Cylinder,new Vector3(30.3f,y+4.8f,z),new Vector3(.48f,.18f,.48f),new Color(.16f,.18f,.20f),c.transform);
+                Fire(c.transform,new Vector3(30.3f,y+5.05f,z),1.5f,.34f);
+            }
+            Beacon(c.transform,y);
+        }
+        static void Fire(Transform parent,Vector3 position,float height,float radius)
+        {
+            var flame=new GameObject("Greenward Fire");
+            flame.transform.SetParent(parent);
+            flame.transform.position=position;
+            var fire=flame.AddComponent<GreenwardFire>();
+            fire.height=height;
+            fire.radius=radius;
+        }
+        static void Beacon(Transform parent,float y)
+        {
+            Vector3 center=new Vector3(39f,0f,4f);
+            Prim("Sunspire Beacon Tower",PrimitiveType.Cylinder,center+Vector3.up*(y+3.9f),new Vector3(1.45f,3.65f,1.45f),stone,parent);
+            Prim("Beacon Brass Crown",PrimitiveType.Cylinder,center+Vector3.up*(y+7.65f),new Vector3(1.8f,.22f,1.8f),new Color(.55f,.36f,.12f),parent);
+            Shader shader=Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+            Material cyan=new Material(shader){name="Sunspire Beacon Cyan"};
+            cyan.SetColor("_BaseColor",new Color(.04f,1.25f,1.6f));
+            Material core=new Material(shader){name="Sunspire Beacon Core"};
+            core.SetColor("_BaseColor",new Color(.56f,1.5f,1.7f));
+            var focus=Prim("Beacon Cyan Focus",PrimitiveType.Sphere,center+Vector3.up*(y+8.4f),new Vector3(1.15f,1.55f,1.15f),Color.white,parent);
+            focus.GetComponent<Renderer>().sharedMaterial=cyan;
+            for(int i=0;i<2;i++)
+            {
+                var beam=Prim(i==0?"Cyan Beacon Shaft":"Beacon White Core",PrimitiveType.Cylinder,center+Vector3.up*(y+23.3f),new Vector3(i==0?.85f:.31f,14.5f,i==0?.85f:.31f),Color.white,parent);
+                beam.GetComponent<Renderer>().sharedMaterial=i==0?cyan:core;
+                var motion=beam.AddComponent<GreenwardAmbientMotion>();
+                motion.pulse=true;
+                motion.speed=1.6f;
+                if(Application.isPlaying) Object.Destroy(beam.GetComponent<Collider>());
+                else Object.DestroyImmediate(beam.GetComponent<Collider>());
+            }
+            BeaconAura(parent,y);
+        }
+        static void BeaconAura(Transform parent,float y)
+        {
+            Shader shader=Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Unlit/Color");
+            Material aura=new Material(shader){name="Sunspire Beacon Aura"};
+            aura.SetColor("_BaseColor",new Color(.02f,.8f,1.2f,.18f));
+            aura.SetFloat("_Surface",1f);
+            aura.SetFloat("_SrcBlend",(float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            aura.SetFloat("_DstBlend",(float)UnityEngine.Rendering.BlendMode.One);
+            aura.SetFloat("_ZWrite",0f);
+            aura.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            aura.renderQueue=(int)UnityEngine.Rendering.RenderQueue.Transparent;
+            var beam=Prim("Beacon Energy Aura",PrimitiveType.Cylinder,new Vector3(39f,y+23.3f,4f),new Vector3(2.1f,14.5f,2.1f),Color.white,parent);
+            beam.GetComponent<Renderer>().sharedMaterial=aura;
+            var motion=beam.AddComponent<GreenwardAmbientMotion>();
+            motion.pulse=true;
+            motion.speed=1.6f;
+            if(Application.isPlaying) Object.Destroy(beam.GetComponent<Collider>());
+            else Object.DestroyImmediate(beam.GetComponent<Collider>());
         }
         static void Corruption(Transform p){var c=new GameObject("Blightfall Lowlands");c.transform.SetParent(p);for(int i=0;i<9;i++){float a=i*Mathf.PI*2/9;var point=new Vector2(-41+Mathf.Cos(a)*5,-10+Mathf.Sin(a)*5);if(GreenwardWorldLayout.IsRoad(point,2.8f))continue;Prim("Void Crystal",PrimitiveType.Cylinder,new Vector3(point.x,1,point.y),new Vector3(.45f,1.8f,.45f),corruption,c.transform);}Prim("Demon Portal",PrimitiveType.Cylinder,new Vector3(-43,2.8f,-10),new Vector3(4,.5f,4),corruption,c.transform).transform.rotation=Quaternion.Euler(90,0,0);for(int i=0;i<7;i++)Prim("Ruined Monolith",PrimitiveType.Cube,new Vector3(-35+i%3*3,1.3f,-19+i/3*3),new Vector3(1.2f,2.6f,1.2f),stone,c.transform);}
         static void Boundaries(Transform p){var rng=new System.Random(731);for(int i=0;i<64;i++){float x=-46+i*92f/63f;Tree(p,x,(i%2==0?-29:29),rng);if(i%3==0)Tree(p,x,(i%2==0?26:-26),rng);}for(int i=0;i<22;i++){float z=-27+i*54f/21f;Tree(p,-46,z,rng);if(i%2==0)Tree(p,47,z,rng);}for(int i=0;i<18;i++){float x=-44+(float)rng.NextDouble()*88,z=-27+(float)rng.NextDouble()*54;if(Mathf.Abs(z)<15)continue;Prim("Mossy Boulder",PrimitiveType.Sphere,new Vector3(x,GreenwardWorldLayout.HeightAt(x,z)+.5f,z),Vector3.one*(.6f+(float)rng.NextDouble()),stone,p);}}
