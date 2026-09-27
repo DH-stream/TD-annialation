@@ -24,12 +24,12 @@ namespace TDAnnihilation
         {
             Camera cameraComponent = GetComponent<Camera>();
             cameraComponent.allowHDR = true;
-            cameraComponent.clearFlags = CameraClearFlags.SolidColor;
-            cameraComponent.backgroundColor = new Color(0.38f, 0.55f, 0.68f);
+            cameraComponent.clearFlags = RenderSettings.skybox != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
+            cameraComponent.backgroundColor = new Color(0.08f, 0.11f, 0.16f);
             cameraComponent.fieldOfView = 62f;
             cameraComponent.nearClipPlane = 0.3f;
             var cameraData = GetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
-            if (cameraData != null) cameraData.renderPostProcessing = false;
+            if (cameraData != null) cameraData.renderPostProcessing = true;
         }
         public void SetTarget(Transform value)
         {
