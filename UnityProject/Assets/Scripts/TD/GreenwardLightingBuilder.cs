@@ -52,7 +52,7 @@ namespace TDAnnihilation
             if (camera != null)
             {
                 camera.allowHDR = true;
-                camera.clearFlags = CameraClearFlags.Skybox;
+                camera.clearFlags = RenderSettings.skybox != null ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
                 camera.backgroundColor = new Color(0.08f, 0.11f, 0.16f);
             }
         }
