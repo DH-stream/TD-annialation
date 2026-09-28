@@ -89,17 +89,7 @@ namespace TDAnnihilation
         [MenuItem("TD Annihilation/Greenward/Reset Lighting To Defaults")]
         public static void ResetLightingToDefaults()
         {
-            Scene scene = SceneManager.GetActiveScene();
-            if (!scene.IsValid())
-            {
-                Debug.LogError("Open the Greenward scene before resetting lighting.");
-                return;
-            }
-
-            GreenwardLightingBuilder.Configure(Camera.main);
-            EditorSceneManager.MarkSceneDirty(scene);
-            EditorSceneManager.SaveScene(scene);
-            Debug.Log("Reset Greenward lighting to project defaults. Further tuning should be done directly in the Unity Editor.");
+            GreenwardPresentationAuthoring.ApplySuggestedBaseline();
         }
 
         private static Transform CreateMarker(Transform parent, string name, Vector3 position)
