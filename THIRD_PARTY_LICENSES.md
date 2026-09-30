@@ -110,3 +110,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 ```
 
 Source: https://github.com/google/fonts/tree/main/ofl/metalmania
+
+## Quaternius Ultimate Monsters
+
+Greenward's skitter, raider and brute are selected from [Quaternius Ultimate Monsters](https://quaternius.com/packs/ultimatemonsters.html), stored under `public/assets/vendor/quaternius/ultimate-monsters/`.
+
+The original `LICENSE.txt` is kept beside the imported glTF files. The pack is released under Creative Commons CC0 1.0 Universal; attribution is not required, and this notice records provenance.

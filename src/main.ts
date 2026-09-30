@@ -19,6 +19,7 @@ import {
   placeTower,
   startNextWave,
   validateTowerPlacement,
+  type EnemyKind,
   type TowerPlacement,
   type StageState,
 } from './game/sim/stageSimulation';
@@ -30,6 +31,11 @@ import {
   loadKenneyCharacter,
   type CharacterInstance,
 } from './game/assets/kenneyCharacters';
+import {
+  instantiateQuaterniusMonster,
+  loadQuaterniusMonster,
+  type MonsterInstance,
+} from './game/assets/quaterniusMonsters';
 import {
   instantiateFantasyTownAsset,
   loadKenneyFantasyTownAsset,
@@ -66,17 +72,21 @@ const {
 const keyboard = createKeyboardInputSource(window, loadStoredKeyboardBindings());
 let stageState: StageState | null = null;
 const enemyVisuals = new Map<string, TransformNode>();
-const enemyCharacterInstances = new Map<string, CharacterInstance>();
+const monsterInstances = new Map<string, MonsterInstance>();
+const monsterKinds = new Map<string, EnemyKind>();
+const enemyPreviousPositions = new Map<string, { x: number; z: number }>();
 // ponytail: pools retain the peak active visual count; cap and evict if endless scale makes that material.
 const fallbackEnemyVisualPool: TransformNode[] = [];
-const enemyCharacterPool: CharacterInstance[] = [];
+const monsterPools = { skitter: [] as MonsterInstance[], raider: [] as MonsterInstance[], brute: [] as MonsterInstance[] };
+const monsterScales = { skitter: 0.6, raider: 0.7, brute: 0.95 };
 const remotePlayerVisuals = new Map<string, CharacterInstance>();
 const remotePlayerStates = new Map<string, { x: number; y: number; z: number; receivedAt: number }>();
 const towerVisuals = new Map<string, TransformNode>();
 const coinVisuals = new Map<string, TransformNode>();
 const coinVisualPool: TransformNode[] = [];
 const attackEffects: Array<{ root: TransformNode; expiresAt: number }> = [];
-let enemyCharacterContainer: AssetContainer | null = null;
+let remoteCharacterContainer: AssetContainer | null = null;
+const monsterContainers: Partial<Record<'skitter' | 'raider' | 'brute', AssetContainer>> = {};
 let heroCharacter: CharacterInstance | null = null;
 let towerAssets: { base: AssetContainer; roof: AssetContainer; banner: AssetContainer } | null = null;
 let createTowerVisual: ((tower: { id: string; x: number; z: number }) => void) | null = null;
@@ -93,11 +103,11 @@ let networkStatusMessage: string | null = null;
 
 const prepareCharacterAssets = async (): Promise<void> => {
   try {
-    const [enemyContainer, heroContainer] = await Promise.all([
+    const [remoteContainer, heroContainer] = await Promise.all([
       loadKenneyCharacter(scene, 'a'),
       loadKenneyCharacter(scene, 'd'),
     ]);
-    enemyCharacterContainer = enemyContainer;
+    remoteCharacterContainer = remoteContainer;
     heroCharacter = instantiateKenneyCharacter(heroContainer, 'hero-king', 1.25);
     heroCharacter.root.parent = mapRoot;
     heroCharacter.root.position.copyFrom(heroRoot.position);
@@ -105,23 +115,36 @@ const prepareCharacterAssets = async (): Promise<void> => {
     heroCharacter.play('idle');
     heroRoot.setEnabled(false);
 
-    enemyVisuals.forEach((fallback, enemyId) => {
-      const position = fallback.position.clone();
-      fallback.dispose(false, true);
-      const instance = instantiateKenneyCharacter(enemyCharacterContainer!, enemyId, 0.9);
-      instance.root.parent = mapRoot;
-      instance.root.position.copyFrom(position);
-      instance.play('walk');
-      enemyVisuals.set(enemyId, instance.root);
-      enemyCharacterInstances.set(enemyId, instance);
-    });
   } catch (error) {
-    console.warn('Kenney characters could not be loaded; using fallback silhouettes.', error);
+    console.warn('Kenney character assets could not be loaded.', error);
     // The fallback silhouettes keep the game playable when an optional asset fails to load.
   }
 };
 
 void prepareCharacterAssets();
+
+const prepareMonsterAssets = async (): Promise<void> => {
+  try {
+    const [skitter, raider, brute] = await Promise.all([
+      loadQuaterniusMonster(scene, 'skitter'),
+      loadQuaterniusMonster(scene, 'raider'),
+      loadQuaterniusMonster(scene, 'brute'),
+    ]);
+    monsterContainers.skitter = skitter;
+    monsterContainers.raider = raider;
+    monsterContainers.brute = brute;
+    enemyVisuals.forEach((visual, enemyId) => {
+      if (!monsterInstances.has(enemyId)) {
+        visual.dispose(false, true);
+        enemyVisuals.delete(enemyId);
+      }
+    });
+  } catch (error) {
+    console.warn('Quaternius monster assets could not be loaded; using fallback silhouettes.', error);
+  }
+};
+
+void prepareMonsterAssets();
 
 const toLocalPlacement = (worldPoint: Vector3): TowerPlacement => {
   const mapScale = mapRoot.scaling.x;
@@ -566,11 +589,14 @@ engine.runRenderLoop(() => {
     stageState.enemies.forEach((enemy) => {
       let enemyVisual = enemyVisuals.get(enemy.id);
       if (!enemyVisual) {
-        if (enemyCharacterContainer) {
-          const instance = enemyCharacterPool.pop() ?? instantiateKenneyCharacter(enemyCharacterContainer, enemy.id, 0.9);
+        const container = monsterContainers[enemy.kind];
+        if (container) {
+          const instance = monsterPools[enemy.kind].pop()
+            ?? instantiateQuaterniusMonster(container, enemy.kind, enemy.id, monsterScales[enemy.kind]);
           instance.root.setEnabled(true);
-          instance.play('walk');
-          enemyCharacterInstances.set(enemy.id, instance);
+          instance.play(enemy.phase);
+          monsterInstances.set(enemy.id, instance);
+          monsterKinds.set(enemy.id, enemy.kind);
           enemyVisual = instance.root;
         } else {
           enemyVisual = fallbackEnemyVisualPool.pop() ?? createEnemyVisual(scene, DEFAULT_SCENE_CONFIG, enemy.id);
@@ -579,19 +605,31 @@ engine.runRenderLoop(() => {
         enemyVisual.parent = mapRoot;
         enemyVisuals.set(enemy.id, enemyVisual);
       }
+      const monster = monsterInstances.get(enemy.id);
+      if (monster) {
+        monster.play(enemy.phase);
+        const previousPosition = enemyPreviousPositions.get(enemy.id);
+        if (enemy.phase === 'walking' && previousPosition && Math.hypot(enemy.x - previousPosition.x, enemy.z - previousPosition.z) > 0.01) {
+          enemyVisual.rotation.y = Math.atan2(enemy.x - previousPosition.x, enemy.z - previousPosition.z);
+        }
+      }
       enemyVisual.position.set(enemy.x, 0, enemy.z);
+      enemyPreviousPositions.set(enemy.id, { x: enemy.x, z: enemy.z });
     });
     enemyVisuals.forEach((enemyVisual, enemyId) => {
       if (!activeEnemyIds.has(enemyId)) {
-        const characterInstance = enemyCharacterInstances.get(enemyId);
-        if (characterInstance) {
-          characterInstance.root.setEnabled(false);
-          enemyCharacterPool.push(characterInstance);
-          enemyCharacterInstances.delete(enemyId);
+        const monster = monsterInstances.get(enemyId);
+        const kind = monsterKinds.get(enemyId);
+        if (monster && kind) {
+          monster.root.setEnabled(false);
+          monsterPools[kind].push(monster);
+          monsterInstances.delete(enemyId);
+          monsterKinds.delete(enemyId);
         } else {
           enemyVisual.setEnabled(false);
           fallbackEnemyVisualPool.push(enemyVisual);
         }
+        enemyPreviousPositions.delete(enemyId);
         enemyVisuals.delete(enemyId);
       }
     });
@@ -614,11 +652,11 @@ engine.runRenderLoop(() => {
         coinVisuals.delete(coinId);
       }
     });
-    if (enemyCharacterContainer) {
+    if (remoteCharacterContainer) {
       remotePlayerStates.forEach((remote, playerId) => {
         let visual = remotePlayerVisuals.get(playerId);
         if (!visual) {
-          visual = instantiateKenneyCharacter(enemyCharacterContainer!, `remote-${playerId}`, 1.05);
+          visual = instantiateKenneyCharacter(remoteCharacterContainer!, `remote-${playerId}`, 1.05);
           visual.root.parent = mapRoot;
           visual.play('idle');
           remotePlayerVisuals.set(playerId, visual);

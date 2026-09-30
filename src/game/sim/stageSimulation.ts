@@ -1,10 +1,15 @@
 export type PlayMode = 'stages' | 'endless';
 export type StageStatus = 'build' | 'wave' | 'won' | 'lost';
+export type EnemyKind = 'skitter' | 'raider' | 'brute';
+export type EnemyPhase = 'spawning' | 'walking' | 'hit' | 'dying' | 'attacking';
 
 export type PathPoint = { x: number; z: number };
 
 export type EnemyState = {
   id: string;
+  kind: EnemyKind;
+  phase: EnemyPhase;
+  phaseTimer: number;
   x: number;
   z: number;
   health: number;
@@ -59,12 +64,27 @@ export const GREENWARD_PATH: PathPoint[] = [
 ];
 
 const ENEMY_SPAWN_INTERVAL = 0.7;
+const ENEMY_SPAWN_DURATION = 0.35;
+const ENEMY_HIT_DURATION = 0.18;
+const ENEMY_DEATH_DURATION = 0.65;
+const ENEMY_GATE_ATTACK_DURATION = 0.6;
 const STARTING_GOLD = 200;
 export const TOWER_COST = 50;
-const ENEMY_REWARD = 10;
 export const TOWER_MIN_SPACING = 3.2;
 export const TOWER_MIN_PATH_CLEARANCE = 3.4;
 export const TOWER_PLACEMENT_BOUNDS = { minX: -30, maxX: 30, minZ: -22, maxZ: 22 };
+
+const ENEMY_ARCHETYPES: Record<EnemyKind, { health: number; speed: number; reward: number; gateDamage: number }> = {
+  skitter: { health: 7, speed: 4.25, reward: 8, gateDamage: 1 },
+  raider: { health: 10, speed: 2.95, reward: 10, gateDamage: 1 },
+  brute: { health: 26, speed: 1.7, reward: 18, gateDamage: 2 },
+};
+
+const WAVE_PATTERNS: EnemyKind[][] = [
+  ['raider', 'skitter', 'raider', 'skitter', 'raider'],
+  ['skitter', 'raider', 'brute', 'skitter', 'raider', 'brute'],
+  ['brute', 'skitter', 'raider', 'brute', 'raider', 'skitter', 'brute'],
+];
 
 export type TowerPlacementReason = 'ok' | 'phase' | 'insufficient-gold' | 'out-of-bounds' | 'path-clearance' | 'tower-spacing';
 
@@ -161,6 +181,34 @@ export function placeTower(state: StageState, position: TowerPlacement): { state
   };
 }
 
+function canBeDamaged(enemy: EnemyState): boolean {
+  return enemy.phase !== 'spawning' && enemy.phase !== 'dying';
+}
+
+function damageEnemy(enemy: EnemyState, damage: number, coins: CoinState[]): EnemyState {
+  const health = enemy.health - damage;
+  if (health > 0) {
+    return { ...enemy, health, phase: 'hit', phaseTimer: ENEMY_HIT_DURATION };
+  }
+  coins.push({
+    id: `coin-${enemy.id}`,
+    x: enemy.x,
+    z: enemy.z,
+    value: ENEMY_ARCHETYPES[enemy.kind].reward,
+  });
+  return { ...enemy, health: 0, phase: 'dying', phaseTimer: ENEMY_DEATH_DURATION };
+}
+
+function applyDamageToTargets(state: StageState, targetIds: Set<string>, damage: number): StageState {
+  const coins = [...state.coins];
+  const enemies = state.enemies.map((enemy) => (
+    targetIds.has(enemy.id) && canBeDamaged(enemy)
+      ? damageEnemy(enemy, damage, coins)
+      : enemy
+  ));
+  return { ...state, enemies, coins };
+}
+
 export function applyHeroAttack(
   state: StageState,
   position: { x: number; z: number },
@@ -171,35 +219,31 @@ export function applyHeroAttack(
   const range = attack === 'special' ? 5.8 : 3.4;
   const damage = attack === 'special' ? 18 : 8;
   const targets = state.enemies
+    .filter(canBeDamaged)
     .map((enemy) => ({ enemy, distance: Math.hypot(enemy.x - position.x, enemy.z - position.z) }))
     .filter(({ distance }) => distance <= range)
     .sort((left, right) => left.distance - right.distance)
     .slice(0, attack === 'special' ? undefined : 1)
     .map(({ enemy }) => enemy.id);
-  if (targets.length === 0) return state;
-
-  const targetIds = new Set(targets);
-  const coins = [...state.coins];
-  const enemies = state.enemies.flatMap((enemy) => {
-    if (!targetIds.has(enemy.id)) return [enemy];
-    const health = enemy.health - damage;
-    if (health > 0) return [{ ...enemy, health }];
-    coins.push({ id: `coin-${enemy.id}`, x: enemy.x, z: enemy.z, value: ENEMY_REWARD });
-    return [];
-  });
-  return finishWave({ ...state, enemies, coins });
+  return targets.length === 0 ? state : applyDamageToTargets(state, new Set(targets), damage);
 }
 
 function spawnEnemy(state: StageState): EnemyState {
   const enemyNumber = 5 + state.wave - state.remainingToSpawn;
-  const maxHealth = 8 + state.wave * 2;
+  const pattern = WAVE_PATTERNS[Math.min(state.wave, WAVE_PATTERNS.length) - 1];
+  const kind = pattern[(enemyNumber - 1) % pattern.length];
+  const archetype = ENEMY_ARCHETYPES[kind];
+  const health = archetype.health + (state.wave - 1) * 2;
   return {
     id: `greenward-wave-${state.wave}-enemy-${enemyNumber}`,
+    kind,
+    phase: 'spawning',
+    phaseTimer: ENEMY_SPAWN_DURATION,
     x: GREENWARD_PATH[0].x,
     z: GREENWARD_PATH[0].z,
-    health: maxHealth,
-    maxHealth,
-    speed: 2.8 + state.wave * 0.15,
+    health,
+    maxHealth: health,
+    speed: archetype.speed,
     waypointIndex: 0,
   };
 }
@@ -228,7 +272,19 @@ function moveEnemy(enemy: EnemyState, deltaSeconds: number): EnemyState {
     remainingDistance = 0;
   }
 
+  if (waypointIndex === GREENWARD_PATH.length - 1) {
+    return { ...enemy, x, z, waypointIndex, phase: 'attacking', phaseTimer: ENEMY_GATE_ATTACK_DURATION };
+  }
   return { ...enemy, x, z, waypointIndex };
+}
+
+function advanceEnemyPhase(enemy: EnemyState, deltaSeconds: number): { enemy?: EnemyState; baseDamage: number } {
+  if (enemy.phase === 'walking') return { enemy, baseDamage: 0 };
+  const phaseTimer = enemy.phaseTimer - deltaSeconds;
+  if (phaseTimer > 0) return { enemy: { ...enemy, phaseTimer }, baseDamage: 0 };
+  if (enemy.phase === 'dying') return { baseDamage: 0 };
+  if (enemy.phase === 'attacking') return { baseDamage: ENEMY_ARCHETYPES[enemy.kind].gateDamage };
+  return { enemy: { ...enemy, phase: 'walking', phaseTimer: 0 }, baseDamage: 0 };
 }
 
 function finishWave(state: StageState): StageState {
@@ -246,54 +302,40 @@ export function advanceStage(state: StageState, deltaSeconds: number): StageStat
     return state;
   }
 
+  let baseHealth = state.baseHealth;
+  const maturedEnemies = state.enemies.flatMap((enemy) => {
+    const result = advanceEnemyPhase(enemy, deltaSeconds);
+    baseHealth -= result.baseDamage;
+    return result.enemy ? [result.enemy] : [];
+  });
+
   let spawnTimer = state.spawnTimer + deltaSeconds;
   let remainingToSpawn = state.remainingToSpawn;
-  const spawnedEnemies = [...state.enemies];
+  const spawnedEnemies = [...maturedEnemies];
   while (spawnTimer >= ENEMY_SPAWN_INTERVAL && remainingToSpawn > 0) {
     spawnTimer -= ENEMY_SPAWN_INTERVAL;
     spawnedEnemies.push(spawnEnemy({ ...state, remainingToSpawn }));
     remainingToSpawn -= 1;
   }
 
-  let baseHealth = state.baseHealth;
-  const movedEnemies = spawnedEnemies
-    .map((enemy) => moveEnemy(enemy, deltaSeconds))
-    .filter((enemy) => {
-      if (enemy.waypointIndex < GREENWARD_PATH.length - 1) {
-        return true;
-      }
-      baseHealth -= 1;
-      return false;
-    });
-
-  let gold = state.gold;
+  let enemies = spawnedEnemies.map((enemy) => (
+    enemy.phase === 'walking' ? moveEnemy(enemy, deltaSeconds) : enemy
+  ));
   const coins = [...state.coins];
-  let enemies = movedEnemies;
   const towers = state.towers.map((tower) => {
     let attackTimer = Math.max(0, tower.attackTimer - deltaSeconds);
-    if (attackTimer > 0) {
-      return { ...tower, attackTimer };
-    }
+    if (attackTimer > 0) return { ...tower, attackTimer };
 
     const target = enemies
+      .filter(canBeDamaged)
       .map((enemy) => ({ enemy, distance: Math.hypot(enemy.x - tower.x, enemy.z - tower.z) }))
       .filter(({ distance }) => distance <= tower.range)
       .sort((left, right) => left.distance - right.distance)[0]?.enemy;
-    if (!target) {
-      return { ...tower, attackTimer: 0 };
-    }
+    if (!target) return { ...tower, attackTimer: 0 };
 
-    enemies = enemies.flatMap((enemy) => {
-      if (enemy.id !== target.id) {
-        return [enemy];
-      }
-      const health = enemy.health - tower.damage;
-      if (health <= 0) {
-        coins.push({ id: `coin-${enemy.id}`, x: enemy.x, z: enemy.z, value: ENEMY_REWARD });
-        return [];
-      }
-      return [{ ...enemy, health }];
-    });
+    enemies = enemies.map((enemy) => (
+      enemy.id === target.id ? damageEnemy(enemy, tower.damage, coins) : enemy
+    ));
     attackTimer = tower.attackCooldown;
     return { ...tower, attackTimer };
   });
@@ -301,7 +343,6 @@ export function advanceStage(state: StageState, deltaSeconds: number): StageStat
   const nextState: StageState = {
     ...state,
     baseHealth,
-    gold,
     enemies,
     towers,
     coins,

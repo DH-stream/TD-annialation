@@ -8,3 +8,5 @@ dist/
 .superpowers/
 output/
 .playwright-cli/
+
+/Build/
